@@ -9,6 +9,10 @@
 
 ## 2. Provider discovery and match lifecycle proof
 
+The provider-discovery PR adds current-season feed discovery, scheduled-time and
+1X2 normalization, cross-league identity checks and private one-shot diagnostics.
+See `provider-discovery.md` for observed evidence and remaining lifecycle limits.
+
 Observe upcoming → live → settled for one match per league. Identify stable event
 IDs, current season discovery, market/outcome identities, scheduled event time,
 provider response time and result corrections. Verify whether official standings
