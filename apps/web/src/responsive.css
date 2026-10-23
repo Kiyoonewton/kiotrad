@@ -157,12 +157,10 @@
     font-size: 26px;
   }
   .goal-bottom {
-    position: absolute;
-    right: 22px;
-    bottom: 25px;
-    margin: 0;
-    border: 0;
-    padding: 0;
+    position: relative;
+    margin-top: 28px;
+    border-top: 1px solid #4d675247;
+    padding-top: 18px;
   }
   .goal-bottom p {
     font-size: 10px;

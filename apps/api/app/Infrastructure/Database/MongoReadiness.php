@@ -8,8 +8,6 @@ class MongoReadiness
 {
     public function check(): void
     {
-        DB::connection('mongodb')->getMongoClient()
-            ->selectDatabase(config('database.connections.mongodb.database'))
-            ->command(['ping' => 1])->toArray();
+        DB::connection('mongodb')->getDatabase()->command(['ping' => 1])->toArray();
     }
 }
