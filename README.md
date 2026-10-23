@@ -8,6 +8,8 @@ This repository is independent of `my_trade`. It has its own MongoDB database an
 
 The foundation includes a React/TypeScript dashboard, Laravel API, MongoDB connectivity, two draft champion strategy definitions and GitHub Actions. The dashboard deliberately shows unknown balances and disconnected feeds. Live provider collection, strategy evaluation, bankroll execution and authentication are next milestones, not implemented features.
 
+Provider discovery now includes a one-shot `provider:probe` command: independent current-season discovery, scheduled UTC event times, full-time results and joined pre-match 1X2 prices. It saves private diagnostic files without writing MongoDB or enabling live monitoring. See [the evidence and command instructions](docs/provider-discovery.md).
+
 ## Start locally
 
 Requirements: Git, Docker Desktop with Compose v2, and a POSIX shell (macOS Terminal works).
