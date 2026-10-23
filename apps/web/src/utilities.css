@@ -1,0 +1,59 @@
+.page-intro {
+  margin: 25px 0 50px;
+}
+.page-intro p:not(.eyebrow) {
+  font-size: 14px;
+  color: #9caca3;
+  margin-top: 20px;
+  max-width: 600px;
+}
+.message-panel h1 {
+  font-size: 30px;
+}
+.message-panel p {
+  margin: 20px 0;
+  color: #a4b2aa;
+}
+.message-panel button {
+  background: #274234;
+  border: 1px solid #4a7558;
+  padding: 12px 20px;
+  border-radius: 7px;
+}
+.loading {
+  color: #a4b2aa;
+}
+footer {
+  max-width: 1600px;
+  margin: auto;
+  padding: 25px 42px;
+  border-top: 1px solid #26312b;
+  display: flex;
+  justify-content: space-between;
+  color: #7c9182;
+  font-size: 10px;
+  gap: 20px;
+}
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+.skip-link {
+  position: fixed;
+  top: -100px;
+  left: 10px;
+  background: #c7f0d9;
+  color: #101415;
+  z-index: 10;
+  padding: 12px;
+}
+.skip-link:focus {
+  top: 10px;
+}

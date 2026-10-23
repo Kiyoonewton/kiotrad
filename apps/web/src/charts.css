@@ -1,0 +1,132 @@
+.performance-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 2.3fr) minmax(230px, 1fr);
+  gap: 22px;
+}
+.chart-panel {
+  background: #151b1b;
+  border: 1px solid #28332f;
+  border-radius: 12px;
+  padding: 25px;
+}
+.section-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+}
+.subtle {
+  font-size: 11px;
+  color: #9aaba1;
+  line-height: 1.6;
+}
+.empty-chart {
+  height: 295px;
+  position: relative;
+  margin-top: 25px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.chart-grid {
+  position: absolute;
+  inset: 0 0 30px;
+  background-image:
+    linear-gradient(#27332c66 1px, transparent 1px),
+    linear-gradient(90deg, #27332c44 1px, transparent 1px);
+  background-size:
+    100% 25%,
+    20% 100%;
+  mask-image: linear-gradient(transparent, #000 35%, #000 70%, transparent);
+}
+.chart-message {
+  text-align: center;
+  position: relative;
+  color: #d4dfd7;
+  padding: 15px;
+}
+.chart-message p {
+  font-size: 12px;
+  color: #9aaba1;
+  margin-top: 12px;
+}
+.chart-symbol {
+  font-size: 26px;
+  color: #8dd9b8;
+  display: block;
+  margin-bottom: 15px;
+}
+.chart-axis {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  display: flex;
+  justify-content: space-between;
+  font-size: 10px;
+  color: #80938a;
+}
+.goal-panel {
+  position: relative;
+  border-radius: 12px;
+  overflow: hidden;
+  background: linear-gradient(145deg, #263c32, #18231f);
+  padding: 30px;
+  min-height: 385px;
+  border: 1px solid #35463c;
+}
+.goal-panel > .eyebrow,
+.goal-panel > h2,
+.goal-bottom {
+  position: relative;
+}
+.goal-panel h2 {
+  font-size: 30px;
+  line-height: 1.25;
+  font-weight: 400;
+  letter-spacing: -1px;
+}
+.pitch-art {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  opacity: 0.4;
+}
+.pitch-line {
+  position: absolute;
+  width: 310px;
+  height: 430px;
+  border: 1px solid #6c8f752e;
+  transform: rotate(30deg);
+  left: 50px;
+  top: -110px;
+}
+.pitch-circle {
+  position: absolute;
+  width: 180px;
+  height: 180px;
+  border: 1px solid #6c8f7559;
+  border-radius: 50%;
+  right: -45px;
+  top: 55px;
+}
+.goal-bottom {
+  margin-top: 66px;
+  border-top: 1px solid #4d675247;
+  padding-top: 20px;
+}
+.goal-bottom > span {
+  font-size: 11px;
+  color: #b0c3b6;
+}
+.goal-bottom strong {
+  display: block;
+  font:
+    500 27px Manrope,
+    sans-serif;
+  margin: 5px 0 10px;
+}
+.goal-bottom p {
+  font-size: 11px;
+  color: #b0c3b6;
+}

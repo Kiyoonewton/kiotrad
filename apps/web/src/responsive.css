@@ -1,0 +1,222 @@
+@media (min-width: 1600px) {
+  main {
+    padding-top: 55px;
+  }
+  .empty-chart {
+    height: 330px;
+  }
+}
+@media (max-width: 1050px) {
+  .sidebar {
+    width: 145px;
+    padding: 25px 12px;
+  }
+  .brand {
+    font-size: 20px;
+    gap: 3px;
+  }
+  .brand svg {
+    width: 30px;
+  }
+  .workspace {
+    margin-left: 145px;
+  }
+  main {
+    padding: 30px 24px;
+  }
+  .topbar {
+    padding: 0 24px;
+  }
+  .balance-value {
+    min-width: 180px;
+    padding-left: 20px;
+  }
+  .balance-value strong {
+    font-size: 42px;
+  }
+  .performance-grid {
+    grid-template-columns: 1.7fr 1fr;
+  }
+  .goal-panel {
+    padding: 22px;
+  }
+  .activity-grid {
+    gap: 24px;
+  }
+  .feed-status {
+    font-size: 9px;
+  }
+  .attempts {
+    flex-wrap: wrap;
+  }
+  .attempts small {
+    width: 100%;
+    margin-left: 0;
+  }
+}
+@media (max-width: 720px) {
+  .app-shell {
+    display: block;
+  }
+  .sidebar {
+    position: static;
+    width: auto;
+    padding: 18px 20px;
+    border-right: 0;
+    border-bottom: 1px solid #263032;
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .brand {
+    font-size: 19px;
+  }
+  .brand svg {
+    width: 28px;
+  }
+  .sidebar nav {
+    display: flex;
+    margin: 0;
+    gap: 0;
+  }
+  .sidebar nav button {
+    font-size: 11px;
+    padding: 9px;
+  }
+  .sidebar nav button span,
+  .sidebar-bottom {
+    display: none;
+  }
+  .workspace {
+    margin: 0;
+  }
+  .topbar {
+    height: 65px;
+    padding: 0 20px;
+  }
+  .topbar-right {
+    gap: 7px;
+  }
+  .breadcrumb {
+    display: none;
+  }
+  .mode-badge {
+    font-size: 8px;
+    padding: 6px 8px;
+  }
+  .league-select select {
+    font-size: 11px;
+    max-width: 110px;
+    padding: 5px;
+  }
+  main {
+    padding: 28px 20px 40px;
+  }
+  .balance-header {
+    align-items: flex-start;
+    gap: 15px;
+    margin-bottom: 28px;
+  }
+  .balance-header h1 {
+    font-size: 36px;
+    letter-spacing: -1.5px;
+  }
+  .eyebrow {
+    font-size: 8px;
+    letter-spacing: 1.3px;
+  }
+  .balance-header .eyebrow {
+    max-width: 170px;
+  }
+  .balance-value {
+    min-width: 110px;
+    padding-left: 12px;
+  }
+  .balance-value p,
+  .balance-value > span {
+    font-size: 9px;
+  }
+  .balance-value strong {
+    font-size: 30px;
+    letter-spacing: -1px;
+  }
+  .performance-grid {
+    grid-template-columns: 1fr;
+  }
+  .chart-panel {
+    padding: 20px;
+  }
+  .empty-chart {
+    height: 250px;
+  }
+  .goal-panel {
+    min-height: 220px;
+    padding: 22px;
+  }
+  .goal-panel h2 {
+    font-size: 26px;
+  }
+  .goal-bottom {
+    position: absolute;
+    right: 22px;
+    bottom: 25px;
+    margin: 0;
+    border: 0;
+    padding: 0;
+  }
+  .goal-bottom p {
+    font-size: 10px;
+  }
+  .goal-bottom strong {
+    font-size: 23px;
+  }
+  .league-strip {
+    display: block;
+    margin-bottom: 28px;
+  }
+  .league-item {
+    padding: 16px 0;
+    border-bottom: 1px solid #26342b;
+  }
+  .league-item:last-child {
+    border: 0;
+  }
+  .activity-grid {
+    grid-template-columns: 1fr;
+    gap: 30px;
+  }
+  .strategy-name {
+    font-size: 12px;
+  }
+  .strategy-row summary {
+    gap: 12px;
+  }
+  .strategy-section .section-heading {
+    align-items: flex-start;
+  }
+  .section-heading > .subtle {
+    font-size: 9px;
+    max-width: 85px;
+    text-align: right;
+  }
+  h2 {
+    font-size: 17px;
+  }
+  .strategy-description {
+    padding-left: 15px;
+  }
+  .page-intro h1 {
+    font-size: 34px;
+  }
+  footer {
+    padding: 20px;
+    flex-direction: column;
+    gap: 8px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  * {
+    scroll-behavior: auto !important;
+    transition: none !important;
+  }
+}
