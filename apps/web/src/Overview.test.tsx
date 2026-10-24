@@ -60,7 +60,9 @@ it("connects Overview activity and expanded strategy rows to monitoring", () => 
   );
   expect(activity.getByText("waiting for history")).toBeInTheDocument();
   expect(activity.getByText(/snapshot count alone/)).toBeInTheDocument();
-  expect(activity.getByText(/observation 1\/4/)).toBeInTheDocument();
+  expect(
+    activity.getByLabelText("Observed window: 1 of 4 attempts"),
+  ).toBeInTheDocument();
   expect(screen.getAllByText("watching fixture")).toHaveLength(2);
   expect(screen.getByText("Bankroll not configured")).toBeInTheDocument();
   expect(

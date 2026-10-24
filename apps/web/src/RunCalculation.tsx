@@ -1,55 +1,107 @@
 import { naira, type RunCalculation as Calculation } from "./api";
 
-export function RunCalculation({ calculation }: { calculation: Calculation }) {
+export function RunCalculation({
+  calculation: c,
+}: {
+  calculation: Calculation;
+}) {
+  const unpriced = [
+    "awaiting_verified_odds",
+    "awaiting_recorded_odds",
+  ].includes(c.status);
+  const noPrices = unpriced && c.attempts.length === 0;
   return (
-    <section aria-label="Simulation stake and profit calculation">
-      <p>
-        <strong>Simulation: {calculation.status.replaceAll("_", " ")}</strong>
-      </p>
-      <p className="subtle">
-        {calculation.mode === "event_order_simulation"
-          ? "Event-order simulation"
-          : "Independent run replay"}{" "}
-        · starting capital {naira(calculation.starting_capital_minor)}. This
-        calculation does not change the shared simulation balance.
-      </p>
-      {calculation.attempts.map((attempt) => (
-        <p key={attempt.attempt}>
-          Attempt {attempt.attempt}/4 · day {attempt.matchday} ·{" "}
-          {attempt.home_team} vs {attempt.away_team} · odds {attempt.odds} ·
-          stake {naira(attempt.stake_minor)} ·{" "}
-          {attempt.status === "settled"
-            ? `payout ${naira(attempt.payout_minor ?? 0)} · result ${attempt.result}`
-            : `potential payout ${naira(attempt.potential_payout_minor)} · result pending`}
-        </p>
-      ))}
-      <p>
-        Total staked {naira(calculation.total_staked_minor)} · gross payout{" "}
-        {naira(calculation.gross_payout_minor)} ·{" "}
-        {calculation.net_minor !== null
-          ? `net profit/loss ${naira(calculation.net_minor)}`
-          : `realized profit/loss ${naira(calculation.realized_net_minor)} · run incomplete`}
-      </p>
-      {["awaiting_verified_odds", "awaiting_recorded_odds"].includes(
-        calculation.status,
-      ) && (
-        <p className="subtle">
-          No usable saved price was found for day{" "}
-          {calculation.unpriced_matchday}. Pricing pauses here; later results
-          are not assigned invented stakes or profit.
-        </p>
+    <section
+      className="run-financials"
+      aria-label="Simulation stake and profit calculation"
+    >
+      <div className="pricing-status">
+        {unpriced
+          ? "◷ Price missing"
+          : c.status === "win"
+            ? "✓ Priced win"
+            : c.status.replaceAll("_", " ")}
+      </div>
+      <dl className="run-metrics">
+        <div>
+          <dt>Staked</dt>
+          <dd>{noPrices ? "—" : naira(c.total_staked_minor)}</dd>
+        </div>
+        <div>
+          <dt>Payout</dt>
+          <dd>{noPrices ? "—" : naira(c.gross_payout_minor)}</dd>
+        </div>
+        <div>
+          <dt>Net</dt>
+          <dd
+            className={
+              c.net_minor !== null && c.net_minor > 0 ? "positive-net" : ""
+            }
+          >
+            {c.net_minor === null ? "—" : naira(c.net_minor)}
+          </dd>
+        </div>
+      </dl>
+      {unpriced && (
+        <small className="price-note">
+          Day {c.unpriced_matchday} odds needed · profit pending
+        </small>
       )}
-      {calculation.data_quality_notes?.map((note) => (
-        <p className="subtle" key={note}>
-          Data quality: {note}
-        </p>
-      ))}
-      {calculation.status === "market_blocked" && (
+      <details className="run-details">
+        <summary>Calculation details</summary>
         <p className="subtle">
-          Confirmed market block on day {calculation.unpriced_matchday}. No
-          stake or payout is invented for that entry.
+          {c.mode === "event_order_simulation"
+            ? "Event-order simulation"
+            : "Independent run replay"}{" "}
+          · starting capital {naira(c.starting_capital_minor)}. Independent of
+          the shared balance.
         </p>
-      )}
+        <div className="paper-table-scroll">
+          <table className="attempt-table">
+            <thead>
+              <tr>
+                <th>Day</th>
+                <th>Fixture</th>
+                <th>Odds</th>
+                <th>Stake</th>
+                <th>Payout</th>
+              </tr>
+            </thead>
+            <tbody>
+              {c.attempts.map((a) => (
+                <tr key={a.attempt}>
+                  <td>{a.matchday}</td>
+                  <td>
+                    {a.home_team} vs {a.away_team}
+                  </td>
+                  <td>{a.odds}</td>
+                  <td>{naira(a.stake_minor)}</td>
+                  <td>
+                    {a.status === "settled"
+                      ? naira(a.payout_minor ?? 0)
+                      : "Pending"}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+        {c.net_minor === null && (
+          <p>Run incomplete · realized net {naira(c.realized_net_minor)}.</p>
+        )}
+        {unpriced && (
+          <p>
+            No usable saved price for day {c.unpriced_matchday}. Calculation
+            awaits recorded odds.
+          </p>
+        )}
+        {c.status === "market_blocked" && (
+          <p>Confirmed market block on day {c.unpriced_matchday}.</p>
+        )}
+        {c.data_quality_notes?.map((note) => (
+          <p key={note}>{note}</p>
+        ))}
+      </details>
     </section>
   );
 }

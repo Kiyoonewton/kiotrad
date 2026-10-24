@@ -164,12 +164,12 @@ it("shows read-only strategy evidence without inventing staking", () => {
     screen.getByText("Champion — Next Win", { selector: ".strategy-name" }),
   );
   expect(
-    screen.getByText(/Example champion · first win day 4/),
-  ).toHaveTextContent("observation 1/4");
-  expect(screen.getByText(/Day 5 · Example champion/)).toBeInTheDocument();
+    screen.getByRole("heading", { name: "Example champion" }),
+  ).toBeInTheDocument();
+  expect(screen.getByText("First win · D4")).toBeInTheDocument();
   expect(
-    screen.getAllByText(
-      "Strategy simulation monitoring",
-    ),
-  ).toHaveLength(1);
+    screen.getByLabelText("Observed window: 1 of 4 attempts"),
+  ).toBeInTheDocument();
+  expect(screen.getByText(/D5 · Example champion/)).toBeInTheDocument();
+  expect(screen.getAllByText("Strategy simulation monitoring")).toHaveLength(1);
 });
