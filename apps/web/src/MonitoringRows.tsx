@@ -32,11 +32,11 @@ const reasons: Record<string, string> = {
   missing_fixture:
     "A required fixture or its scheduled start is missing or ambiguous.",
   watching_fixture:
-    "Watching the next scheduled fixture. Paper decisions are recorded separately.",
+    "Tracking the next scheduled fixture in this strategy simulation.",
   awaiting_result:
     "The scheduled start has passed; waiting for a confirmed result.",
   observed_win:
-    "A win was observed within the window. This is not a funded trading result.",
+    "The strategy’s win condition was met within the four-match simulation window. This observation does not yet include stake or profit calculations.",
   four_attempts_without_win:
     "Four observed fixtures ended without a win. The window has closed.",
   window_ended: "The season ended before the observation window could finish.",
@@ -74,12 +74,14 @@ export function MonitoringRows({
             </span>
           </div>
           <span className="monitoring-state">
-            {row.status.replaceAll("_", " ")}
+            {row.status === "observed_win"
+              ? "Simulation win observed"
+              : row.status.replaceAll("_", " ")}
           </span>
           <p>
             {(row.reason ? historyReasons[row.reason] : undefined) ??
               reasons[row.status] ??
-              "An unrecognized monitoring state was received; no execution is implied."}
+              "An unrecognized simulation monitoring state was received."}
           </p>
           {row.team && (
             <p>
