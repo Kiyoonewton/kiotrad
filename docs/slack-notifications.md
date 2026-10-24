@@ -65,6 +65,12 @@ when the paper worker actually decides. Money is NGN; scheduled times use Lagos.
 `notification_outbox` stores immutable payloads with deterministic IDs, delivery
 state, retry times and attempt counts. `notification_control` stores startup time,
 worker lease, scan failures and sampling times. No new Redis requirement exists.
+Inspect health without exposing the webhook:
+
+```bash
+docker compose --env-file engine/.env -f engine/compose.yaml exec -T notification-worker php artisan notifications:status
+```
+
 Source scans run about every 15 seconds; delivery is limited to one message per
 two seconds. Run one notification worker. Mongo leases protect parallel workers;
 crashed delivery leases become retryable after 60 seconds. Slack 429 pauses all

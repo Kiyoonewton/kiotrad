@@ -49,6 +49,13 @@ final class NotificationWorker
             if ($lease['next_send_at'] > $now) {
                 return 'waiting';
             }
+            // A slow source scan must never send after another worker took its lease.
+            $renewed = $control->updateOne(['_id' => 'worker', 'token' => $token,
+                'lease_until' => ['$gt' => now('UTC')->toIso8601String()]],
+                ['$set' => ['lease_until' => now('UTC')->addMinutes(5)->toIso8601String()]]);
+            if ($renewed->getMatchedCount() !== 1) {
+                return 'worker_busy';
+            }
             $status = $this->outbox->deliver($this->transport);
             $control->updateOne(['_id' => 'worker', 'token' => $token], ['$set' => [
                 'last_status' => $status, 'checked_at' => now('UTC')->toIso8601String(),
