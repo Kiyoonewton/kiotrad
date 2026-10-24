@@ -35,7 +35,9 @@ return [
             'driver' => 'mongodb',
             'dsn' => env('MONGODB_URI', 'mongodb://127.0.0.1:27018'),
             'database' => env('MONGODB_DATABASE', 'kiotrad'),
-            'options' => ['serverSelectionTimeoutMS' => 2000, 'connectTimeoutMS' => 2000],
+            'options' => ['serverSelectionTimeoutMS' => (int) env('MONGODB_SERVER_SELECTION_TIMEOUT_MS', 2000),
+                'connectTimeoutMS' => (int) env('MONGODB_CONNECT_TIMEOUT_MS', 2000),
+                'socketTimeoutMS' => (int) env('MONGODB_SOCKET_TIMEOUT_MS', 15000)],
         ],
 
         'sqlite' => [

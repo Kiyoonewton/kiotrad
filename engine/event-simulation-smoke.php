@@ -3,6 +3,7 @@
 use App\Domain\Paper\PaperLedger;
 use App\Infrastructure\Paper\MongoPaperStore;
 use App\Infrastructure\Provider\ChampionMonitoring;
+use App\Infrastructure\Provider\DashboardSnapshot;
 use App\Infrastructure\Provider\MongoCollectionStore;
 use App\Infrastructure\Provider\MongoCollectorState;
 use App\Infrastructure\Provider\ResearchSummary;
@@ -101,6 +102,9 @@ try {
     $assert($updated['simulation']['total_staked_minor'] === 100000, 'Recovery did not include both simulated stakes.');
     $summary = app(ResearchSummary::class)->overview();
     $assert($summary['status'] === 'available' && $summary['runs'][0]['net_minor'] === 20000, 'Overview research summary did not reflect repaired data.');
+    $snapshot = app(DashboardSnapshot::class);
+    $assert($snapshot->refresh() === 'refreshed', 'Background dashboard could not publish real Redis snapshot.');
+    $assert($snapshot->read()['dashboard_cache']['status'] === 'ready', 'Published dashboard snapshot unavailable.');
     $assert($portfolio->read() === $before, 'Research replay modified the shared journal.');
     $assert($db->provider_captures->findOne(['_id' => $original])['matches'][4]['result'] === 'H', 'Recovery rewrote an immutable capture.');
     echo "Event simulation passed: recovered result, historical pagination, real Redis TTLs, source invalidation, summary and immutable journal.\n";

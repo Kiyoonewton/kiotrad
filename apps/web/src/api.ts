@@ -53,6 +53,10 @@ export interface RunCalculation {
   })[];
 }
 export interface Overview {
+  dashboard_cache?: {
+    status: "warming" | "ready" | "stale" | "unavailable";
+    generated_at: string | null;
+  };
   research_simulation?: {
     status: string;
     from?: string;

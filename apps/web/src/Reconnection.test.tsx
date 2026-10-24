@@ -48,3 +48,44 @@ it("retains the last dashboard through failed refreshes and clears the banner af
   });
   expect(fetch).toHaveBeenCalledTimes(3);
 });
+
+it("shows a cold snapshot as preparing rather than empty financial results", async () => {
+  vi.stubGlobal(
+    "fetch",
+    vi
+      .fn()
+      .mockResolvedValue({
+        ok: true,
+        json: async () => ({
+          ...payload,
+          dashboard_cache: { status: "warming", generated_at: null },
+        }),
+      }),
+  );
+  render(<App />);
+  expect(await screen.findByText("Preparing dashboard")).toBeInTheDocument();
+  expect(screen.queryByText("Bankroll not configured")).not.toBeInTheDocument();
+});
+
+it("marks an old server snapshot as stale even when the HTTP request succeeds", async () => {
+  vi.stubGlobal(
+    "fetch",
+    vi
+      .fn()
+      .mockResolvedValue({
+        ok: true,
+        json: async () => ({
+          ...payload,
+          dashboard_cache: {
+            status: "stale",
+            generated_at: "2026-10-24T10:00:00Z",
+          },
+        }),
+      }),
+  );
+  render(<App />);
+  expect(await screen.findByText(/Showing saved dashboard/)).toHaveTextContent(
+    "11:00:00",
+  );
+  expect(screen.getByText("Bankroll not configured")).toBeInTheDocument();
+});
