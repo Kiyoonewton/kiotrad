@@ -12,7 +12,9 @@ Provider discovery now includes a one-shot `provider:probe` command: independent
 
 `provider:collect` adds one-shot immutable normalized captures and per-league
 checkpoints in MongoDB. See [collection commands and limits](docs/provider-collection.md).
-Unattended polling and dashboard feed integration are still pending.
+Optional per-league workers now poll with persisted retry delays, and the
+dashboard displays capture freshness. See [continuous collection](docs/continuous-collection.md)
+to enable them. Strategy evaluation remains disabled pending completeness checks.
 
 ## Start locally
 
@@ -21,7 +23,7 @@ Requirements: Git, Docker Desktop with Compose v2, and a POSIX shell (macOS Term
 ```bash
 git clone https://github.com/Kiyoonewton/kiotrad.git
 cd kiotrad
-git switch feat/project-foundation
+git switch main
 sh engine/start.sh
 ```
 

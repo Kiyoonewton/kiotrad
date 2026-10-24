@@ -20,7 +20,14 @@ export interface Overview {
   mode: string;
   currency: string;
   display_timezone: string;
-  competitions: { id: string; name: string; feed_status: string }[];
+  competitions: {
+    id: string;
+    name: string;
+    feed_status: string;
+    season_id?: string | null;
+    matchday?: number | null;
+    last_success_at?: string | null;
+  }[];
   strategies: Strategy[];
 }
 

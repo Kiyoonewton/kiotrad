@@ -1,6 +1,28 @@
 name: kiotrad
 
+x-collector: &collector
+  profiles: [collectors]
+  build:
+    context: ..
+    dockerfile: engine/api.Dockerfile
+  env_file: .env
+  depends_on:
+    mongodb:
+      condition: service_healthy
+  restart: unless-stopped
+  stop_grace_period: 35s
+
 services:
+  collector-english:
+    <<: *collector
+    command: [php, artisan, 'provider:watch', virtual-football]
+  collector-bundesliga:
+    <<: *collector
+    command: [php, artisan, 'provider:watch', virtual-bundesliga]
+  collector-euro:
+    <<: *collector
+    command: [php, artisan, 'provider:watch', virtual-euro]
+
   mongodb:
     image: mongo:7
     ports:

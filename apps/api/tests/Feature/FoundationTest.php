@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Infrastructure\Database\MongoReadiness;
+use App\Infrastructure\Provider\FeedStatus;
 use RuntimeException;
 use Tests\TestCase;
 
@@ -10,6 +11,9 @@ class FoundationTest extends TestCase
 {
     public function test_overview_does_not_invent_live_data_or_financial_results(): void
     {
+        $this->mock(FeedStatus::class)->shouldReceive('all')->once()->andReturn(
+            array_map(fn ($c) => [...$c, 'feed_status' => 'not_connected'], config('kiotrad.competitions')),
+        );
         $this->getJson('/api/v1/overview')->assertOk()
             ->assertJsonPath('mode', 'foundation')
             ->assertJsonPath('currency', 'NGN')
