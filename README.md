@@ -10,6 +10,10 @@ The foundation includes a React/TypeScript dashboard, Laravel API, MongoDB conne
 
 Provider discovery now includes a one-shot `provider:probe` command: independent current-season discovery, scheduled UTC event times, full-time results and joined pre-match 1X2 prices. It saves private diagnostic files without writing MongoDB or enabling live monitoring. See [the evidence and command instructions](docs/provider-discovery.md).
 
+`provider:collect` adds one-shot immutable normalized captures and per-league
+checkpoints in MongoDB. See [collection commands and limits](docs/provider-collection.md).
+Unattended polling and dashboard feed integration are still pending.
+
 ## Start locally
 
 Requirements: Git, Docker Desktop with Compose v2, and a POSIX shell (macOS Terminal works).
