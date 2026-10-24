@@ -14,7 +14,7 @@ export function StrategyList({
           <p className="eyebrow">A growing research library</p>
           <h2 id="strategy-title">Strategies, with a reason.</h2>
         </div>
-        <span className="subtle">{strategies.length} draft definitions</span>
+        <span className="subtle">{strategies.length} strategy definitions</span>
       </div>
       {strategies.map((strategy, index) => (
         <details className="strategy-row" key={strategy.id}>
@@ -27,7 +27,7 @@ export function StrategyList({
                 maximum
               </small>
             </span>
-            <span className="research-status">Research</span>
+            <span className="research-status">Observation</span>
             <span className="expand-icon" aria-hidden="true">
               +
             </span>

@@ -1,6 +1,6 @@
 # Champion observation monitoring
 
-The overview includes read-only monitoring for Champion — Next Win and Champion — Next Season, evaluator version `0.2.0-observation`. Definitions remain draft; no signals, stakes, profits or paper executions are created by this milestone.
+The overview includes read-only monitoring for Champion — Next Win and Champion — Next Season, evaluator version `0.2.0-observation`. The catalog enables observation only; no signals, stakes, profits or paper executions are created by this milestone.
 
 Next Win finds the prior champion’s first win, requiring a settled result for every preceding day. Day four or later qualifies. Monitor that team’s next four fixtures, ending at the first observed win or season end. Draws count as non-wins. There is no ten-game trigger cutoff: the complete season is examined; a season without any win creates no trigger.
 
