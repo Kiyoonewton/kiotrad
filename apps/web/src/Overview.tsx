@@ -1,10 +1,17 @@
 import type { Overview as OverviewData } from "./api";
+import { MonitoringRows } from "./MonitoringRows";
 import { StrategyList } from "./StrategyList";
 
 function formatLagos(value: string): string {
   return new Intl.DateTimeFormat("en-NG", {
-    timeZone: "Africa/Lagos", year: "numeric", day: "2-digit", month: "short",
-    hour: "2-digit", minute: "2-digit", second: "2-digit", hourCycle: "h23",
+    timeZone: "Africa/Lagos",
+    year: "numeric",
+    day: "2-digit",
+    month: "short",
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+    hourCycle: "h23",
   }).format(new Date(value));
 }
 
@@ -17,6 +24,9 @@ export function Overview({
 }) {
   const competitions = data.competitions.filter(
     (item) => league === "all" || item.id === league,
+  );
+  const monitoring = (data.strategy_monitoring ?? []).filter(
+    (row) => league === "all" || row.competition === league,
   );
   return (
     <>
@@ -90,37 +100,65 @@ export function Overview({
             </span>
             <div>
               <strong>{item.name}</strong>
-              <small>Season {item.season_id ?? '—'} · Odds day {item.matchday ?? '—'}</small>
-              {item.last_success_at && <small>Observed {formatLagos(item.last_success_at)} WAT</small>}
-              {item.fixture_count != null && <small>{item.settled_count ?? 0}/{item.fixture_count} results recorded</small>}
-              {!!item.unresolved_seasons?.length && <small>{item.unresolved_seasons.length} unresolved season(s)</small>}
-              {item.market_observation === 'availability_unknown' && <small>Availability unknown</small>}
-              {item.latest_champion && <small>Verified champion: {item.latest_champion.team_name} (season {item.latest_champion.season_id})</small>}
-              {item.latest_champion && <small>Champion confirmed {formatLagos(item.latest_champion.confirmed_at)} WAT</small>}
+              <small>
+                Season {item.season_id ?? "—"} · Odds day {item.matchday ?? "—"}
+              </small>
+              {item.last_success_at && (
+                <small>Observed {formatLagos(item.last_success_at)} WAT</small>
+              )}
+              {item.fixture_count != null && (
+                <small>
+                  {item.settled_count ?? 0}/{item.fixture_count} results
+                  recorded
+                </small>
+              )}
+              {!!item.unresolved_seasons?.length && (
+                <small>
+                  {item.unresolved_seasons.length} unresolved season(s)
+                </small>
+              )}
+              {item.market_observation === "availability_unknown" && (
+                <small>Availability unknown</small>
+              )}
+              {item.latest_champion && (
+                <small>
+                  Verified champion: {item.latest_champion.team_name} (season{" "}
+                  {item.latest_champion.season_id})
+                </small>
+              )}
+              {item.latest_champion && (
+                <small>
+                  Champion confirmed{" "}
+                  {formatLagos(item.latest_champion.confirmed_at)} WAT
+                </small>
+              )}
             </div>
             <span className="feed-status">
               <i />
-              {({ fresh: 'Fresh capture', stale: 'Stale capture', retrying: 'Retrying',
-                unavailable: 'Storage unavailable', not_connected: 'Not connected', scheduled: 'Awaiting scheduled update',
-              } as Record<string, string>)[item.feed_status] ?? 'Unknown'}
+              {(
+                {
+                  fresh: "Fresh capture",
+                  stale: "Stale capture",
+                  retrying: "Retrying",
+                  unavailable: "Storage unavailable",
+                  not_connected: "Not connected",
+                  scheduled: "Awaiting scheduled update",
+                } as Record<string, string>
+              )[item.feed_status] ?? "Unknown"}
             </span>
           </div>
         ))}
       </section>
       <div className="activity-grid">
-        <section className="quiet-panel">
+        <section className="quiet-panel" aria-labelledby="monitoring-title">
           <p className="eyebrow">Current activity</p>
-          <h2>Waiting for the first signal.</h2>
-          <p>
-            Qualifying teams, pre-match odds and each recovery attempt will
-            appear here when live monitoring is connected.
-          </p>
-          <div className="attempts" aria-label="Four attempts maximum">
-            {[1, 2, 3, 4].map((n) => (
-              <span key={n}>{n}</span>
-            ))}
-            <small>One active run at a time</small>
-          </div>
+          <h2 id="monitoring-title">Strategy observations.</h2>
+          <p>Read-only monitoring · paper execution disabled</p>
+          <MonitoringRows
+            rows={monitoring}
+            strategies={data.strategies}
+            competitions={data.competitions}
+          />
         </section>
         <section className="quiet-panel">
           <p className="eyebrow">A measured timeline</p>
@@ -142,7 +180,11 @@ export function Overview({
           </div>
         </section>
       </div>
-      <StrategyList strategies={data.strategies} />
+      <StrategyList
+        strategies={data.strategies}
+        monitoring={monitoring}
+        competitions={data.competitions}
+      />
     </>
   );
 }

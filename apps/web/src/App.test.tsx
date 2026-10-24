@@ -70,7 +70,9 @@ it("shows unavailable feeds and no invented balance, supports league filtering a
   expect(
     screen.getByRole("heading", { name: "The strategy library." }),
   ).toBeInTheDocument();
-  fireEvent.click(screen.getByText("Champion — Next Win"));
+  fireEvent.click(
+    screen.getByText("Champion — Next Win", { selector: ".strategy-name" }),
+  );
   expect(screen.getByText("Official tiebreaks.")).toBeVisible();
 });
 
@@ -158,11 +160,13 @@ it("shows read-only strategy evidence without inventing staking", () => {
       ]}
     />,
   );
-  fireEvent.click(screen.getByText("Champion — Next Win"));
-  expect(screen.getByText(/watching fixture/)).toHaveTextContent(
-    "observation 1/4",
+  fireEvent.click(
+    screen.getByText("Champion — Next Win", { selector: ".strategy-name" }),
   );
-  expect(screen.getByText(/watching fixture/)).toHaveTextContent("day 5");
+  expect(
+    screen.getByText(/Example champion · first win day 4/),
+  ).toHaveTextContent("observation 1/4");
+  expect(screen.getByText(/Day 5 · Example champion/)).toBeInTheDocument();
   expect(
     screen.getAllByText("Live observation · paper execution disabled"),
   ).toHaveLength(1);
