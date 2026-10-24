@@ -95,6 +95,12 @@ p {
 .brand span {
   color: #e8ece7;
 }
+.kiotrad-logo {
+  display: block;
+  flex-shrink: 0;
+  object-fit: contain;
+  aspect-ratio: 1;
+}
 .sidebar nav {
   display: grid;
   gap: 10px;

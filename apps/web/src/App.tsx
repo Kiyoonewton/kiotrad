@@ -3,6 +3,7 @@ import { getOverview, type Overview as OverviewData } from "./api";
 import { Overview } from "./Overview";
 import { PaperHistory } from "./PaperActivity";
 import { StrategyList } from "./StrategyList";
+import { Logo } from "./Logo";
 
 const pages = ["Overview", "Strategies", "History"] as const;
 type Page = (typeof pages)[number];
@@ -50,12 +51,7 @@ export default function App() {
       </a>
       <aside className="sidebar">
         <a className="brand" href="/" aria-label="KioTrad home">
-          <svg width="36" height="36" viewBox="0 0 36 36" aria-hidden="true">
-            <path
-              d="M5 5h7v12L25 5h8L18 19l15 12H22L12 22v9H5z"
-              fill="currentColor"
-            />
-          </svg>
+          <Logo label="" />
           <span>KioTrad</span>
         </a>
         <nav aria-label="Main navigation">

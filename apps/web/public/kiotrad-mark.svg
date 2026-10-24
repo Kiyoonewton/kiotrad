@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="32 32 192 192" preserveAspectRatio="xMidYMid meet" role="img" aria-labelledby="kiotrad-title kiotrad-description">
+  <title id="kiotrad-title">KioTrad — KT monogram</title>
+  <desc id="kiotrad-description">Interlocked warm-white K and sage T.</desc>
+  <g class="kiotrad-rotor">
+    <!-- Upright K. Its short exposed stem ends remain visible behind the T. -->
+    <path class="kiotrad-k" fill="#F1EEE6" stroke="#F1EEE6" stroke-width="1" stroke-linejoin="round"
+      d="M54 42H82V112L145 42H181L104 128L181 214H145L82 144V214H54Z"/>
+    <!-- Foreground T at -90 degrees: vertical crossbar, horizontal stem. -->
+    <path class="kiotrad-t" fill="#9DBBA8" stroke="#9DBBA8" stroke-width="1" stroke-linejoin="round"
+      d="M54 63H82V114H202V142H82V193H54Z"/>
+  </g>
+</svg>
