@@ -12,6 +12,7 @@ class CollectionCycle
         private SeasonDiscovery $discovery,
         private SeasonCapture $capture,
         private CollectionStore $store,
+        private FinalStandings $standings,
     ) {}
 
     public function run(string $competition, array $previous): array
@@ -32,12 +33,24 @@ class CollectionCycle
         $keys = $previous['captured_round_keys'] ?? [];
         $pending = $previous['pending_seasons'] ?? [];
         $old = $previous['current_season_id'] ?? null;
-        if ($old !== null && $old !== $currentId && ! ($previous['last_results_complete'] ?? false)) {
+        if ($old !== null && $old !== $currentId
+            && (! ($previous['last_results_complete'] ?? false) || ! ($previous['last_champion_confirmed'] ?? false))) {
             $pending[$old] ??= ['next_attempt_at' => CarbonImmutable::now('UTC')->toIso8601String(), 'failures' => 0];
         }
+        $bootstrapped = $previous['champion_bootstrap_done'] ?? false;
+        if (! $bootstrapped && is_int($start)) {
+            $older = array_values(array_filter($discovery['seasons'], fn ($s) => is_int($s['start']['uts'] ?? null) && $s['start']['uts'] < $start));
+            usort($older, fn ($a, $b) => $b['start']['uts'] <=> $a['start']['uts']);
+            if (isset($older[0])) {
+                $id = (string) $older[0]['_id'];
+                $pending[$id] ??= ['next_attempt_at' => CarbonImmutable::now('UTC')->toIso8601String(), 'failures' => 0];
+                $bootstrapped = true;
+            }
+        }
         unset($pending[$currentId]);
-        $report = $this->capture->run($competition, $currentId, 'current', $keys);
-        $this->store->save($report);
+        $report = $this->standings->attach($this->capture->run($competition, $currentId, 'current', $keys));
+        $captureId = $this->store->save($report);
+        $latestChampion = $this->standings->latest($previous['latest_champion'] ?? null, $report, $captureId);
         $keys = array_values(array_unique([...$keys, ...$report['captured_round_keys']]));
         $due = $this->deadlines($report);
         $following = array_values(array_filter($discovery['seasons'], fn ($s) => is_int($start)
@@ -69,21 +82,23 @@ class CollectionCycle
                 continue;
             }
             try {
-                $repaired = $this->capture->run($competition, (string) $id, 'reconciliation', [], 0);
-                $this->store->save($repaired);
-                if ($repaired['completeness']['results_complete']) {
+                $repaired = $this->standings->attach($this->capture->run($competition, (string) $id, 'reconciliation', [], 0));
+                $repairedId = $this->store->save($repaired);
+                $latestChampion = $this->standings->latest($latestChampion, $repaired, $repairedId);
+                if (($repaired['standings']['status'] ?? null) === 'verified_final') {
                     unset($pending[$id]);
 
                     break;
                 }
-                $job['reason'] = 'results_or_fixtures_missing';
+                $job['reason'] = $repaired['completeness']['results_complete'] ? 'standings_unverified' : 'results_or_fixtures_missing';
                 $job['completeness'] = $repaired['completeness'];
             } catch (Throwable $exception) {
                 report($exception);
                 $job['reason'] = 'fetch_failed';
             }
             $job['failures'] = min(8, ($job['failures'] ?? 0) + 1);
-            $job['next_attempt_at'] = CarbonImmutable::now('UTC')->addSeconds(min(3600, 45 * (2 ** $job['failures'])))->toIso8601String();
+            $delay = ($job['reason'] ?? '') === 'standings_unverified' ? 30 : min(3600, 45 * (2 ** $job['failures']));
+            $job['next_attempt_at'] = CarbonImmutable::now('UTC')->addSeconds($delay)->toIso8601String();
 
             break;
         }
@@ -106,6 +121,9 @@ class CollectionCycle
             'current_season_id' => $currentId,
             'current_season_start_uts' => $start,
             'last_results_complete' => $report['completeness']['results_complete'],
+            'last_champion_confirmed' => ($report['standings']['status'] ?? null) === 'verified_final',
+            'champion_bootstrap_done' => $bootstrapped,
+            'latest_champion' => $latestChampion,
             'pending_seasons' => $pending,
             'captured_round_keys' => array_values(array_filter($keys, fn ($k) => in_array(explode(':', $k)[0], $retained, true))),
             'next_attempt_at' => $due[0]->toIso8601String(),
@@ -125,6 +143,9 @@ class CollectionCycle
         }
         if (! $report['completeness']['fixtures_complete'] || $report['market_observation'] === 'availability_unknown') {
             $due[] = CarbonImmutable::now('UTC')->addSeconds(45);
+        }
+        if ($report['completeness']['results_complete'] && ($report['standings']['status'] ?? null) !== 'verified_final') {
+            $due[] = CarbonImmutable::now('UTC')->addSeconds(30);
         }
 
         return $due;

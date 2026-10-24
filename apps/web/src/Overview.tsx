@@ -1,6 +1,13 @@
 import type { Overview as OverviewData } from "./api";
 import { StrategyList } from "./StrategyList";
 
+function formatLagos(value: string): string {
+  return new Intl.DateTimeFormat("en-NG", {
+    timeZone: "Africa/Lagos", year: "numeric", day: "2-digit", month: "short",
+    hour: "2-digit", minute: "2-digit", second: "2-digit", hourCycle: "h23",
+  }).format(new Date(value));
+}
+
 export function Overview({
   data,
   league,
@@ -84,12 +91,12 @@ export function Overview({
             <div>
               <strong>{item.name}</strong>
               <small>Season {item.season_id ?? '—'} · Odds day {item.matchday ?? '—'}</small>
-              {item.last_success_at && <small>Observed {new Intl.DateTimeFormat('en-NG', {
-                timeZone: 'Africa/Lagos', day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit', second: '2-digit',
-              }).format(new Date(item.last_success_at))} WAT</small>}
+              {item.last_success_at && <small>Observed {formatLagos(item.last_success_at)} WAT</small>}
               {item.fixture_count != null && <small>{item.settled_count ?? 0}/{item.fixture_count} results recorded</small>}
               {!!item.unresolved_seasons?.length && <small>{item.unresolved_seasons.length} unresolved season(s)</small>}
               {item.market_observation === 'availability_unknown' && <small>Availability unknown</small>}
+              {item.latest_champion && <small>Verified champion: {item.latest_champion.team_name} (season {item.latest_champion.season_id})</small>}
+              {item.latest_champion && <small>Champion confirmed {formatLagos(item.latest_champion.confirmed_at)} WAT</small>}
             </div>
             <span className="feed-status">
               <i />

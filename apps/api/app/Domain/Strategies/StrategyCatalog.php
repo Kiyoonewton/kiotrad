@@ -20,7 +20,7 @@ final class StrategyCatalog
                 'stop_at_first_win' => true,
             ],
             'unresolved' => [
-                'Official champion tiebreaks and score availability.',
+                'Verified champion evidence must predate a strategy decision.',
                 'Treatment of no first win in the first ten matches.',
                 'Season continuity and complete matchday criteria.',
             ],

@@ -99,6 +99,7 @@ it("shows captured season and truthful freshness without claiming live results",
       season_id: "200", matchday: 4, last_success_at: "2026-10-24T00:00:00Z",
       fixture_count: 240, settled_count: 232,
       market_observation: "availability_unknown", unresolved_seasons: ["199"],
+      latest_champion: { team_name: "Example team", season_id: "199", confirmed_at: "2026-10-23T22:00:00Z" },
     }] }),
   }));
   render(<App />);
@@ -109,4 +110,6 @@ it("shows captured season and truthful freshness without claiming live results",
   expect(screen.getByText("Availability unknown")).toBeInTheDocument();
   expect(screen.getByText("232/240 results recorded")).toBeInTheDocument();
   expect(screen.getByText("1 unresolved season(s)")).toBeInTheDocument();
+  expect(screen.getByText("Verified champion: Example team (season 199)")).toBeInTheDocument();
+  expect(screen.getByText(/Champion confirmed .*23:00:00 WAT/)).toBeInTheDocument();
 });

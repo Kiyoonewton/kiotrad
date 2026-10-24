@@ -19,6 +19,9 @@ to enable them. Strategy evaluation remains disabled pending completeness checks
 Collection now follows fixture deadlines, captures two upcoming rounds, and keeps
 unresolved old seasons for reconciliation. See [schedule and availability semantics](docs/scheduled-collection.md).
 
+Completed seasons now cross-check official standings against fixture scores before
+confirming a champion. Workers bootstrap one previous season; see [verification and inspection](docs/official-standings.md).
+
 ## Start locally
 
 Requirements: Git, Docker Desktop with Compose v2, and a POSIX shell (macOS Terminal works).
