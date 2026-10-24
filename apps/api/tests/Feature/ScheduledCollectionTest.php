@@ -145,6 +145,27 @@ class ScheduledCollectionTest extends TestCase
         ]);
     }
 
+    public function test_advertised_seasons_skipped_by_a_gap_are_repaired_without_inventing_live_continuity(): void
+    {
+        $now = CarbonImmutable::now('UTC')->getTimestamp();
+        $discovery = $this->discoveryDocument('203', $now);
+        foreach (['201' => $now - 12000, '202' => $now - 6000] as $id => $start) {
+            $discovery['doc'][0]['data']['seasons'][] = ['_id' => (string) $id, '_utid' => 31867, 'current' => false, 'start' => ['uts' => $start]];
+        }
+        $this->fakeFeeds($this->fullSeason('203', $now + 60), $discovery);
+        Http::fake([
+            config('provider.statistics_base').'stats_season_fixtures2/201' => Http::response(['doc' => [['data' => $this->fullSeason('201', $now - 12000, true)]]]),
+            config('provider.statistics_base').'stats_season_tables/201' => Http::response($this->officialTable('201')),
+        ]);
+        $this->mock(CollectionStore::class)->shouldReceive('save')->twice()->andReturn('capture');
+        $state = app(CollectionCycle::class)->run('virtual-football', ['current_season_id' => '200',
+            'current_season_start_uts' => $now - 20000, 'collection_observed_at' => CarbonImmutable::now('UTC')->subMinute()->toIso8601String(),
+            'last_results_complete' => true, 'last_champion_confirmed' => true, 'champion_bootstrap_done' => true]);
+        $this->assertSame(['202'], array_map('strval', array_keys($state['pending_seasons'])));
+        $this->assertSame('unconfirmed_gap', $state['season_transition']['continuity_status']);
+        $this->assertSame('201', $state['latest_champion']['season_id']);
+    }
+
     private function fakeFeeds(array $season, array $discovery, bool $failFirst = false): void
     {
         $id = $season['_id'];

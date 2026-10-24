@@ -59,6 +59,8 @@ jobs:
         run: docker compose --env-file engine/.env -f engine/compose.yaml exec -T -e APP_ENV=testing api php < engine/paper-smoke.php
       - name: Verify observed strategy entry through paper settlement
         run: docker compose --env-file engine/.env -f engine/compose.yaml exec -T -e APP_ENV=testing api php < engine/paper-flow-smoke.php
+      - name: Verify disruption recovery and delayed paper settlement
+        run: docker compose --env-file engine/.env -f engine/compose.yaml exec -T -e APP_ENV=testing api php < engine/gap-smoke.php
       - name: Logs on failure
         if: failure()
         run: docker compose --env-file engine/.env -f engine/compose.yaml logs

@@ -45,6 +45,10 @@ final class PaperLedger
             if (count($state['runs']) >= 250 || count($state['decisions']) >= 2000) {
                 break; // Bounded pilot journal: never silently discard audit history.
             }
+            $key = implode(':', [$candidate['competition'], $candidate['season_id'], $candidate['team_uid'], $candidate['next_match']['matchday']]);
+            if ($facts[$key]['collection_interrupted'] ?? false) {
+                continue;
+            }
             $run = ['id' => $id, 'competition' => $candidate['competition'], 'season_id' => $candidate['season_id'],
                 'strategy_id' => $candidate['strategy_id'], 'strategy_version' => $candidate['version'],
                 'policy_version' => self::VERSION, 'team_uid' => $candidate['team_uid'], 'team' => $candidate['team'],
@@ -108,6 +112,11 @@ final class PaperLedger
             return $state;
         }
         if (($run['trigger']['evidence_ready_at'] ?? $now) > $now || ! isset($fact['observed_at']) || $fact['observed_at'] > $now) {
+            return $state;
+        }
+        if ($fact['collection_interrupted'] ?? false) {
+            $state['active_run']['status'] = 'collection_interrupted';
+
             return $state;
         }
         try {

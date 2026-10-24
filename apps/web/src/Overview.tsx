@@ -136,6 +136,19 @@ export function Overview({
                   {item.unresolved_seasons.length} unresolved season(s)
                 </small>
               )}
+              {item.collection_gap && (
+                <small>
+                  Collection interrupted · expected update{" "}
+                  {formatLagos(item.collection_gap.expected_at)} WAT
+                </small>
+              )}
+              {!item.collection_gap && item.last_collection_gap && (
+                <small>
+                  Resumed {formatLagos(item.last_collection_gap.resumed_at)} WAT
+                  · {item.last_collection_gap.pending_season_ids.length}{" "}
+                  season(s) queued for repair. Missed entries are not replayed.
+                </small>
+              )}
               {item.market_observation === "availability_unknown" && (
                 <small>Availability unknown</small>
               )}
@@ -162,6 +175,7 @@ export function Overview({
                   unavailable: "Storage unavailable",
                   not_connected: "Not connected",
                   scheduled: "Awaiting scheduled update",
+                  interrupted: "Collection interrupted",
                 } as Record<string, string>
               )[item.feed_status] ?? "Unknown"}
             </span>
