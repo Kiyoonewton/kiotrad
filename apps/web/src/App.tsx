@@ -129,7 +129,10 @@ export default function App() {
                   paper trading are not connected yet.
                 </p>
               </div>
-              <StrategyList strategies={data.strategies} />
+              <StrategyList
+                strategies={data.strategies}
+                monitoring={data.strategy_monitoring}
+              />
             </>
           ) : (
             <section className="page-intro">

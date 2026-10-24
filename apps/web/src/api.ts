@@ -31,7 +31,24 @@ export interface Overview {
     fixture_count?: number | null;
     market_observation?: string;
     unresolved_seasons?: string[];
-    latest_champion?: { team_name: string; season_id: string; confirmed_at: string } | null;
+    latest_champion?: {
+      team_name: string;
+      season_id: string;
+      confirmed_at: string;
+    } | null;
+  }[];
+  strategy_monitoring?: {
+    competition: string;
+    strategy_id?: string;
+    status: string;
+    team?: string | null;
+    trigger_day?: number | null;
+    attempt?: number | null;
+    next_match?: {
+      matchday: number;
+      home_team: string;
+      away_team: string;
+    } | null;
   }[];
   strategies: Strategy[];
 }

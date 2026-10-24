@@ -118,6 +118,13 @@ class CollectionCycle
         $retained = [$currentId, $previewId, ...array_map('strval', array_keys($pending))];
 
         return [
+            'season_transition' => $old !== null && $old !== $currentId ? [
+                'from_season_id' => $old, 'to_season_id' => $currentId, 'observed_at' => $now->toIso8601String(),
+                'continuity_status' => isset($previous['collection_observed_at'])
+                    && CarbonImmutable::parse($previous['collection_observed_at'])->diffInSeconds($now) <= 600
+                    ? 'observed_rollover' : 'unconfirmed_gap',
+            ] : null,
+            'collection_observed_at' => $now->toIso8601String(),
             'current_season_id' => $currentId,
             'current_season_start_uts' => $start,
             'last_results_complete' => $report['completeness']['results_complete'],

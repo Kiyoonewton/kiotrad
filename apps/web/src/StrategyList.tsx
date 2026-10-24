@@ -1,6 +1,12 @@
-import { naira, type Strategy } from "./api";
+import { naira, type Strategy, type Overview } from "./api";
 
-export function StrategyList({ strategies }: { strategies: Strategy[] }) {
+export function StrategyList({
+  strategies,
+  monitoring = [],
+}: {
+  strategies: Strategy[];
+  monitoring?: Overview["strategy_monitoring"];
+}) {
   return (
     <section className="strategy-section" aria-labelledby="strategy-title">
       <div className="section-heading">
@@ -50,6 +56,21 @@ export function StrategyList({ strategies }: { strategies: Strategy[] }) {
               Recovery target: prior losses + attempt number × profit per
               attempt. Stop at the first win.
             </p>
+            <h3>Live observation · paper execution disabled</h3>
+            {monitoring.map((row) =>
+              row.strategy_id === strategy.id || !row.strategy_id ? (
+                <p className="subtle" key={row.competition}>
+                  <strong>{row.competition.replace("virtual-", "")}</strong> ·{" "}
+                  {row.status.replaceAll("_", " ")}
+                  {row.team ? ` · ${row.team}` : ""}
+                  {row.trigger_day ? ` · first win day ${row.trigger_day}` : ""}
+                  {row.attempt ? ` · observation ${row.attempt}/4` : ""}
+                  {row.next_match
+                    ? ` · day ${row.next_match.matchday}: ${row.next_match.home_team} vs ${row.next_match.away_team}`
+                    : ""}
+                </p>
+              ) : null,
+            )}
             <h3>Before live testing</h3>
             <ul>
               {strategy.unresolved.map((item) => (
