@@ -26,6 +26,6 @@ final class SeasonDiscovery
             throw new RuntimeException('Season discovery requires exactly one provider-marked current season.');
         }
 
-        return ['season_id' => (string) $current[0]['_id'], 'observation' => $observation];
+        return ['season_id' => (string) $current[0]['_id'], 'seasons' => $seasons, 'observation' => $observation];
     }
 }

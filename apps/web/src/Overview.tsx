@@ -85,13 +85,16 @@ export function Overview({
               <strong>{item.name}</strong>
               <small>Season {item.season_id ?? '—'} · Odds day {item.matchday ?? '—'}</small>
               {item.last_success_at && <small>Observed {new Intl.DateTimeFormat('en-NG', {
-                timeZone: 'Africa/Lagos', hour: '2-digit', minute: '2-digit', second: '2-digit',
+                timeZone: 'Africa/Lagos', day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit', second: '2-digit',
               }).format(new Date(item.last_success_at))} WAT</small>}
+              {item.fixture_count != null && <small>{item.settled_count ?? 0}/{item.fixture_count} results recorded</small>}
+              {!!item.unresolved_seasons?.length && <small>{item.unresolved_seasons.length} unresolved season(s)</small>}
+              {item.market_observation === 'availability_unknown' && <small>Availability unknown</small>}
             </div>
             <span className="feed-status">
               <i />
               {({ fresh: 'Fresh capture', stale: 'Stale capture', retrying: 'Retrying',
-                unavailable: 'Storage unavailable', not_connected: 'Not connected',
+                unavailable: 'Storage unavailable', not_connected: 'Not connected', scheduled: 'Awaiting scheduled update',
               } as Record<string, string>)[item.feed_status] ?? 'Unknown'}
             </span>
           </div>

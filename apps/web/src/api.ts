@@ -27,6 +27,10 @@ export interface Overview {
     season_id?: string | null;
     matchday?: number | null;
     last_success_at?: string | null;
+    settled_count?: number | null;
+    fixture_count?: number | null;
+    market_observation?: string;
+    unresolved_seasons?: string[];
   }[];
   strategies: Strategy[];
 }

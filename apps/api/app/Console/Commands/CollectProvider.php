@@ -2,8 +2,7 @@
 
 namespace App\Console\Commands;
 
-use App\Infrastructure\Provider\CollectionStore;
-use App\Infrastructure\Provider\ProviderProbe;
+use App\Infrastructure\Provider\CollectorTick;
 use Illuminate\Console\Command;
 use Throwable;
 
@@ -11,9 +10,9 @@ class CollectProvider extends Command
 {
     protected $signature = 'provider:collect {competition? : Omit for all three leagues}';
 
-    protected $description = 'Persist one normalized current-season observation per league in KioTrad MongoDB';
+    protected $description = 'Run one due scheduled capture cycle per league in KioTrad MongoDB';
 
-    public function handle(ProviderProbe $probe, CollectionStore $store): int
+    public function handle(CollectorTick $tick): int
     {
         $profiles = config('provider.competitions');
         $league = $this->argument('competition');
@@ -25,9 +24,12 @@ class CollectProvider extends Command
         $failed = false;
         foreach ($league === null ? array_keys($profiles) : [$league] as $competition) {
             try {
-                $report = $probe->run($competition);
-                $capture = $store->save($report);
-                $this->line("{$competition}: season {$report['season_id']}; {$report['fixture_count']} fixtures; capture {$capture}");
+                $status = $tick->run($competition);
+                $this->line("{$competition}: {$status}");
+                if ($status === 'retrying') {
+                    $failed = true;
+                    $this->error("{$competition}: collection failed; retry scheduled.");
+                }
             } catch (Throwable $exception) {
                 $failed = true;
                 $this->error("{$competition}: collection failed; rerun to retry. No checkpoint advanced before a durable capture.");
