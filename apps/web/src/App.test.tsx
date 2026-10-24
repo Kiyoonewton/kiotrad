@@ -1,0 +1,92 @@
+import { afterEach, expect, it, vi } from "vitest";
+import {
+  cleanup,
+  fireEvent,
+  render,
+  screen,
+  within,
+} from "@testing-library/react";
+import App from "./App";
+
+const payload = {
+  schema_version: "1",
+  mode: "foundation",
+  currency: "NGN",
+  display_timezone: "Africa/Lagos",
+  competitions: [
+    { id: "virtual-football", name: "English", feed_status: "not_connected" },
+    {
+      id: "virtual-bundesliga",
+      name: "Bundesliga",
+      feed_status: "not_connected",
+    },
+    { id: "virtual-euro", name: "Euro", feed_status: "not_connected" },
+  ],
+  strategies: [
+    {
+      id: "champion-next-win",
+      name: "Champion — Next Win",
+      version: "0.1.0-draft",
+      status: "research",
+      monitoring_enabled: false,
+      bankroll_enabled: false,
+      description: "Follow the previous champion after a delayed first win.",
+      entry: "After settlement.",
+      rules: {
+        max_attempts: 4,
+        minimum_stake_minor: 10000,
+        profit_per_attempt_minor: 10000,
+      },
+      unresolved: ["Official tiebreaks."],
+    },
+  ],
+};
+
+afterEach(() => {
+  cleanup();
+  vi.unstubAllGlobals();
+});
+
+it("shows unavailable feeds and no invented balance, supports league filtering and strategy inspection", async () => {
+  vi.stubGlobal(
+    "fetch",
+    vi.fn().mockResolvedValue({ ok: true, json: async () => payload }),
+  );
+  render(<App />);
+  expect(
+    await screen.findByText("Bankroll not configured"),
+  ).toBeInTheDocument();
+  const leagues = screen.getByRole("region", {
+    name: "League collection status",
+  });
+  expect(within(leagues).getAllByText("Not connected")).toHaveLength(3);
+  fireEvent.change(screen.getByRole("combobox", { name: "League" }), {
+    target: { value: "virtual-euro" },
+  });
+  expect(within(leagues).getByText("Euro")).toBeInTheDocument();
+  expect(within(leagues).queryByText("English")).not.toBeInTheDocument();
+  fireEvent.click(screen.getByRole("button", { name: /Strategies/ }));
+  expect(
+    screen.getByRole("heading", { name: "The strategy library." }),
+  ).toBeInTheDocument();
+  fireEvent.click(screen.getByText("Champion — Next Win"));
+  expect(screen.getByText("Official tiebreaks.")).toBeVisible();
+});
+
+it("reports API failure and can retry successfully", async () => {
+  vi.stubGlobal(
+    "fetch",
+    vi
+      .fn()
+      .mockResolvedValueOnce({ ok: false })
+      .mockResolvedValueOnce({ ok: true, json: async () => payload }),
+  );
+  render(<App />);
+  expect(await screen.findByRole("alert")).toHaveTextContent(
+    "The API is unavailable",
+  );
+  fireEvent.click(screen.getByRole("button", { name: "Retry connection" }));
+  expect(
+    await screen.findByText("Bankroll not configured"),
+  ).toBeInTheDocument();
+});

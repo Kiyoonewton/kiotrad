@@ -1,0 +1,61 @@
+name: Foundation checks
+
+on:
+  push:
+    branches: [main, 'feat/**', 'fix/**']
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  web:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: apps/web
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: apps/web/package-lock.json
+      - run: npm ci
+      - run: npm run lint
+      - run: npm test
+      - run: npm run build
+
+  api:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: apps/api
+    steps:
+      - uses: actions/checkout@v4
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          extensions: mongodb-2.5.5, mbstring, dom, curl
+          coverage: none
+      - run: composer install --no-interaction --prefer-dist
+      - run: composer lint
+      - run: composer test
+
+  docker-smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - run: sh engine/start.sh
+      - name: Check dashboard, API proxy and real MongoDB readiness
+        run: |
+          curl --fail --retry 5 --retry-delay 2 http://localhost:5173/ | grep 'KioTrad'
+          curl --fail http://localhost:5173/api/v1/overview | python3 -c 'import json,sys; d=json.load(sys.stdin); assert d["mode"] == "foundation"; assert d["bankroll"]["balance_minor"] is None'
+          curl --fail http://localhost:8000/api/v1/ready | python3 -c 'import json,sys; assert json.load(sys.stdin)["database"] == "available"'
+      - name: Logs on failure
+        if: failure()
+        run: docker compose --env-file engine/.env -f engine/compose.yaml logs
+      - name: Stop services
+        if: always()
+        run: docker compose --env-file engine/.env -f engine/compose.yaml down
