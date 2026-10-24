@@ -9,8 +9,7 @@ use Throwable;
 final class CollectorTick
 {
     public function __construct(
-        private ProviderProbe $probe,
-        private CollectionStore $store,
+        private CollectionCycle $cycle,
         private CollectorState $state,
     ) {}
 
@@ -25,8 +24,7 @@ final class CollectorTick
             return 'waiting';
         }
         try {
-            $report = $this->probe->run($competition);
-            $this->store->save($report);
+            $schedule = $this->cycle->run($competition, $previous);
         } catch (Throwable $exception) {
             $failures = min(10, (int) ($previous['failure_count'] ?? 0) + 1);
             $delay = min(300, 45 * (2 ** ($failures - 1)));
@@ -40,9 +38,9 @@ final class CollectorTick
             return 'retrying';
         }
         $this->state->write($competition, [
+            ...$schedule,
             'failure_count' => 0,
             'last_failure_at' => null,
-            'next_attempt_at' => CarbonImmutable::now('UTC')->addSeconds(45)->toIso8601String(),
         ]);
 
         return 'collected';

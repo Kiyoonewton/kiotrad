@@ -1,6 +1,8 @@
 <?php
 
 return [
+    // Initial conservative check, not a claim of exact match duration. Missing results retry.
+    'result_check_delay_seconds' => max(30, min(600, (int) env('PROVIDER_RESULT_CHECK_DELAY_SECONDS', 200))),
     // Public feed routes verified against the provider's statistics application.
     'statistics_base' => 'https://vgls-vs001.akamaized.net/vfl/feeds/?/bet9javirtuals/en/Europe:Berlin/gismo/',
     'odds_base' => 'https://vgls.betradar.com/vfl/feeds/?/bet9ja/en/Europe:Berlin/gismo/',

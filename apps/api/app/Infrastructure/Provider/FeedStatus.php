@@ -32,6 +32,10 @@ class FeedStatus
         $observed = $capture['observed_at'] ?? null;
         $age = $observed ? CarbonImmutable::parse($observed)->diffInSeconds(CarbonImmutable::now('UTC'), false) : null;
         $status = $observed ? ($age >= 0 && $age <= 120 ? 'fresh' : 'stale') : 'not_connected';
+        if ($observed && $age >= 0 && $status === 'stale' && isset($state['next_attempt_at'])
+            && CarbonImmutable::parse($state['next_attempt_at'])->isFuture()) {
+            $status = 'scheduled';
+        }
         if (($state['failure_count'] ?? 0) > 0) {
             $status = 'retrying';
         }
@@ -45,6 +49,10 @@ class FeedStatus
             'next_attempt_at' => $state['next_attempt_at'] ?? null,
             'fixture_count' => $capture['fixture_count'] ?? null,
             'settled_count' => $capture['settled_count'] ?? null,
+            'completeness' => $capture['completeness'] ?? null,
+            'market_observation' => $state['market_observation'] ?? $capture['market_observation'] ?? 'not_assessed',
+            'unresolved_seasons' => array_map('strval', array_keys($state['pending_seasons'] ?? [])),
+            'planned_rounds' => $state['planned_rounds'] ?? [],
             'data_complete' => false,
         ];
     }

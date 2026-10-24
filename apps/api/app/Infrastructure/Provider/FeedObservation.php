@@ -20,6 +20,7 @@ final readonly class FeedObservation
             'url' => $this->url,
             'requested_at' => $this->requestedAt->toIso8601String(),
             'received_at' => $this->receivedAt->toIso8601String(),
+            'http_status' => $this->document['_http_status'] ?? 200,
             'payload' => $this->payload,
         ];
     }

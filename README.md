@@ -16,6 +16,9 @@ Optional per-league workers now poll with persisted retry delays, and the
 dashboard displays capture freshness. See [continuous collection](docs/continuous-collection.md)
 to enable them. Strategy evaluation remains disabled pending completeness checks.
 
+Collection now follows fixture deadlines, captures two upcoming rounds, and keeps
+unresolved old seasons for reconciliation. See [schedule and availability semantics](docs/scheduled-collection.md).
+
 ## Start locally
 
 Requirements: Git, Docker Desktop with Compose v2, and a POSIX shell (macOS Terminal works).

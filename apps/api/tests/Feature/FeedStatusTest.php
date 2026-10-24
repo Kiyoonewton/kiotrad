@@ -32,6 +32,7 @@ class FeedStatusTest extends TestCase
             $this->assertSame('fresh', $feeds->summarize($league, $capture, [])['feed_status']);
             $capture['observed_at'] = '2026-10-24T00:00:00+00:00';
             $this->assertSame('stale', $feeds->summarize($league, $capture, [])['feed_status']);
+            $this->assertSame('scheduled', $feeds->summarize($league, $capture, ['next_attempt_at' => '2026-10-24T00:04:00+00:00'])['feed_status']);
             $this->assertSame('retrying', $feeds->summarize($league, $capture, ['failure_count' => 1])['feed_status']);
             $this->assertSame('not_connected', $feeds->summarize($league, null, [])['feed_status']);
             $this->assertFalse($feeds->summarize($league, $capture, [])['data_complete']);

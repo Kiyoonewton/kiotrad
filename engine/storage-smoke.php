@@ -47,6 +47,18 @@ try {
     $restarted = new App\Infrastructure\Provider\MongoCollectorState;
     $assert($restarted->read('virtual-football')['failure_count'] === 2, 'Retry state was lost across restart.');
     $assert($restarted->read('virtual-euro') === [], 'Worker states collided across leagues.');
+    $preview = $newer;
+    $preview['scope'] = 'preview';
+    $preview['season_id'] = '201';
+    $preview['observed_at'] = '2026-10-24T00:02:00+00:00';
+    $store->save($preview);
+    $repair = $newer;
+    $repair['scope'] = 'reconciliation';
+    $repair['observed_at'] = '2026-10-24T00:03:00+00:00';
+    $store->save($repair);
+    $checkpoint = $database->provider_checkpoints->findOne(['_id' => 'virtual-football']);
+    $assert($checkpoint['capture_id'] === $second, 'Preview or historical repair replaced current-season pointer.');
+    $assert($database->season_checkpoints->countDocuments() === 2, 'Per-season progress was not retained.');
     echo "Storage smoke passed: retry, chronology, immutability and league isolation.\n";
 } finally {
     $database->drop();

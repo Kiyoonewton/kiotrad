@@ -97,6 +97,8 @@ it("shows captured season and truthful freshness without claiming live results",
     json: async () => ({ ...payload, competitions: [{
       id: "virtual-football", name: "English", feed_status: "stale",
       season_id: "200", matchday: 4, last_success_at: "2026-10-24T00:00:00Z",
+      fixture_count: 240, settled_count: 232,
+      market_observation: "availability_unknown", unresolved_seasons: ["199"],
     }] }),
   }));
   render(<App />);
@@ -104,4 +106,7 @@ it("shows captured season and truthful freshness without claiming live results",
   expect(screen.getByText("Season 200 · Odds day 4")).toBeInTheDocument();
   expect(screen.getByText(/Observed .* WAT/)).toBeInTheDocument();
   expect(screen.queryByText("Live now")).not.toBeInTheDocument();
+  expect(screen.getByText("Availability unknown")).toBeInTheDocument();
+  expect(screen.getByText("232/240 results recorded")).toBeInTheDocument();
+  expect(screen.getByText("1 unresolved season(s)")).toBeInTheDocument();
 });

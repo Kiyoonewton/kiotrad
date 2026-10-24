@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Infrastructure\Provider\CollectionCycle;
 use App\Infrastructure\Provider\CollectionStore;
 use App\Infrastructure\Provider\CollectorState;
 use App\Infrastructure\Provider\CollectorTick;
@@ -22,19 +23,13 @@ class CollectorTickTest extends TestCase
     public function test_success_saves_normalized_data_and_clears_prior_failures(): void
     {
         CarbonImmutable::setTestNow('2026-10-24T00:00:00Z');
-        $base = config('provider.statistics_base');
-        Http::preventStrayRequests();
-        Http::fake([
-            $base.'uniquetournament_seasons/*' => Http::response(['doc' => [['data' => ['seasons' => [
-                ['_id' => '200', '_utid' => 31867, 'current' => true],
-            ]]]]]),
-            $base.'stats_season_fixtures2/200' => Http::response(['doc' => [['data' => $this->seasonFixture()]]]),
-        ]);
-        $this->mock(CollectionStore::class)->shouldReceive('save')->once()->withArgs(fn ($r) => $r['season_id'] === '200' && count($r['matches']) === 1)->andReturn('capture');
+        $this->mock(CollectionCycle::class)->shouldReceive('run')->once()
+            ->with('virtual-football', ['failure_count' => 2])
+            ->andReturn(['next_attempt_at' => '2026-10-24T00:01:01+00:00']);
         $state = $this->mock(CollectorState::class);
         $state->shouldReceive('read')->once()->with('virtual-football')->andReturn(['failure_count' => 2]);
         $state->shouldReceive('write')->once()->with('virtual-football', [
-            'failure_count' => 0, 'last_failure_at' => null, 'next_attempt_at' => '2026-10-24T00:00:45+00:00',
+            'failure_count' => 0, 'last_failure_at' => null, 'next_attempt_at' => '2026-10-24T00:01:01+00:00',
         ]);
         $this->assertSame('collected', app(CollectorTick::class)->run('virtual-football'));
     }
