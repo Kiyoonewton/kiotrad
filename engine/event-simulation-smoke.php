@@ -64,6 +64,10 @@ try {
     $recovered = $find($monitor->forSeason('virtual-football', '200'));
     $assert($recovered['status'] === 'observed_win' && $recovered['recovered'], 'Delayed evidence still blocked research simulation.');
     $assert($recovered['simulation']['net_minor'] === 10000, 'Recovered win did not calculate NGN 100 profit.');
+    config(['kiotrad.simulation_cache_enabled' => false]);
+    $batched = $find($monitor->forSeasons([['competition' => 'virtual-football', 'season_id' => '200']]));
+    $assert($batched['simulation'] === $recovered['simulation'], 'Batched replay changed financial results or provenance.');
+    config(['kiotrad.simulation_cache_enabled' => true]);
     $strict = $find($monitor->all(false));
     $assert($strict['status'] === 'waiting_for_history', 'Catalog-only history enabled a backdated journal entry.');
     $history = app(SimulationHistory::class);

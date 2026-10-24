@@ -34,14 +34,7 @@ class SimulationHistory
 
     public function rows(array $seasons): array
     {
-        $rows = [];
-        $cutoff = now('UTC')->subDays(7)->toIso8601String();
-        foreach ($seasons as $season) {
-            $ttl = ($season['start_at'] ?? '') >= $cutoff ? SimulationCache::RECENT_TTL : SimulationCache::HISTORICAL_TTL;
-            $rows = [...$rows, ...$this->monitoring->forSeason($season['competition'], (string) $season['season_id'], $ttl)];
-        }
-
-        return $rows;
+        return $this->monitoring->forSeasons($seasons);
     }
 
     public function page(int $page, int $perPage, string $competition, ?string $from = null, ?string $to = null): array
