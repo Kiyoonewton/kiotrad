@@ -47,6 +47,7 @@ final class MongoPaperStore implements PaperStore
                 throw new DomainException('Paper configuration is immutable.');
             }
         }
+        $this->assertIntegrity($before, $state);
         $state['revision'] = $revision + 1;
 
         $filter = ['_id' => 'main', 'revision' => $revision];
@@ -59,5 +60,39 @@ final class MongoPaperStore implements PaperStore
         }
 
         return $this->collection()->updateOne($filter, ['$set' => $state])->getModifiedCount() === 1;
+    }
+
+    private function assertIntegrity(array $before, array $state): void
+    {
+        $realized = array_sum(array_column($state['runs'], 'net_minor')) + ($state['active_run']['net_minor'] ?? 0);
+        $active = $state['active_run'];
+        $last = $active && $active['attempts'] !== [] ? $active['attempts'][array_key_last($active['attempts'])] : null;
+        $reserved = $last && $last['status'] === 'pending' ? $last['stake_minor'] : 0;
+        if ($state['cash_minor'] < 0 || $state['committed_minor'] !== $reserved
+            || $state['cash_minor'] + $reserved !== $state['starting_balance_minor'] + $realized) {
+            throw new DomainException('Paper cash, reservations and settlements do not reconcile.');
+        }
+        $previousRun = $before['active_run'];
+        if ($previousRun === null) {
+            return;
+        }
+        $afterRun = ($active['id'] ?? null) === $previousRun['id'] ? $active : null;
+        foreach ($state['runs'] as $run) {
+            if ($run['id'] === $previousRun['id']) {
+                $afterRun = $run;
+            }
+        }
+        if ($afterRun === null) {
+            throw new DomainException('An active paper run cannot be discarded.');
+        }
+        foreach ($previousRun['attempts'] as $index => $attempt) {
+            $sealed = $attempt;
+            if ($attempt['status'] === 'pending') {
+                unset($sealed['status']);
+            }
+            if (array_intersect_key($afterRun['attempts'][$index] ?? [], $sealed) !== $sealed) {
+                throw new DomainException('Recorded attempts and settlements cannot be rewritten.');
+            }
+        }
     }
 }

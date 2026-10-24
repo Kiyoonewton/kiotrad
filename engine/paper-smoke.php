@@ -62,6 +62,14 @@ try {
     $assert($saved['cash_minor'] === 557100 && $saved['committed_minor'] === 0, 'Settlement cash is incorrect.');
     $assert($saved['decisions'] === $pending['decisions'], 'Original decision was rewritten.');
     $tampered = $saved;
+    $tampered['cash_minor'] -= 1;
+    try {
+        $store->replace(3, $tampered);
+        throw new RuntimeException('Unreconciled cash was accepted.');
+    } catch (DomainException) {
+        // Expected: journal totals must reconcile before every commit.
+    }
+    $tampered = $saved;
     $tampered['decisions'][0]['stake_minor'] = 1;
     try {
         $store->replace(3, $tampered);
