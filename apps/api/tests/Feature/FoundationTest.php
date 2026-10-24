@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Infrastructure\Database\MongoReadiness;
 use App\Infrastructure\Paper\PaperStore;
+use App\Infrastructure\Paper\PaperWorkerHealth;
 use App\Infrastructure\Provider\ChampionMonitoring;
 use App\Infrastructure\Provider\FeedStatus;
 use RuntimeException;
@@ -14,6 +15,7 @@ class FoundationTest extends TestCase
     public function test_overview_does_not_invent_live_data_or_financial_results(): void
     {
         $this->mock(PaperStore::class)->shouldReceive('read')->once()->andReturnNull();
+        $this->mock(PaperWorkerHealth::class)->shouldReceive('view')->once()->andReturn(['status' => 'not_observed']);
         $this->mock(ChampionMonitoring::class)->shouldReceive('all')->once()->andReturn([]);
         $this->mock(FeedStatus::class)->shouldReceive('all')->once()->andReturn(
             array_map(fn ($c) => [...$c, 'feed_status' => 'not_connected'], config('kiotrad.competitions')),

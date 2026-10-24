@@ -18,7 +18,7 @@ docker compose --env-file engine/.env -f engine/compose.yaml \
   --profile paper up -d --build paper-worker
 ```
 
-`paper:configure` cannot reset or top up an existing portfolio. Omit `--target` to leave it unset. Capital is limited to NGN 100–10,000,000 for this pilot. Configuration alone does not run the worker. A target only measures progress; it neither predicts returns nor stops trading automatically.
+`paper:configure` cannot reset or top up an existing portfolio. Omit `--target` to leave it unset. Capital is limited to NGN 100–10,000,000 for this pilot. Configuration alone does not run the worker. The configured target is the milestone step. With NGN 14,000, display milestones are NGN 14,000, 28,000, 42,000 and so on. Reached milestones use the highest recorded paper balance, so a drawdown does not erase achievements. Milestones neither predict returns nor stop trading automatically.
 
 ```bash
 # Inspect worker output or stop new paper processing.
@@ -44,3 +44,13 @@ Cash excludes reserved stakes. Displayed paper balance is cash plus reserved sta
 One revision-checked MongoDB document atomically reserves or releases money and appends journal entries. This works on the existing standalone MongoDB without transactions. Concurrent workers cannot both commit the same revision. MongoDB's clock additionally rejects a new reservation if kickoff passes or a price expires while calculations/storage are in flight; synchronize host clocks. Read-only API requests never execute decisions.
 
 Original decisions and completed runs are append-only; settled fields on an active attempt are finalized once. Later provider corrections do not rewrite settled paper history; an explicit adjustment workflow is still needed. New runs pause at 250 completed/skipped runs or 2,000 decisions, keeping the pilot document bounded. Export/archival and additional portfolio creation are future milestones; entries are never silently dropped. Database unavailability shows an unknown balance, not zero. `paper:watch --once` is available for diagnosis.
+
+## Check the current flow
+
+```bash
+docker compose --env-file engine/.env -f engine/compose.yaml exec api php artisan paper:status
+```
+
+This command only reads funds, worker heartbeat and strategy states. It never places or settles a paper attempt. Worker heartbeat is stored separately in `paper_worker_states`, so checking health cannot change funds or portfolio revision. The Overview displays the last heartbeat in WAT. An absent heartbeat means none has been recorded; a heartbeat older than 60 seconds means no recent check was observed, not proof that a process has stopped. Errors show retrying. Collector freshness is separate.
+
+After updating, rebuild API/web and recreate the existing paper worker to load the new code. Do not run `paper:configure` again: existing capital, history and the configured milestone step are preserved. CI includes a disposable MongoDB journey that derives a day-four trigger from synthetic observations, reserves NGN 200 from NGN 7,000 at odds 1.5, confirms a win, and verifies NGN 7,100 balance with exactly one credit. This test is separate from user data and is not historical replay.

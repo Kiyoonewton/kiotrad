@@ -113,3 +113,44 @@ it("keeps unavailable balances unknown instead of showing zero", () => {
   expect(screen.getByText("Bankroll unavailable")).toBeInTheDocument();
   expect(screen.getByText("₦ —")).toBeInTheDocument();
 });
+
+it("shows the next fixed milestone after a drawdown and the worker's observed heartbeat", () => {
+  render(
+    <Overview
+      data={{
+        ...data,
+        active_run: null,
+        bankroll: {
+          status: "paper",
+          starting_balance_minor: 700000,
+          balance_minor: 1300000,
+          available_minor: 1300000,
+          committed_minor: 0,
+          net_profit_minor: 600000,
+          target_balance_minor: 1400000,
+          next_milestone_minor: 2800000,
+          milestone_step_minor: 1400000,
+          milestones_reached: 1,
+        },
+        capital_history: [
+          { at: "2026-10-24T08:00:00Z", balance_minor: 700000 },
+          { at: "2026-10-24T09:00:00Z", balance_minor: 1400000 },
+          { at: "2026-10-24T10:00:00Z", balance_minor: 1300000 },
+        ],
+        paper_worker: {
+          status: "active",
+          observed_at: "2026-10-24T10:00:00Z",
+          last_result: "waiting",
+        },
+      }}
+      league="all"
+    />,
+  );
+  expect(screen.getByText("₦28,000.00")).toBeInTheDocument();
+  expect(
+    screen.getByText(/1 milestone\(s\) reached · ₦14,000.00 increments/),
+  ).toBeInTheDocument();
+  expect(
+    screen.getByText(/Paper worker: checking regularly.*11:00:00 WAT/),
+  ).toBeInTheDocument();
+});

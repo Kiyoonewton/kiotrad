@@ -1,5 +1,20 @@
 import type { Overview } from "./api";
 
+const historyReasons: Record<string, string> = {
+  missing_linked_previous_season:
+    "No unique recorded link to the previous season is available yet.",
+  previous_champion_unverified:
+    "The linked previous season’s champion has not been verified.",
+  season_link_not_verified:
+    "The season change was not verified, or collection had an unconfirmed gap.",
+  missing_linked_older_season:
+    "Next Season needs one more recorded season link to assess the preceding irregularity.",
+  older_champion_unverified:
+    "The older season’s champion has not been verified.",
+  earlier_season_link_not_verified:
+    "The earlier season change was not verified; this transition cannot qualify.",
+};
+
 const reasons: Record<string, string> = {
   waiting_for_history:
     "Needs linked seasons and a verified champion; snapshot count alone is not enough.",
@@ -62,7 +77,8 @@ export function MonitoringRows({
             {row.status.replaceAll("_", " ")}
           </span>
           <p>
-            {reasons[row.status] ??
+            {(row.reason ? historyReasons[row.reason] : undefined) ??
+              reasons[row.status] ??
               "An unrecognized monitoring state was received; no execution is implied."}
           </p>
           {row.team && (
