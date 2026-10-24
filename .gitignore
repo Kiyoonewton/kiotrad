@@ -10,3 +10,4 @@ coverage/
 .phpunit.result.cache
 .phpunit.cache/
 engine/.env.bak
+backups/
