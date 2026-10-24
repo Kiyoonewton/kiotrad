@@ -68,6 +68,7 @@ final class ChampionMonitor
                     return $row;
                 }
                 $readyAt = max($readyAt, $match['result_observed_at']);
+
                 continue;
             }
             $row['status'] = $match['scheduled_start_at'] <= $asOf ? 'awaiting_result' : 'watching_fixture';

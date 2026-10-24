@@ -48,7 +48,7 @@ export function StrategyList({
               <span>
                 Monitoring{" "}
                 <b>
-                  {strategy.monitoring_enabled ? "Enabled" : "Not connected"}
+                  {monitoring.length ? "Observation only" : "Not connected"}
                 </b>
               </span>
             </div>

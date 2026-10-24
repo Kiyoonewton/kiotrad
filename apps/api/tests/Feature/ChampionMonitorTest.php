@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Domain\Strategies\ChampionMonitor;
+use Carbon\CarbonImmutable;
 use Tests\TestCase;
 
 class ChampionMonitorTest extends TestCase
@@ -11,7 +12,7 @@ class ChampionMonitorTest extends TestCase
     {
         $matches = [];
         foreach ($results as $index => $result) {
-            $time = \Carbon\CarbonImmutable::parse($base)->addMinutes($index * 4);
+            $time = CarbonImmutable::parse($base)->addMinutes($index * 4);
             $matches[] = ['provider_match_id' => 'vf:match:'.$id.$index, 'matchday' => $index + 1,
                 'home_team_uid' => '1', 'away_team_uid' => '2', 'home_team' => 'Champion', 'away_team' => 'Opponent',
                 'scheduled_start_at' => $time->toIso8601String(), 'status' => $result ? 'settled' : 'scheduled_or_unconfirmed',
@@ -63,6 +64,26 @@ class ChampionMonitorTest extends TestCase
         $links = [['from_season_id' => 'previous', 'to_season_id' => 'current',
             'observed_at' => '2026-10-24T09:59:00+00:00', 'continuity_status' => 'unconfirmed_gap']];
         $this->assertSame('waiting_for_history', $this->evaluate($this->season('current', ['H']), null, $links)['status']);
+    }
+
+    public function test_four_non_wins_exhaust_the_window_and_do_not_chase_further(): void
+    {
+        $current = $this->season('current', ['D', 'A', 'D', 'H', 'D', 'A', 'D', 'A', 'H']);
+        $links = [['from_season_id' => 'previous', 'to_season_id' => 'current',
+            'observed_at' => '2026-10-24T09:59:00+00:00', 'continuity_status' => 'observed_rollover']];
+        $row = (new ChampionMonitor)->evaluate('champion-next-win', $current, $this->season('previous', []), null, $links, '2026-10-24T11:00:00+00:00');
+        $this->assertSame('four_attempts_without_win', $row['status']);
+        $this->assertSame(4, $row['attempt']);
+    }
+
+    public function test_trigger_result_received_after_next_kickoff_blocks_entry(): void
+    {
+        $current = $this->season('current', ['D', 'A', 'D', 'H', null]);
+        $current['matches'][3]['result_observed_at'] = '2026-10-24T10:17:00+00:00';
+        $links = [['from_season_id' => 'previous', 'to_season_id' => 'current',
+            'observed_at' => '2026-10-24T09:59:00+00:00', 'continuity_status' => 'observed_rollover']];
+        $row = (new ChampionMonitor)->evaluate('champion-next-win', $current, $this->season('previous', []), null, $links, '2026-10-24T10:18:00+00:00');
+        $this->assertSame('late_evidence', $row['status']);
     }
 
     public function test_next_season_follows_its_own_previous_champion(): void

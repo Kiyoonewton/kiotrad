@@ -125,13 +125,15 @@ export default function App() {
                 <p className="eyebrow">Hypotheses become measurable rules</p>
                 <h1>The strategy library.</h1>
                 <p>
-                  Open a strategy to inspect its definition. Monitoring and
-                  paper trading are not connected yet.
+                  Open a strategy to inspect its definition and observed
+                  fixtures. Paper trading remains disabled.
                 </p>
               </div>
               <StrategyList
                 strategies={data.strategies}
-                monitoring={data.strategy_monitoring}
+                monitoring={data.strategy_monitoring?.filter(
+                  (row) => league === "all" || row.competition === league,
+                )}
               />
             </>
           ) : (
