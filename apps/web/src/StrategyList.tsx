@@ -59,7 +59,7 @@ export function StrategyList({
               Recovery target: prior losses + attempt number × profit per
               attempt. Stop at the first win.
             </p>
-            <h3>Live observation · paper execution disabled</h3>
+            <h3>Strategy observations · separate from paper decisions</h3>
             <MonitoringRows
               rows={monitoring.filter(
                 (row) => row.strategy_id === strategy.id || !row.strategy_id,
@@ -67,7 +67,7 @@ export function StrategyList({
               strategies={strategies}
               competitions={competitions}
             />
-            <h3>Before live testing</h3>
+            <h3>Execution assumptions</h3>
             <ul>
               {strategy.unresolved.map((item) => (
                 <li key={item}>{item}</li>

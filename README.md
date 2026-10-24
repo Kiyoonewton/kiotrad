@@ -102,3 +102,7 @@ CI also builds and starts the full Compose stack, checks the frontend/API proxy 
 Money in API/ledger contracts uses integer kobo; odds use decimal representations. Storage time is UTC, display time Africa/Lagos. Provider response timestamps must not be treated as kickoff without verification.
 
 New strategies will be versioned modules on shared provider data. The two catalog entries currently document the research hypothesis; their monitoring and bankroll flags are disabled until the unresolved rules and live data are verified.
+
+## Paper trading
+
+Opt-in, simulated shared-capital execution is documented in [docs/paper-trading.md](docs/paper-trading.md). Configure a paper bankroll once, then start the optional `paper` worker profile. No bookmaker bets are submitted.

@@ -25,6 +25,11 @@ services:
     <<: *collector
     command: [php, artisan, 'provider:watch', virtual-euro]
 
+  paper-worker:
+    <<: *collector
+    profiles: [paper]
+    command: [php, artisan, 'paper:watch']
+
   mongodb:
     image: mongo:7
     ports:
