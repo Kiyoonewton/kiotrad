@@ -74,36 +74,76 @@ export function MonitoringRows({
                 "Monitoring availability"}
             </span>
           </div>
-          <span className="monitoring-state">
+          <span className={`monitoring-state state-${row.status}`}>
             {row.status === "observed_win"
-              ? "Simulation win observed"
+              ? "✓ Win observed"
               : row.status.replaceAll("_", " ")}
           </span>
-          <p>
-            {(row.reason ? historyReasons[row.reason] : undefined) ??
-              reasons[row.status] ??
-              "An unrecognized simulation monitoring state was received."}
-          </p>
-          {row.team && (
-            <p>
-              {row.team}
-              {row.trigger_day ? ` · first win day ${row.trigger_day}` : ""}
-              {row.attempt ? ` · observation ${row.attempt}/4` : ""}
-            </p>
+          {row.team && <h3 className="run-team">{row.team}</h3>}
+          <div className="run-meta">
+            {row.trigger_day ? (
+              <span>First win · D{row.trigger_day}</span>
+            ) : null}
+            {row.next_match && (
+              <span>
+                D{row.next_match.matchday} · {row.next_match.home_team} vs{" "}
+                {row.next_match.away_team}
+              </span>
+            )}
+          </div>
+          {!!row.attempt && (
+            <div
+              className="observation-track"
+              aria-label={`Observed window: ${row.attempt ?? 0} of 4 attempts`}
+            >
+              {[1, 2, 3, 4].map((n) => (
+                <span
+                  key={n}
+                  className={
+                    n === row.attempt && row.status === "observed_win"
+                      ? "track-win"
+                      : n < (row.attempt ?? 0) ||
+                          (n === row.attempt &&
+                            row.status === "four_attempts_without_win")
+                        ? "track-seen"
+                        : ""
+                  }
+                >
+                  <b>
+                    {n === row.attempt && row.status === "observed_win"
+                      ? "✓"
+                      : n}
+                  </b>
+                  <small>
+                    {n === row.attempt && row.status === "observed_win"
+                      ? "Win"
+                      : n < (row.attempt ?? 0) ||
+                          (n === row.attempt &&
+                            row.status === "four_attempts_without_win")
+                        ? "Observed"
+                        : "—"}
+                  </small>
+                </span>
+              ))}
+            </div>
           )}
-          {row.next_match && (
+          <details className="run-details">
+            <summary>Qualification details</summary>
             <p>
-              Day {row.next_match.matchday} · {row.next_match.home_team} vs{" "}
-              {row.next_match.away_team}
+              {(row.reason ? historyReasons[row.reason] : undefined) ??
+                reasons[row.status] ??
+                "Monitoring state unavailable."}
             </p>
-          )}
+          </details>
           {row.simulation && <RunCalculation calculation={row.simulation} />}
-          {!row.simulation &&
-            row.data_quality_notes?.map((note) => (
-              <p className="subtle" key={note}>
-                {note}
-              </p>
-            ))}
+          {!row.simulation && !!row.data_quality_notes?.length && (
+            <details className="run-details">
+              <summary>Data notes</summary>
+              {row.data_quality_notes.map((note) => (
+                <p key={note}>{note}</p>
+              ))}
+            </details>
+          )}
         </li>
       ))}
     </ul>

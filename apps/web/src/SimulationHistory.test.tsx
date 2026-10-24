@@ -39,9 +39,9 @@ it("pages stored simulation results without showing legacy entry-closed decision
   vi.stubGlobal("fetch", fetcher);
   render(<SimulationHistory league="all" />);
   expect(await screen.findByText("football / 200")).toBeInTheDocument();
-  expect(screen.getByText("₦200.00")).toBeInTheDocument();
-  expect(screen.getByText("₦300.00")).toBeInTheDocument();
-  expect(screen.getByText("₦100.00")).toBeInTheDocument();
+  expect(screen.getAllByText("₦200.00")[0]).toBeInTheDocument();
+  expect(screen.getAllByText("₦300.00")[0]).toBeInTheDocument();
+  expect(screen.getAllByText("₦100.00")[0]).toBeInTheDocument();
   expect(screen.queryByText("entry closed")).not.toBeInTheDocument();
   fireEvent.click(screen.getByRole("button", { name: "Next" }));
   expect(await screen.findByText("football / 100")).toBeInTheDocument();

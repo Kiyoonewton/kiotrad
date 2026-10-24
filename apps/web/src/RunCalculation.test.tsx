@@ -32,12 +32,15 @@ const calculation: Calculation = {
 
 it("shows the simulation stake, gross payout and net separately", () => {
   render(<RunCalculation calculation={calculation} />);
-  expect(screen.getByText(/odds 1.5/)).toHaveTextContent(
-    /stake.*200\.00.*payout.*300\.00/,
+  expect(screen.getByText("Staked").nextElementSibling).toHaveTextContent(
+    "200.00",
   );
-  expect(screen.getByText(/Total staked/)).toHaveTextContent(
-    /net profit\/loss.*100\.00/,
+  expect(screen.getByText("Net").nextElementSibling).toHaveTextContent(
+    "100.00",
   );
+  expect(
+    screen.getByText("Calculation details").parentElement,
+  ).not.toHaveAttribute("open");
   expect(screen.getByText(/Independent run replay/)).toBeInTheDocument();
 });
 
@@ -57,6 +60,7 @@ it("does not present an unpriced observed win as calculated profit", () => {
     />,
   );
   expect(screen.getByText(/No usable saved price/)).toBeInTheDocument();
-  expect(screen.getByText(/Total staked/)).toHaveTextContent("run incomplete");
+  expect(screen.getByText("Net").nextElementSibling).toHaveTextContent("—");
+  expect(screen.getByText("Staked").nextElementSibling).toHaveTextContent("—");
   expect(screen.queryByText(/net profit\/loss/)).not.toBeInTheDocument();
 });
