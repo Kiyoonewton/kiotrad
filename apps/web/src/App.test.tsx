@@ -1,3 +1,4 @@
+import { StrategyList } from "./StrategyList";
 import { afterEach, expect, it, vi } from "vitest";
 import {
   cleanup,
@@ -92,16 +93,34 @@ it("reports API failure and can retry successfully", async () => {
 });
 
 it("shows captured season and truthful freshness without claiming live results", async () => {
-  vi.stubGlobal("fetch", vi.fn().mockResolvedValue({
-    ok: true,
-    json: async () => ({ ...payload, competitions: [{
-      id: "virtual-football", name: "English", feed_status: "stale",
-      season_id: "200", matchday: 4, last_success_at: "2026-10-24T00:00:00Z",
-      fixture_count: 240, settled_count: 232,
-      market_observation: "availability_unknown", unresolved_seasons: ["199"],
-      latest_champion: { team_name: "Example team", season_id: "199", confirmed_at: "2026-10-23T22:00:00Z" },
-    }] }),
-  }));
+  vi.stubGlobal(
+    "fetch",
+    vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        ...payload,
+        competitions: [
+          {
+            id: "virtual-football",
+            name: "English",
+            feed_status: "stale",
+            season_id: "200",
+            matchday: 4,
+            last_success_at: "2026-10-24T00:00:00Z",
+            fixture_count: 240,
+            settled_count: 232,
+            market_observation: "availability_unknown",
+            unresolved_seasons: ["199"],
+            latest_champion: {
+              team_name: "Example team",
+              season_id: "199",
+              confirmed_at: "2026-10-23T22:00:00Z",
+            },
+          },
+        ],
+      }),
+    }),
+  );
   render(<App />);
   expect(await screen.findByText("Stale capture")).toBeInTheDocument();
   expect(screen.getByText("Season 200 · Odds day 4")).toBeInTheDocument();
@@ -110,6 +129,41 @@ it("shows captured season and truthful freshness without claiming live results",
   expect(screen.getByText("Availability unknown")).toBeInTheDocument();
   expect(screen.getByText("232/240 results recorded")).toBeInTheDocument();
   expect(screen.getByText("1 unresolved season(s)")).toBeInTheDocument();
-  expect(screen.getByText("Verified champion: Example team (season 199)")).toBeInTheDocument();
-  expect(screen.getByText(/Champion confirmed .*23:00:00 WAT/)).toBeInTheDocument();
+  expect(
+    screen.getByText("Verified champion: Example team (season 199)"),
+  ).toBeInTheDocument();
+  expect(
+    screen.getByText(/Champion confirmed .*23:00:00 WAT/),
+  ).toBeInTheDocument();
+});
+
+it("shows read-only strategy evidence without inventing staking", () => {
+  render(
+    <StrategyList
+      strategies={payload.strategies}
+      monitoring={[
+        {
+          competition: "virtual-football",
+          strategy_id: "champion-next-win",
+          status: "watching_fixture",
+          team: "Example champion",
+          trigger_day: 4,
+          attempt: 1,
+          next_match: {
+            matchday: 5,
+            home_team: "Example champion",
+            away_team: "Opponent",
+          },
+        },
+      ]}
+    />,
+  );
+  fireEvent.click(screen.getByText("Champion — Next Win"));
+  expect(screen.getByText(/watching fixture/)).toHaveTextContent(
+    "observation 1/4",
+  );
+  expect(screen.getByText(/watching fixture/)).toHaveTextContent("day 5");
+  expect(
+    screen.getAllByText("Live observation · paper execution disabled"),
+  ).toHaveLength(1);
 });

@@ -7,9 +7,9 @@ final class StrategyCatalog
     public function all(): array
     {
         $common = [
-            'version' => '0.1.0-draft',
-            'status' => 'research',
-            'monitoring_enabled' => false,
+            'version' => ChampionMonitor::VERSION,
+            'status' => 'observation',
+            'monitoring_enabled' => true,
             'bankroll_enabled' => false,
             'rules' => [
                 'irregular_first_win_day_min' => 4,
@@ -20,9 +20,9 @@ final class StrategyCatalog
                 'stop_at_first_win' => true,
             ],
             'unresolved' => [
-                'Verified champion evidence must predate a strategy decision.',
-                'Treatment of no first win in the first ten matches.',
-                'Season continuity and complete matchday criteria.',
+                'Monitoring records observed outcomes, not placed bets.',
+                'Price eligibility and immutable decisions are not implemented.',
+                'A shared-capital paper ledger and overlap handling are not implemented.',
             ],
         ];
 

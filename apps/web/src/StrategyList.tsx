@@ -1,6 +1,12 @@
-import { naira, type Strategy } from "./api";
+import { naira, type Strategy, type Overview } from "./api";
 
-export function StrategyList({ strategies }: { strategies: Strategy[] }) {
+export function StrategyList({
+  strategies,
+  monitoring = [],
+}: {
+  strategies: Strategy[];
+  monitoring?: Overview["strategy_monitoring"];
+}) {
   return (
     <section className="strategy-section" aria-labelledby="strategy-title">
       <div className="section-heading">
@@ -8,7 +14,7 @@ export function StrategyList({ strategies }: { strategies: Strategy[] }) {
           <p className="eyebrow">A growing research library</p>
           <h2 id="strategy-title">Strategies, with a reason.</h2>
         </div>
-        <span className="subtle">{strategies.length} draft definitions</span>
+        <span className="subtle">{strategies.length} strategy definitions</span>
       </div>
       {strategies.map((strategy, index) => (
         <details className="strategy-row" key={strategy.id}>
@@ -21,7 +27,7 @@ export function StrategyList({ strategies }: { strategies: Strategy[] }) {
                 maximum
               </small>
             </span>
-            <span className="research-status">Research</span>
+            <span className="research-status">Observation</span>
             <span className="expand-icon" aria-hidden="true">
               +
             </span>
@@ -42,7 +48,7 @@ export function StrategyList({ strategies }: { strategies: Strategy[] }) {
               <span>
                 Monitoring{" "}
                 <b>
-                  {strategy.monitoring_enabled ? "Enabled" : "Not connected"}
+                  {monitoring.length ? "Observation only" : "Not connected"}
                 </b>
               </span>
             </div>
@@ -50,6 +56,21 @@ export function StrategyList({ strategies }: { strategies: Strategy[] }) {
               Recovery target: prior losses + attempt number × profit per
               attempt. Stop at the first win.
             </p>
+            <h3>Live observation · paper execution disabled</h3>
+            {monitoring.map((row) =>
+              row.strategy_id === strategy.id || !row.strategy_id ? (
+                <p className="subtle" key={row.competition}>
+                  <strong>{row.competition.replace("virtual-", "")}</strong> ·{" "}
+                  {row.status.replaceAll("_", " ")}
+                  {row.team ? ` · ${row.team}` : ""}
+                  {row.trigger_day ? ` · first win day ${row.trigger_day}` : ""}
+                  {row.attempt ? ` · observation ${row.attempt}/4` : ""}
+                  {row.next_match
+                    ? ` · day ${row.next_match.matchday}: ${row.next_match.home_team} vs ${row.next_match.away_team}`
+                    : ""}
+                </p>
+              ) : null,
+            )}
             <h3>Before live testing</h3>
             <ul>
               {strategy.unresolved.map((item) => (

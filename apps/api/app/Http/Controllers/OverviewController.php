@@ -3,12 +3,13 @@
 namespace App\Http\Controllers;
 
 use App\Domain\Strategies\StrategyCatalog;
+use App\Infrastructure\Provider\ChampionMonitoring;
 use App\Infrastructure\Provider\FeedStatus;
 use Illuminate\Http\JsonResponse;
 
 final class OverviewController extends Controller
 {
-    public function __invoke(StrategyCatalog $strategies, FeedStatus $feeds): JsonResponse
+    public function __invoke(StrategyCatalog $strategies, FeedStatus $feeds, ChampionMonitoring $monitoring): JsonResponse
     {
         return response()->json([
             'schema_version' => '1',
@@ -27,6 +28,7 @@ final class OverviewController extends Controller
             ],
             'competitions' => $feeds->all(),
             'strategies' => $strategies->all(),
+            'strategy_monitoring' => $monitoring->all(),
             'active_run' => null,
             'capital_history' => [],
             'recent_runs' => [],
