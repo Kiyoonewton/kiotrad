@@ -15,8 +15,9 @@
     font-size: 20px;
     gap: 3px;
   }
-  .brand svg {
+  .brand .kiotrad-logo {
     width: 30px;
+    height: 30px;
   }
   .workspace {
     margin-left: 145px;
@@ -71,8 +72,9 @@
   .brand {
     font-size: 19px;
   }
-  .brand svg {
+  .brand .kiotrad-logo {
     width: 28px;
+    height: 28px;
   }
   .sidebar nav {
     display: flex;

@@ -1,0 +1,31 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" preserveAspectRatio="xMidYMid meet" role="img" aria-labelledby="kiotrad-title kiotrad-description">
+  <title id="kiotrad-title">KioTrad — rotating KT monogram</title>
+  <desc id="kiotrad-description">An upright warm-white K interlocked with a sage T at minus ninety degrees, with T in front. The entire mark turns in place about its own geometric center, clockwise ninety degrees so T stands upright and K faces down, then returns. Each turn lasts one second with a three-second pause at each end.</desc>
+  <style>
+    .kiotrad-rotor {
+      /* Use the figure itself, not the canvas, as the rotation reference. */
+      transform-box: fill-box;
+      transform-origin: 50% 50%;
+      animation: kiotrad-quarter-turn var(--kiotrad-duration, 8s) cubic-bezier(.65, 0, .35, 1) infinite;
+      animation-play-state: var(--kiotrad-play-state, running);
+    }
+    .kiotrad-k { fill: var(--kiotrad-k, #F1EEE6); stroke: var(--kiotrad-k, #F1EEE6); }
+    .kiotrad-t { fill: var(--kiotrad-t, #9DBBA8); stroke: var(--kiotrad-t, #9DBBA8); }
+    @keyframes kiotrad-quarter-turn {
+      0%, 37.5% { transform: rotate(0deg); }
+      50%, 87.5% { transform: rotate(90deg); }
+      100% { transform: rotate(0deg); }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      .kiotrad-rotor { animation: none; transform: rotate(0deg); }
+    }
+  </style>
+  <g class="kiotrad-rotor">
+    <!-- Upright K. Its short exposed stem ends remain visible behind the T. -->
+    <path class="kiotrad-k" fill="#F1EEE6" stroke="#F1EEE6" stroke-width="1" stroke-linejoin="round"
+      d="M54 42H82V112L145 42H181L104 128L181 214H145L82 144V214H54Z"/>
+    <!-- Foreground T at -90 degrees: vertical crossbar, horizontal stem. -->
+    <path class="kiotrad-t" fill="#9DBBA8" stroke="#9DBBA8" stroke-width="1" stroke-linejoin="round"
+      d="M54 63H82V114H202V142H82V193H54Z"/>
+  </g>
+</svg>
