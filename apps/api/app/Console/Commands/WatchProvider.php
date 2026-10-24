@@ -15,14 +15,14 @@ class WatchProvider extends Command
     public function handle(CollectorTick $tick): int
     {
         $league = $this->argument('competition');
-        if (! array_key_exists($league, config('provider.competitions'))) {
+        if (array_key_exists($league, config('provider.competitions')) === false) {
             $this->error('Use a configured competition ID.');
 
             return self::FAILURE;
         }
         // Prevent duplicate workers in the same container. Deploy one replica per league.
         $lock = fopen(sys_get_temp_dir().'/kiotrad-'.$league.'.lock', 'c');
-        if ($lock === false || ! flock($lock, LOCK_EX | LOCK_NB)) {
+        if ($lock === false || flock($lock, LOCK_EX | LOCK_NB) === false) {
             $this->error('A worker for this league is already running in this container.');
 
             return self::FAILURE;

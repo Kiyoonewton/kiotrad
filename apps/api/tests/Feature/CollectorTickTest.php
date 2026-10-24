@@ -30,8 +30,7 @@ class CollectorTickTest extends TestCase
             ]]]]]),
             $base.'stats_season_fixtures2/200' => Http::response(['doc' => [['data' => $this->seasonFixture()]]]),
         ]);
-        $this->mock(CollectionStore::class)->shouldReceive('save')->once()->withArgs(fn ($r) =>
-            $r['season_id'] === '200' && count($r['matches']) === 1)->andReturn('capture');
+        $this->mock(CollectionStore::class)->shouldReceive('save')->once()->withArgs(fn ($r) => $r['season_id'] === '200' && count($r['matches']) === 1)->andReturn('capture');
         $state = $this->mock(CollectorState::class);
         $state->shouldReceive('read')->once()->with('virtual-football')->andReturn(['failure_count' => 2]);
         $state->shouldReceive('write')->once()->with('virtual-football', [
@@ -46,8 +45,7 @@ class CollectorTickTest extends TestCase
         Http::preventStrayRequests();
         Http::fake(['*' => Http::response([], 503)]);
         $this->mock(CollectionStore::class)->shouldNotReceive('save');
-        $state = new class implements CollectorState
-        {
+        $state = new class implements CollectorState {
             public array $data = [];
 
             public function read(string $competition): array
