@@ -2,6 +2,7 @@
 
 return [
     'archive_raw_responses' => (bool) env('PROVIDER_ARCHIVE_RAW_RESPONSES', true),
+    'history_seasons' => max(0, min(1000, (int) env('PROVIDER_HISTORY_SEASONS', 81))),
     // Initial conservative check, not a claim of exact match duration. Missing results retry.
     'result_check_delay_seconds' => max(30, min(600, (int) env('PROVIDER_RESULT_CHECK_DELAY_SECONDS', 200))),
     // Public feed routes verified against the provider's statistics application.

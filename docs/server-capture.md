@@ -3,6 +3,17 @@
 This additive change requires no database migration or deletion. Use a dedicated
 KioTrad checkout and the `kiotrad` Compose project. Never attach `my_trade` storage.
 Existing local/Mac history is not automatically transferred to this server.
+On its first successful cycle, each collector queues up to 81 previous seasons
+advertised by the provider, ordered by provider start time, oldest first. Current
+capture remains first priority, with at most one historical season per cycle.
+The queue and bootstrap marker persist across restarts; incomplete jobs retry.
+If fewer seasons are advertised, the collector queues only those returned; it
+does not invent IDs. Additional archive discovery is needed if the metadata list
+exposes less history than the archive website. `PROVIDER_HISTORY_SEASONS` sets the
+initial limit before the first successful cycle. Historical collection requests
+fixtures/results/standings, not retrospectively verified pre-match odds. Fixture
+scheduled UTC times remain distinct from today's observation time. Historical
+replay and visualizations are subsequent work; no historical paper bets execute.
 
 Check the destination before cloning or starting:
 
