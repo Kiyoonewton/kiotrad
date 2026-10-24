@@ -1,11 +1,14 @@
+import { MonitoringRows } from "./MonitoringRows";
 import { naira, type Strategy, type Overview } from "./api";
 
 export function StrategyList({
   strategies,
   monitoring = [],
+  competitions = [],
 }: {
   strategies: Strategy[];
   monitoring?: Overview["strategy_monitoring"];
+  competitions?: Overview["competitions"];
 }) {
   return (
     <section className="strategy-section" aria-labelledby="strategy-title">
@@ -57,20 +60,13 @@ export function StrategyList({
               attempt. Stop at the first win.
             </p>
             <h3>Live observation · paper execution disabled</h3>
-            {monitoring.map((row) =>
-              row.strategy_id === strategy.id || !row.strategy_id ? (
-                <p className="subtle" key={row.competition}>
-                  <strong>{row.competition.replace("virtual-", "")}</strong> ·{" "}
-                  {row.status.replaceAll("_", " ")}
-                  {row.team ? ` · ${row.team}` : ""}
-                  {row.trigger_day ? ` · first win day ${row.trigger_day}` : ""}
-                  {row.attempt ? ` · observation ${row.attempt}/4` : ""}
-                  {row.next_match
-                    ? ` · day ${row.next_match.matchday}: ${row.next_match.home_team} vs ${row.next_match.away_team}`
-                    : ""}
-                </p>
-              ) : null,
-            )}
+            <MonitoringRows
+              rows={monitoring.filter(
+                (row) => row.strategy_id === strategy.id || !row.strategy_id,
+              )}
+              strategies={strategies}
+              competitions={competitions}
+            />
             <h3>Before live testing</h3>
             <ul>
               {strategy.unresolved.map((item) => (

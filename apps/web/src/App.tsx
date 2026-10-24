@@ -131,6 +131,7 @@ export default function App() {
               </div>
               <StrategyList
                 strategies={data.strategies}
+                competitions={data.competitions}
                 monitoring={data.strategy_monitoring?.filter(
                   (row) => league === "all" || row.competition === league,
                 )}
