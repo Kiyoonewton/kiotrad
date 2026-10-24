@@ -94,4 +94,30 @@ class RunReplayTest extends TestCase
         $this->assertCount(4, $view['attempts']);
         $this->assertSame(-260000, $view['net_minor']);
     }
+
+    public function test_next_season_starts_at_day_one_and_unqualified_rows_are_not_simulated(): void
+    {
+        $captures = [$this->capture(5, false), $this->capture(5, true)];
+        foreach ($captures as &$capture) {
+            $capture['matches'][0]['matchday'] = 1;
+        }
+        unset($capture);
+        $row = [...$this->row(), 'strategy_id' => 'champion-next-season'];
+        $replay = app(RunReplay::class);
+        $view = $replay->calculate($row, $captures, 700000, '2026-10-24T11:00:00+00:00');
+        $this->assertSame(1, $view['attempts'][0]['matchday']);
+        $this->assertSame(10000, $view['net_minor']);
+        $this->assertNull($replay->calculate([...$row, 'trigger_day' => 3, 'status' => 'not_qualified'], $captures, 700000, '2026-10-24T11:00:00+00:00'));
+    }
+
+    public function test_same_time_conflicting_prices_are_not_used_to_choose_a_profitable_quote(): void
+    {
+        $first = $this->capture(5, false, '1.5');
+        $conflict = $this->capture(5, false, '2.0');
+        $conflict['observed_at'] = '2026-10-24T10:00:01+00:00';
+        $view = app(RunReplay::class)->calculate($this->row(), [$first, $conflict, $this->capture(5, true)], 700000, '2026-10-24T11:00:00+00:00');
+        $this->assertSame('awaiting_verified_odds', $view['status']);
+        $this->assertSame([], $view['attempts']);
+        $this->assertNull($view['net_minor']);
+    }
 }
