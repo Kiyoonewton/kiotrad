@@ -4,10 +4,12 @@ namespace App\Infrastructure\Paper;
 
 use App\Domain\Paper\PaperLedger;
 use App\Infrastructure\Provider\ChampionMonitoring;
+use App\Infrastructure\Provider\ResultRepairRequests;
+use Carbon\CarbonImmutable;
 
 final class PaperRunner
 {
-    public function __construct(private PaperStore $store, private ChampionMonitoring $monitoring, private PaperMarket $market, private PaperLedger $ledger) {}
+    public function __construct(private PaperStore $store, private ChampionMonitoring $monitoring, private PaperMarket $market, private PaperLedger $ledger, private ResultRepairRequests $repairs) {}
 
     public function tick(): string
     {
@@ -32,6 +34,14 @@ final class PaperRunner
         }
         $facts = $this->market->facts($requests, $now);
         $now = now('UTC')->toIso8601String();
+        if (isset($last) && $last['status'] === 'pending') {
+            $key = implode(':', [$run['competition'], $run['season_id'], $run['team_uid'], $last['matchday']]);
+            $result = $facts[$key]['fixture'] ?? null;
+            if (($result === null || $result['status'] !== 'settled' || $result['provider_match_id'] !== $last['provider_match_id'] || ! in_array($result['result'] ?? null, ['H', 'D', 'A'], true))
+                && CarbonImmutable::parse($last['scheduled_start_at'])->addSeconds(config('provider.result_check_delay_seconds') + 60)->lessThanOrEqualTo(CarbonImmutable::parse($now))) {
+                $this->repairs->request($run['competition'], $run['season_id'], $last['provider_match_id']);
+            }
+        }
         $next = $this->ledger->advance($state, $candidates, $facts, $now);
         if ($next === $state) {
             return 'waiting';

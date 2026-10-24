@@ -16,6 +16,16 @@ final class MongoCollectorState implements CollectorState
 
     public function write(string $competition, array $state): void
     {
+        foreach (['collection_gap', 'last_collection_gap'] as $field) {
+            if (! isset($state[$field])) {
+                continue;
+            }
+            $gap = $state[$field];
+            $sealed = array_intersect_key($gap, array_flip(['expected_at', 'last_observed_at', 'detected_at', 'reason']));
+            $mutable = array_diff_key($gap, $sealed, ['id' => true]);
+            DB::connection('mongodb')->getDatabase()->collection_gaps->updateOne(['_id' => $gap['id']],
+                ['$setOnInsert' => ['competition' => $competition, ...$sealed], '$set' => $mutable], ['upsert' => true]);
+        }
         if (isset($state['season_transition'])) {
             $transition = ['competition' => $competition, ...$state['season_transition']];
             $key = $competition.':'.$transition['from_season_id'].':'.$transition['to_season_id'];

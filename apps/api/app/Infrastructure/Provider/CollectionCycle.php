@@ -37,6 +37,10 @@ class CollectionCycle
             && (! ($previous['last_results_complete'] ?? false) || ! ($previous['last_champion_confirmed'] ?? false))) {
             $pending[$old] ??= ['next_attempt_at' => CarbonImmutable::now('UTC')->toIso8601String(), 'failures' => 0];
         }
+        $intermediate = (new GapSeasonPlan)->intermediate($previous, $discovery['seasons'], $currentId, is_int($start) ? $start : null);
+        foreach ($intermediate as $id) {
+            $pending[$id] ??= ['next_attempt_at' => CarbonImmutable::now('UTC')->toIso8601String(), 'failures' => 0, 'reason' => 'gap_reconciliation'];
+        }
         $bootstrapped = $previous['champion_bootstrap_done'] ?? false;
         if (! $bootstrapped && is_int($start)) {
             $older = array_values(array_filter($discovery['seasons'], fn ($s) => is_int($s['start']['uts'] ?? null) && $s['start']['uts'] < $start));
@@ -121,7 +125,7 @@ class CollectionCycle
             'season_transition' => $old !== null && $old !== $currentId ? [
                 'from_season_id' => $old, 'to_season_id' => $currentId, 'observed_at' => $now->toIso8601String(),
                 'continuity_status' => isset($previous['collection_observed_at'])
-                    && CarbonImmutable::parse($previous['collection_observed_at'])->diffInSeconds($now) <= 600
+                    && CarbonImmutable::parse($previous['collection_observed_at'])->diffInSeconds($now) <= 600 && $intermediate === []
                     ? 'observed_rollover' : 'unconfirmed_gap',
             ] : null,
             'collection_observed_at' => $now->toIso8601String(),

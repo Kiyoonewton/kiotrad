@@ -36,6 +36,9 @@ class FeedStatus
             && CarbonImmutable::parse($state['next_attempt_at'])->isFuture()) {
             $status = 'scheduled';
         }
+        if (isset($state['collection_gap'])) {
+            $status = 'interrupted';
+        }
         if (($state['failure_count'] ?? 0) > 0) {
             $status = 'retrying';
         }
@@ -54,6 +57,8 @@ class FeedStatus
             'unresolved_seasons' => array_map('strval', array_keys($state['pending_seasons'] ?? [])),
             'planned_rounds' => $state['planned_rounds'] ?? [],
             'latest_champion' => $state['latest_champion'] ?? null,
+            'collection_gap' => $state['collection_gap'] ?? null,
+            'last_collection_gap' => $state['last_collection_gap'] ?? null,
             'data_complete' => false,
         ];
     }
