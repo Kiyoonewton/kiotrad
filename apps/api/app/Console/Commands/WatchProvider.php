@@ -42,6 +42,7 @@ class WatchProvider extends Command
                         return self::FAILURE;
                     }
                     sleep(45);
+
                     continue;
                 }
                 if ($this->option('once')) {
