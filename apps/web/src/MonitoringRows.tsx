@@ -1,4 +1,5 @@
 import type { Overview } from "./api";
+import { RunCalculation } from "./RunCalculation";
 
 const historyReasons: Record<string, string> = {
   missing_linked_previous_season:
@@ -36,7 +37,7 @@ const reasons: Record<string, string> = {
   awaiting_result:
     "The scheduled start has passed; waiting for a confirmed result.",
   observed_win:
-    "The strategy’s win condition was met within the four-match simulation window. This observation does not yet include stake or profit calculations.",
+    "The strategy’s win condition was met within the four-match simulation window.",
   four_attempts_without_win:
     "Four observed fixtures ended without a win. The window has closed.",
   window_ended: "The season ended before the observation window could finish.",
@@ -96,6 +97,7 @@ export function MonitoringRows({
               {row.next_match.away_team}
             </p>
           )}
+          {row.simulation && <RunCalculation calculation={row.simulation} />}
         </li>
       ))}
     </ul>
