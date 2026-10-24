@@ -2,8 +2,8 @@ FROM php:8.3-cli AS base
 RUN apt-get update && apt-get install -y --no-install-recommends \
     libssl-dev libonig-dev libxml2-dev unzip git \
     && docker-php-ext-install mbstring dom \
-    && pecl install mongodb-2.5.5 \
-    && docker-php-ext-enable mongodb \
+    && pecl install mongodb-2.5.5 redis-6.2.0 \
+    && docker-php-ext-enable mongodb redis \
     && rm -rf /var/lib/apt/lists/*
 COPY --from=composer:2 /usr/bin/composer /usr/local/bin/composer
 WORKDIR /app

@@ -2,6 +2,7 @@
 
 namespace App\Infrastructure\Provider;
 
+use App\Domain\Strategies\SimulationSeasonLinks;
 use Illuminate\Support\Facades\DB;
 
 final class MongoCollectorState implements CollectorState
@@ -16,6 +17,16 @@ final class MongoCollectorState implements CollectorState
 
     public function write(string $competition, array $state): void
     {
+        if (! empty($state['season_catalog'])) {
+            $operations = [];
+            foreach ((new SimulationSeasonLinks)->merge([], $state['season_catalog'], $state['collection_observed_at']) as $link) {
+                $key = $competition.':'.$link['from_season_id'].':'.$link['to_season_id'];
+                $operations[] = ['updateOne' => [['_id' => $key], ['$setOnInsert' => ['competition' => $competition, ...$link]], ['upsert' => true]]];
+            }
+            if ($operations !== []) {
+                DB::connection('mongodb')->getDatabase()->provider_catalog_links->bulkWrite($operations, ['ordered' => false]);
+            }
+        }
         foreach (['collection_gap', 'last_collection_gap'] as $field) {
             if (! isset($state[$field])) {
                 continue;

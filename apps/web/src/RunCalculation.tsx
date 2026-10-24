@@ -7,9 +7,11 @@ export function RunCalculation({ calculation }: { calculation: Calculation }) {
         <strong>Simulation: {calculation.status.replaceAll("_", " ")}</strong>
       </p>
       <p className="subtle">
-        Independent run replay · starting capital{" "}
-        {naira(calculation.starting_capital_minor)}. This calculation does not
-        change the shared simulation balance.
+        {calculation.mode === "event_order_simulation"
+          ? "Event-order simulation"
+          : "Independent run replay"}{" "}
+        · starting capital {naira(calculation.starting_capital_minor)}. This
+        calculation does not change the shared simulation balance.
       </p>
       {calculation.attempts.map((attempt) => (
         <p key={attempt.attempt}>
@@ -28,11 +30,24 @@ export function RunCalculation({ calculation }: { calculation: Calculation }) {
           ? `net profit/loss ${naira(calculation.net_minor)}`
           : `realized profit/loss ${naira(calculation.realized_net_minor)} · run incomplete`}
       </p>
-      {calculation.status === "awaiting_verified_odds" && (
+      {["awaiting_verified_odds", "awaiting_recorded_odds"].includes(
+        calculation.status,
+      ) && (
         <p className="subtle">
-          No eligible pre-match price was found for day{" "}
+          No usable saved price was found for day{" "}
           {calculation.unpriced_matchday}. Pricing pauses here; later results
           are not assigned invented stakes or profit.
+        </p>
+      )}
+      {calculation.data_quality_notes?.map((note) => (
+        <p className="subtle" key={note}>
+          Data quality: {note}
+        </p>
+      ))}
+      {calculation.status === "market_blocked" && (
+        <p className="subtle">
+          Confirmed market block on day {calculation.unpriced_matchday}. No
+          stake or payout is invented for that entry.
         </p>
       )}
     </section>

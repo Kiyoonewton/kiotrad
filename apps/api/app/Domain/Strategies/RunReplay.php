@@ -7,12 +7,14 @@ use DomainException;
 
 final class RunReplay
 {
-    public function __construct(private WinQuote $quotes) {}
+    public const EVENT_VERSION = 'event-order-win-recovery-1.0.0';
 
-    public function calculate(array $row, array $captures, int $capital, string $asOf): ?array
+    public function __construct(private WinQuote $quotes, private HistoricalQuote $historical) {}
+
+    public function calculate(array $row, array $captures, int $capital, string $asOf, bool $eventOrder = false): ?array
     {
         if (($row['trigger_day'] ?? 0) < 4 || empty($row['team_uid']) || empty($row['evidence_ready_at'])
-            || ! in_array($row['status'], ['watching_fixture', 'awaiting_result', 'observed_win', 'four_attempts_without_win', 'window_ended'], true)) {
+            || ! in_array($row['status'], ['watching_fixture', 'awaiting_result', 'observed_win', 'four_attempts_without_win', 'window_ended', 'missing_fixture'], true)) {
             return null;
         }
         $captures = array_values(array_filter($captures, fn ($c) => $c['observed_at'] <= $asOf));
@@ -27,7 +29,9 @@ final class RunReplay
                 }
             }
         }
-        $view = ['mode' => 'independent_run_replay', 'policy_version' => 'as-observed-win-recovery-1.0.0',
+        $view = ['mode' => $eventOrder ? 'event_order_simulation' : 'independent_run_replay',
+            'policy_version' => $eventOrder ? self::EVENT_VERSION : 'as-observed-win-recovery-1.0.0',
+            'data_quality_notes' => $row['data_quality_notes'] ?? [],
             'starting_capital_minor' => $capital, 'total_staked_minor' => 0, 'gross_payout_minor' => 0,
             'realized_net_minor' => 0, 'net_minor' => null, 'status' => 'awaiting_fixture', 'attempts' => []];
         $ready = $row['evidence_ready_at'];
@@ -38,13 +42,21 @@ final class RunReplay
             if ($day > 30) {
                 return [...$view, 'status' => 'season_end', 'net_minor' => $view['realized_net_minor']];
             }
+            if ($eventOrder && in_array($day, $row['blocked_matchdays'] ?? [], true)) {
+                return [...$view, 'status' => 'market_blocked', 'unpriced_matchday' => $day];
+            }
             $matches = array_values(array_filter($latest, fn ($m) => $m['matchday'] === $day
                 && in_array($row['team_uid'], [$m['home_team_uid'], $m['away_team_uid']], true)));
             if (count($matches) !== 1) {
                 return $view;
             }
             $fixture = $matches[0];
-            $quote = $this->quote($captures, $fixture['provider_match_id'], $row['team_uid'], $ready, $losses, $attempt, $capital - $losses, $asOf);
+            if (empty($fixture['scheduled_start_at'])) {
+                return $view;
+            }
+            $quote = $eventOrder
+                ? $this->historical->make($captures, $fixture, $row['team_uid'], $losses, $attempt, $capital - $losses, $asOf)
+                : $this->quote($captures, $fixture['provider_match_id'], $row['team_uid'], $ready, $losses, $attempt, $capital - $losses, $asOf);
             if (isset($quote['reason'])) {
                 return [...$view, 'status' => $quote['reason'], 'unpriced_matchday' => $day];
             }
@@ -52,6 +64,10 @@ final class RunReplay
                 'provider_match_id' => $fixture['provider_match_id'], 'home_team' => $fixture['home_team'], 'away_team' => $fixture['away_team'],
                 'status' => 'pending', 'payout_minor' => null, 'result' => null];
             $view['total_staked_minor'] += $quote['stake_minor'];
+            if ($eventOrder && ! $quote['price_timing_verified']) {
+                $view['data_quality_notes'] = array_values(array_unique([...$view['data_quality_notes'],
+                    'Historical recorded odds used; pre-match availability was not verified.']));
+            }
             if ($fixture['status'] !== 'settled' || ! in_array($fixture['result'] ?? null, ['H', 'D', 'A'], true)
                 || ($seen[$fixture['provider_match_id'].':'.($fixture['result'] ?? '')] ?? '') < $quote['scheduled_start_at']
                 || $fixture['scheduled_start_at'] !== $quote['scheduled_start_at']
@@ -61,8 +77,9 @@ final class RunReplay
                 return [...$view, 'status' => 'awaiting_result'];
             }
             $payout = $fixture['result'] === $quote['outcome'] ? $quote['potential_payout_minor'] : 0;
-            $ready = max($quote['decided_at'], $seen[$fixture['provider_match_id'].':'.$fixture['result']]);
-            $view['attempts'][] = [...$entry, 'status' => 'settled', 'payout_minor' => $payout, 'result' => $fixture['result'], 'result_observed_at' => $ready];
+            $observed = $seen[$fixture['provider_match_id'].':'.$fixture['result']];
+            $ready = $eventOrder ? $ready : max($quote['decided_at'], $observed);
+            $view['attempts'][] = [...$entry, 'status' => 'settled', 'payout_minor' => $payout, 'result' => $fixture['result'], 'result_observed_at' => $observed];
             $view['gross_payout_minor'] += $payout;
             $view['realized_net_minor'] += $payout - $quote['stake_minor'];
             if ($payout > 0) {

@@ -130,6 +130,7 @@ class CollectionCycle
         $due = array_map(fn ($d) => $d->greaterThan($now) ? $d : $now->addSeconds(30), $due);
         usort($due, fn ($a, $b) => $a->getTimestamp() <=> $b->getTimestamp());
         $retained = [$currentId, $previewId, ...array_map('strval', array_keys($pending))];
+        $knownCatalog = array_column($previous['season_catalog'] ?? [], null, 'season_id');
 
         return [
             'season_transition' => $old !== null && $old !== $currentId ? [
@@ -139,6 +140,10 @@ class CollectionCycle
                     ? 'observed_rollover' : 'unconfirmed_gap',
             ] : null,
             'collection_observed_at' => $now->toIso8601String(),
+            'season_catalog' => array_values(array_map(fn ($s) => ['season_id' => (string) $s['_id'], 'start_uts' => $s['start']['uts'],
+                'observed_at' => ($knownCatalog[(string) $s['_id']]['start_uts'] ?? null) === $s['start']['uts']
+                    ? ($knownCatalog[(string) $s['_id']]['observed_at'] ?? $now->toIso8601String()) : $now->toIso8601String()],
+                array_filter($discovery['seasons'], fn ($s) => is_int($s['start']['uts'] ?? null)))),
             'current_season_id' => $currentId,
             'current_season_start_uts' => $start,
             'last_results_complete' => $report['completeness']['results_complete'],

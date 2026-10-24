@@ -18,7 +18,7 @@ final class PaperRunner
             return 'not_configured';
         }
         $now = now('UTC')->toIso8601String();
-        $candidates = $this->monitoring->all();
+        $candidates = $this->monitoring->all(false);
         usort($candidates, fn ($a, $b) => [$a['competition'], $a['strategy_id'] ?? ''] <=> [$b['competition'], $b['strategy_id'] ?? '']);
         $requests = [];
         if ($run = $state['active_run']) {

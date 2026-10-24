@@ -53,8 +53,8 @@ The running worker may deliver it first. No real bookmaker bets are placed.
 | Market block operator confirmed | Red | Explicit human verification with private evidence checksum |
 | Storage capacity alert | Orange | Estimated data exceeds 50/65/75 GiB or evidence filesystem free space falls below 15 GiB |
 
-Qualification/proposal alerts expire at kickoff (or the quote's 300-second
-freshness limit). No historical replay calls this worker. The first notification
+Strict upcoming qualification/proposal alerts expire at kickoff (or the quote's 300-second
+freshness limit). Historical History/API reads do not enqueue alerts; recovered current observations use a dedicated historical-update title and original scheduled event time. The first notification
 start timestamp is durable; older paper decisions/closed runs are not replayed
 into Slack on first enable. Already-active collection problems can alert then.
 Qualification can have no configured paper bankroll: stake is pending. Proposed
@@ -107,3 +107,5 @@ This writes a durable `market_blockages` record; the worker alerts for records
 created after its first start. It does not silently drop result/fixture repair
 tasks or infer bookmaker intent from an empty response. Automatic provider block
 classification remains pending observation of an authentic explicit block signal.
+
+Recovered event-order updates are deduplicated by strategy/version/season/attempt/status and explicitly labeled historical. They never create paper execution records. See `run-simulation.md`.

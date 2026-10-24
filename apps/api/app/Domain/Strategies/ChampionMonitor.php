@@ -6,9 +6,12 @@ final class ChampionMonitor
 {
     public const VERSION = '0.2.0-observation';
 
-    public function evaluate(string $strategy, array $current, ?array $prior, ?array $older, array $links, string $asOf): array
+    public const SIMULATION_VERSION = '0.3.0-event-simulation';
+
+    public function evaluate(string $strategy, array $current, ?array $prior, ?array $older, array $links, string $asOf, bool $eventOrder = false): array
     {
-        $row = ['strategy_id' => $strategy, 'version' => self::VERSION, 'season_id' => $current['season_id'] ?? null,
+        $row = ['strategy_id' => $strategy, 'version' => $eventOrder ? self::SIMULATION_VERSION : self::VERSION, 'season_id' => $current['season_id'] ?? null,
+            'recovered' => false, 'data_quality_notes' => [], 'timing_basis' => $eventOrder ? 'event_order' : 'as_observed',
             'status' => 'waiting_for_history', 'team' => null, 'trigger_day' => null, 'attempt' => null,
             'next_match' => null, 'execution_enabled' => false, 'evaluated_at' => $asOf];
         $champion = $prior['champion'] ?? null;
@@ -18,7 +21,7 @@ final class ChampionMonitor
         if (! $champion) {
             return [...$row, 'reason' => 'previous_champion_unverified'];
         }
-        if (! $this->linked($prior, $current, $links, $asOf)) {
+        if (! $this->linked($prior, $current, $links, $asOf, $eventOrder)) {
             return [...$row, 'reason' => 'season_link_not_verified'];
         }
         $row['team'] = $champion['team_name'];
@@ -28,14 +31,18 @@ final class ChampionMonitor
         if (! $triggerChampion) {
             return [...$row, 'reason' => $older === null ? 'missing_linked_older_season' : 'older_champion_unverified'];
         }
-        if ($strategy === 'champion-next-season' && ! $this->linked($older, $prior, $links, $asOf)) {
+        if ($strategy === 'champion-next-season' && ! $this->linked($older, $prior, $links, $asOf, $eventOrder)) {
             return [...$row, 'reason' => 'earlier_season_link_not_verified'];
         }
         $opening = $this->teamMatches($triggerSeason, $triggerChampion['team_uid'])[1] ?? null;
-        if (! $opening || ! $opening['scheduled_start_at'] || $triggerChampion['confirmed_at'] >= $opening['scheduled_start_at']) {
-            $row['status'] = 'late_champion_evidence';
+        if (! $opening || ! $opening['scheduled_start_at'] || (! $eventOrder && $triggerChampion['confirmed_at'] >= $opening['scheduled_start_at'])) {
+            $row['status'] = $eventOrder ? 'missing_fixture' : 'late_champion_evidence';
 
             return $row;
+        }
+        if ($eventOrder && $triggerChampion['confirmed_at'] >= $opening['scheduled_start_at']) {
+            $row['recovered'] = true;
+            $row['data_quality_notes'][] = 'Champion confirmation arrived after season opening; replay uses season order.';
         }
         $trigger = $this->firstWin($triggerSeason, $triggerChampion['team_uid'], $asOf);
         $row['status'] = $trigger['status'];
@@ -71,10 +78,15 @@ final class ChampionMonitor
 
                 return $row;
             }
-            if ($readyAt >= $match['scheduled_start_at']) {
+            if (! $eventOrder && $readyAt >= $match['scheduled_start_at']) {
                 $row['status'] = 'late_evidence';
 
                 return $row;
+            }
+            if ($eventOrder && $readyAt >= $match['scheduled_start_at']) {
+                $row['recovered'] = true;
+                $row['data_quality_notes'] = array_values(array_unique([...$row['data_quality_notes'],
+                    'Collection was delayed; simulation follows the original matchday order.']));
             }
             $row['next_match'] = $match;
             if (($match['result_observed_at'] ?? $asOf) <= $asOf && $match['status'] === 'settled') {
@@ -96,11 +108,12 @@ final class ChampionMonitor
         return $row;
     }
 
-    private function linked(?array $before, array $after, array $links, string $asOf): bool
+    private function linked(?array $before, array $after, array $links, string $asOf, bool $eventOrder): bool
     {
         foreach ($links as $link) {
             if ($link['from_season_id'] === ($before['season_id'] ?? null) && $link['to_season_id'] === $after['season_id']
-                && $link['observed_at'] <= $asOf && ($link['continuity_status'] ?? '') === 'observed_rollover') {
+                && $link['observed_at'] <= $asOf && in_array($link['continuity_status'] ?? '',
+                    $eventOrder ? ['observed_rollover', 'provider_catalog_adjacency'] : ['observed_rollover'], true)) {
                 return true;
             }
         }
