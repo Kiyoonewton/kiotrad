@@ -2,6 +2,8 @@
 
 namespace App\Providers;
 
+use App\Infrastructure\Paper\MongoPaperStore;
+use App\Infrastructure\Paper\PaperStore;
 use App\Infrastructure\Provider\CollectionStore;
 use App\Infrastructure\Provider\CollectorState;
 use App\Infrastructure\Provider\MongoCollectionStore;
@@ -15,6 +17,7 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
+        $this->app->bind(PaperStore::class, MongoPaperStore::class);
         $this->app->bind(CollectionStore::class, MongoCollectionStore::class);
         $this->app->bind(CollectorState::class, MongoCollectorState::class);
     }

@@ -16,6 +16,7 @@ final class ChampionMonitor
             return $row;
         }
         $row['team'] = $champion['team_name'];
+        $row['team_uid'] = $champion['team_uid'];
         $triggerSeason = $strategy === 'champion-next-win' ? $current : $prior;
         $triggerChampion = $strategy === 'champion-next-win' ? $champion : ($older['champion'] ?? null);
         if (! $triggerChampion || ($strategy === 'champion-next-season' && ! $this->linked($older, $prior, $links, $asOf))) {
@@ -45,6 +46,7 @@ final class ChampionMonitor
                 $readyAt = max($readyAt, $link['observed_at']);
             }
         }
+        $row['evidence_ready_at'] = $readyAt;
         $matches = $this->teamMatches($current, $champion['team_uid']);
         for ($attempt = 1; $attempt <= 4; $attempt++) {
             $day = $firstDay + $attempt - 1;

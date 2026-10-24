@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { getOverview, type Overview as OverviewData } from "./api";
 import { Overview } from "./Overview";
+import { PaperHistory } from "./PaperActivity";
 import { StrategyList } from "./StrategyList";
 
 const pages = ["Overview", "Strategies", "History"] as const;
@@ -96,7 +97,11 @@ export default function App() {
                 </select>
               </label>
             )}
-            <span className="mode-badge">Research foundation</span>
+            <span className="mode-badge">
+              {data?.bankroll?.status === "paper"
+                ? "Paper trading"
+                : "Research foundation"}
+            </span>
           </div>
         </header>
         <main id="main" tabIndex={-1}>
@@ -126,7 +131,8 @@ export default function App() {
                 <h1>The strategy library.</h1>
                 <p>
                   Open a strategy to inspect its definition and observed
-                  fixtures. Paper trading remains disabled.
+                  fixtures. Paper trading requires a configured simulated
+                  bankroll and a running paper worker.
                 </p>
               </div>
               <StrategyList
@@ -138,14 +144,7 @@ export default function App() {
               />
             </>
           ) : (
-            <section className="page-intro">
-              <p className="eyebrow">An auditable record</p>
-              <h1>Every run has a story.</h1>
-              <p>
-                No trading runs have been recorded. Settled attempts, skipped
-                clashes and bankroll transactions will appear here.
-              </p>
-            </section>
+            <PaperHistory data={data} />
           )}
         </main>
         <footer>

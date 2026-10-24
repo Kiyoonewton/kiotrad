@@ -17,7 +17,7 @@ const reasons: Record<string, string> = {
   missing_fixture:
     "A required fixture or its scheduled start is missing or ambiguous.",
   watching_fixture:
-    "Watching the next scheduled fixture. No paper bet has been placed.",
+    "Watching the next scheduled fixture. Paper decisions are recorded separately.",
   awaiting_result:
     "The scheduled start has passed; waiting for a confirmed result.",
   observed_win:

@@ -55,6 +55,8 @@ jobs:
           curl --fail http://localhost:8000/api/v1/ready | python3 -c 'import json,sys; assert json.load(sys.stdin)["database"] == "available"'
       - name: Verify immutable captures against real MongoDB
         run: docker compose --env-file engine/.env -f engine/compose.yaml exec -T -e APP_ENV=testing api php < engine/storage-smoke.php
+      - name: Verify shared paper bankroll against real MongoDB
+        run: docker compose --env-file engine/.env -f engine/compose.yaml exec -T -e APP_ENV=testing api php < engine/paper-smoke.php
       - name: Logs on failure
         if: failure()
         run: docker compose --env-file engine/.env -f engine/compose.yaml logs

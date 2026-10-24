@@ -15,6 +15,26 @@ export interface Strategy {
   unresolved: string[];
 }
 
+export interface PaperAttempt {
+  attempt: number;
+  matchday: number;
+  stake_minor: number;
+  odds: string;
+  status: string;
+  potential_payout_minor: number;
+  payout_minor?: number;
+  scheduled_start_at: string;
+}
+export interface PaperRun {
+  id: string;
+  competition: string;
+  strategy_id: string;
+  season_id: string;
+  team: string;
+  status: string;
+  net_minor: number;
+  attempts: PaperAttempt[];
+}
 export interface Overview {
   schema_version: string;
   mode: string;
@@ -50,6 +70,19 @@ export interface Overview {
       away_team: string;
     } | null;
   }[];
+  bankroll?: {
+    status: string;
+    balance_minor: number | null;
+    available_minor?: number | null;
+    starting_balance_minor?: number | null;
+    committed_minor?: number | null;
+    net_profit_minor?: number | null;
+    target_balance_minor?: number | null;
+  };
+  active_run?: PaperRun | null;
+  capital_history?: { at: string; balance_minor: number }[];
+  recent_runs?: PaperRun[];
+  paper_journal_full?: boolean;
   strategies: Strategy[];
 }
 
@@ -82,6 +115,6 @@ export function naira(minor: number): string {
   return new Intl.NumberFormat("en-NG", {
     style: "currency",
     currency: "NGN",
-    maximumFractionDigits: 0,
+    maximumFractionDigits: 2,
   }).format(minor / 100);
 }

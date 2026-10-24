@@ -168,6 +168,8 @@ it("shows read-only strategy evidence without inventing staking", () => {
   ).toHaveTextContent("observation 1/4");
   expect(screen.getByText(/Day 5 · Example champion/)).toBeInTheDocument();
   expect(
-    screen.getAllByText("Live observation · paper execution disabled"),
+    screen.getAllByText(
+      "Strategy observations · separate from paper decisions",
+    ),
   ).toHaveLength(1);
 });

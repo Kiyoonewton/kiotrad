@@ -130,3 +130,54 @@
   margin-top: 7px;
   line-height: 1.6;
 }
+
+.paper-active {
+  margin: 20px 0;
+  padding: 18px;
+  border: 1px solid #3e4e44;
+  border-radius: 10px;
+}
+.settled-attempt {
+  background: #244237;
+}
+.paper-chart {
+  position: relative;
+  width: 100%;
+  margin: 35px 0;
+  padding: 15px;
+}
+.paper-chart p {
+  color: #dce5df;
+  font-size: 14px;
+}
+.paper-chart small {
+  color: #9caca3;
+  font-size: 11px;
+}
+.paper-chart svg {
+  display: block;
+  width: 100%;
+  margin: 12px 0;
+}
+.paper-history h2 {
+  margin-bottom: 24px;
+}
+.paper-table-scroll {
+  overflow-x: auto;
+}
+.paper-history table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+  text-align: left;
+}
+.paper-history th,
+.paper-history td {
+  padding: 16px 12px;
+  border-bottom: 1px solid #2a3730;
+  line-height: 1.6;
+}
+.paper-history th {
+  font-weight: 500;
+  color: #a1c5a9;
+}

@@ -2,6 +2,8 @@
 
 namespace App\Domain\Strategies;
 
+use App\Domain\Paper\PaperLedger;
+
 final class StrategyCatalog
 {
     public function all(): array
@@ -11,6 +13,7 @@ final class StrategyCatalog
             'status' => 'observation',
             'monitoring_enabled' => true,
             'bankroll_enabled' => false,
+            'paper_policy_version' => PaperLedger::VERSION,
             'rules' => [
                 'irregular_first_win_day_min' => 4,
                 'max_attempts' => 4,
@@ -21,8 +24,8 @@ final class StrategyCatalog
             ],
             'unresolved' => [
                 'Monitoring records observed outcomes, not placed bets.',
-                'Price eligibility and immutable decisions are not implemented.',
-                'A shared-capital paper ledger and overlap handling are not implemented.',
+                'Paper execution requires a configured simulated bankroll and a running paper worker.',
+                'Recorded prices do not prove bookmaker acceptance; the worker skips stale prices and overlapping runs.',
             ],
         ];
 

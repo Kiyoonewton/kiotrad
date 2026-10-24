@@ -1,3 +1,6 @@
+import { PaperCapital } from "./PaperCapital";
+import { PaperActivity } from "./PaperActivity";
+import { naira } from "./api";
 import type { Overview as OverviewData } from "./api";
 import { MonitoringRows } from "./MonitoringRows";
 import { StrategyList } from "./StrategyList";
@@ -41,29 +44,35 @@ export function Overview({
         </div>
         <div className="balance-value">
           <p>Portfolio balance</p>
-          <strong>₦ —</strong>
-          <span>Bankroll not configured</span>
+          <strong>
+            {data.bankroll?.balance_minor != null
+              ? naira(data.bankroll.balance_minor)
+              : "₦ —"}
+          </strong>
+          <span>
+            {data.bankroll?.status === "paper"
+              ? "Simulated paper balance"
+              : data.bankroll?.status === "unavailable"
+                ? "Bankroll unavailable"
+                : "Bankroll not configured"}
+          </span>
+          {data.bankroll?.status === "paper" && (
+            <span>
+              Available {naira(data.bankroll.available_minor ?? 0)} · Reserved{" "}
+              {naira(data.bankroll.committed_minor ?? 0)}
+            </span>
+          )}
         </div>
       </section>
       <div className="performance-grid">
         <section className="chart-panel" aria-labelledby="capital-title">
           <div className="section-heading">
             <h2 id="capital-title">Capital performance</h2>
-            <span className="subtle">Settled runs</span>
+            <span className="subtle">Settled paper attempts</span>
           </div>
           <div className="empty-chart">
             <div className="chart-grid" aria-hidden="true" />
-            <div className="chart-message">
-              <span className="chart-symbol" aria-hidden="true">
-                ↗
-              </span>
-              <h3>Your story starts with the first run.</h3>
-              <p>
-                Settled paper trades will build this chart.
-                <br />
-                No simulated returns are displayed yet.
-              </p>
-            </div>
+            <PaperCapital data={data} />
             <div className="chart-axis">
               <span>First run</span>
               <span>Most recent</span>
@@ -83,7 +92,11 @@ export function Overview({
           </h2>
           <div className="goal-bottom">
             <span>Capital goal</span>
-            <strong>Not set</strong>
+            <strong>
+              {data.bankroll?.target_balance_minor != null
+                ? naira(data.bankroll.target_balance_minor)
+                : "Not set"}
+            </strong>
             <p>
               A target tracks progress.
               <br />
@@ -153,7 +166,18 @@ export function Overview({
         <section className="quiet-panel" aria-labelledby="monitoring-title">
           <p className="eyebrow">Current activity</p>
           <h2 id="monitoring-title">Strategy observations.</h2>
-          <p>Read-only monitoring · paper execution disabled</p>
+          <p>
+            {data.bankroll?.status === "paper"
+              ? "Paper ledger configured · observations below are separate"
+              : "Read-only monitoring · paper bankroll not configured"}
+          </p>
+          <PaperActivity data={data} />
+          {data.paper_journal_full && (
+            <p>
+              Paper journal capacity reached. New runs are paused; export and
+              archival are required.
+            </p>
+          )}
           <MonitoringRows
             rows={monitoring}
             strategies={data.strategies}
