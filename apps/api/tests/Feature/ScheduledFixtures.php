@@ -53,6 +53,23 @@ trait ScheduledFixtures
         return ['doc' => [['data' => ['odds' => $events]]]];
     }
 
+    private function officialTable(string $season): array
+    {
+        $rows = [];
+        foreach (range(25, 10) as $index => $uid) {
+            $rows[] = ['pos' => $index + 1, 'total' => 30, 'winTotal' => 15, 'drawTotal' => 0,
+                'lossTotal' => 15, 'pointsTotal' => 45, 'goalsForTotal' => 15,
+                'goalsAgainstTotal' => 15, 'goalDiffTotal' => 0,
+                'team' => ['uid' => $uid, 'name' => $uid === 25 ? 'Zulu' : 'Team '.$uid]];
+        }
+
+        return ['doc' => [['data' => ['_id' => $season, '_utid' => 31867, 'tables' => [[
+            '_id' => '9001', 'seasonid' => $season, 'presentationid' => 0,
+            'tournament' => ['_utid' => 31867, 'seasonid' => '999'],
+            'rules' => ['name' => 'Synthetic provider order resolves remaining ties.'], 'tablerows' => $rows,
+        ]]]]]];
+    }
+
     private function discoveryDocument(string $current, int $start, ?string $next = null): array
     {
         $seasons = [['_id' => $current, '_utid' => 31867, 'current' => true,

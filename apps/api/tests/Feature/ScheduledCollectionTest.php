@@ -91,7 +91,10 @@ class ScheduledCollectionTest extends TestCase
         $current = $this->fullSeason('201', $now + 60);
         $old = $this->fullSeason('200', $now - 7000, true);
         $this->fakeFeeds($current, $this->discoveryDocument('201', $now - 60));
-        Http::fake([config('provider.statistics_base').'stats_season_fixtures2/200' => Http::response(['doc' => [['data' => $old]]])]);
+        Http::fake([
+            config('provider.statistics_base').'stats_season_fixtures2/200' => Http::response(['doc' => [['data' => $old]]]),
+            config('provider.statistics_base').'stats_season_tables/200' => Http::response($this->officialTable('200')),
+        ]);
         $scopes = [];
         $this->mock(CollectionStore::class)->shouldReceive('save')->twice()->andReturnUsing(function ($r) use (&$scopes) {
             $scopes[] = [$r['season_id'], $r['scope']];
@@ -101,7 +104,7 @@ class ScheduledCollectionTest extends TestCase
         $state = app(CollectionCycle::class)->run('virtual-football', ['current_season_id' => '200', 'last_results_complete' => false]);
         $this->assertSame([['201', 'current'], ['200', 'reconciliation']], $scopes);
         $this->assertSame([], $state['pending_seasons']);
-        Http::assertSentCount(5);
+        Http::assertSentCount(6);
     }
 
     public function test_240_rows_with_a_duplicate_fixture_are_not_a_complete_season(): void

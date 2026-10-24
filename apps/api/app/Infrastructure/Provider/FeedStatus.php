@@ -53,6 +53,7 @@ class FeedStatus
             'market_observation' => $state['market_observation'] ?? $capture['market_observation'] ?? 'not_assessed',
             'unresolved_seasons' => array_map('strval', array_keys($state['pending_seasons'] ?? [])),
             'planned_rounds' => $state['planned_rounds'] ?? [],
+            'latest_champion' => $state['latest_champion'] ?? null,
             'data_complete' => false,
         ];
     }

@@ -15,6 +15,7 @@ final class MongoCollectionStore implements CollectionStore
             'competition', 'season_id', 'observed_at', 'matches', 'odds_snapshots',
             'fixture_count', 'settled_count', 'odds_matchday', 'verified_pre_match_prices',
             'scope', 'completeness', 'odds_matchdays', 'odds_coverage', 'market_observation', 'fixture_observation',
+            'standings',
         ]));
         $capture['schema_version'] = 1;
         $id = hash('sha256', json_encode($capture, JSON_THROW_ON_ERROR));
