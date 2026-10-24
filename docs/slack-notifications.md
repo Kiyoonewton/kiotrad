@@ -48,6 +48,7 @@ The running worker may deliver it first. No real bookmaker bets are placed.
 | Collection resumed | Blue | Capture resumed; recovery may still be outstanding |
 | Data recovery pending | Yellow | An individual season has at least three unsuccessful repair attempts; next retry shown |
 | Data recovery queue complete | Green | Known recovery queue empty after an observed gap; not proof all possible history exists |
+| Season recovery verified complete | Green | Previously alerted repair leaves the queue and its latest capture has complete results and verified final standings |
 | Market availability unknown | Amber | Missing/unverified odds, never automatically called a confirmed block |
 | Market block operator confirmed | Red | Explicit human verification with private evidence checksum |
 | Storage capacity alert | Orange | Estimated data exceeds 50/65/75 GiB or evidence filesystem free space falls below 15 GiB |

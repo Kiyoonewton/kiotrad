@@ -98,6 +98,14 @@ try {
         'evidence_sha256' => 'synthetic', 'observed_at' => '2026-10-24T10:03:00+00:00']);
     $source->scan($outbox, $started);
     $assert($db->notification_outbox->countDocuments(['type' => 'blocked_market']) === 1, 'Explicit block record not reported.');
+    $db->collector_states->updateOne(['_id' => 'virtual-football'], ['$set' => ['pending_seasons' => []]]);
+    $source->scan($outbox, $started);
+    $assert($db->notification_outbox->countDocuments(['type' => 'season_recovered']) === 0, 'Empty queue falsely proved season recovery.');
+    $db->season_checkpoints->insertOne(['_id' => 'virtual-football:100', 'capture_id' => 'synthetic-repaired']);
+    $db->provider_captures->insertOne(['_id' => 'synthetic-repaired', 'standings' => ['status' => 'verified_final'],
+        'completeness' => ['results_complete' => true]]);
+    $source->scan($outbox, $started);
+    $assert($db->notification_outbox->countDocuments(['type' => 'season_recovered']) === 1, 'Verified season repair not reported.');
     $app->instance(SlackTransport::class, $transport);
     $worker = $app->make(NotificationWorker::class);
     $worker->tick();

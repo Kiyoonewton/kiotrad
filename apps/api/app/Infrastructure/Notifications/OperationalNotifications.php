@@ -45,6 +45,21 @@ final class OperationalNotifications
                     ]);
                 }
             }
+            foreach ($outbox->repairAlerts($competition) as $alert) {
+                $season = (string) $alert['details']['Season'];
+                if (isset($state['pending_seasons'][$season])) {
+                    continue;
+                }
+                $checkpoint = $db->season_checkpoints->findOne(['_id' => $competition.':'.$season]);
+                $verified = $checkpoint ? $db->provider_captures->findOne(['_id' => $checkpoint['capture_id'],
+                    'standings.status' => 'verified_final', 'completeness.results_complete' => true]) : null;
+                if ($verified) {
+                    $outbox->enqueue('repair-complete:'.$competition.':'.$season, 'season_recovered', [
+                        'League' => $competition, 'Season' => $season,
+                        'Scope' => 'Fixture/results completeness and final standings verified; historical pre-match odds are not implied.',
+                    ]);
+                }
+            }
         }
         foreach ($db->market_blockages->find(['classification' => 'operator_confirmed', 'observed_at' => ['$gte' => $since]], $options) as $block) {
             $outbox->enqueue('block:'.$block['_id'], 'blocked_market', ['League' => $block['competition'],

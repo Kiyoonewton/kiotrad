@@ -15,6 +15,7 @@ final class SlackMessage
         'pending' => ['🟡 DATA RECOVERY — Pending', '#EAB308'],
         'resumed' => ['🔵 COLLECTION — Resumed', '#3B82F6'],
         'recovered' => ['🟢 DATA RECOVERY — Queue Complete', '#2E8B57'],
+        'season_recovered' => ['🟢 SEASON RECOVERY — Verified Complete', '#2E8B57'],
         'unknown_market' => ['🟠 MARKET — Availability Unknown', '#F59E0B'],
         'blocked_market' => ['🔴 MARKET BLOCK — Operator Confirmed', '#DC2626'],
         'storage' => ['🟠 STORAGE — Capacity Alert', '#F97316'],

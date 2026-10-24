@@ -20,6 +20,7 @@ class NotificationOutbox
         $now = now('UTC')->toIso8601String();
         $this->collection()->updateOne(['_id' => $id], ['$setOnInsert' => [
             'type' => $type, 'payload' => app(SlackMessage::class)->make($type, $details, $id, $now),
+            'details' => $details,
             'created_at' => $now, 'next_attempt_at' => $now, 'status' => 'pending',
             'attempts' => 0, 'expires_at' => $expires,
         ]], ['upsert' => true]);
@@ -78,5 +79,11 @@ class NotificationOutbox
         return $this->collection()->updateMany(['status' => 'blocked'], ['$set' => [
             'status' => 'retry', 'next_attempt_at' => now('UTC')->toIso8601String(),
         ]])->getModifiedCount();
+    }
+
+    public function repairAlerts(string $competition): iterable
+    {
+        return $this->collection()->find(['type' => 'pending', 'details.League' => $competition],
+            ['typeMap' => ['root' => 'array', 'document' => 'array', 'array' => 'array']]);
     }
 }
