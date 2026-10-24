@@ -58,6 +58,8 @@ try {
     $rows = app(ChampionMonitoring::class)->all();
     $candidate = array_values(array_filter($rows, fn ($row) => ($row['strategy_id'] ?? null) === 'champion-next-win'))[0];
     $assert($candidate['status'] === 'watching_fixture' && $candidate['trigger_day'] === 4, 'Provider history did not produce the qualifying observation.');
+    $assert($candidate['simulation']['status'] === 'awaiting_result' && $candidate['simulation']['total_staked_minor'] === 20000,
+        'Observation did not calculate a NGN 200 simulation stake before portfolio configuration.');
     $portfolio = new MongoPaperStore;
     $assert($portfolio->create(app(PaperLedger::class)->open(700000, 1400000, $time->subSeconds(30)->toIso8601String())), 'Paper configuration failed.');
     $runner = app(PaperRunner::class);
@@ -84,6 +86,10 @@ try {
     $assert($settled['runs'][0]['attempts'][0]['result_capture_id'] === $resultCapture, 'Settlement lost result provenance.');
     $assert($settled['decisions'] === $pending['decisions'], 'Settlement rewrote the original decision.');
     $assert($runner->tick() === 'waiting', 'Repeated result observation credited twice.');
+    $replayed = array_values(array_filter(app(ChampionMonitoring::class)->all(), fn ($r) => ($r['strategy_id'] ?? null) === 'champion-next-win'))[0]['simulation'];
+    $assert($replayed['status'] === 'win' && $replayed['gross_payout_minor'] === 30000 && $replayed['net_minor'] === 10000,
+        'Win observation did not show calculated stake, payout and NGN 100 net.');
+    $assert($portfolio->read()['revision'] === $settled['revision'], 'Read-only replay changed the shared portfolio.');
     Artisan::call('paper:status');
     $assert(str_contains(Artisan::output(), 'NGN 7,100.00'), 'Read-only status did not report the settled paper balance.');
     $assert($portfolio->read()['revision'] === $settled['revision'], 'Status command executed a paper mutation.');

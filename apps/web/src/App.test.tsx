@@ -169,7 +169,7 @@ it("shows read-only strategy evidence without inventing staking", () => {
   expect(screen.getByText(/Day 5 · Example champion/)).toBeInTheDocument();
   expect(
     screen.getAllByText(
-      "Strategy observations · separate from paper decisions",
+      "Strategy simulation monitoring",
     ),
   ).toHaveLength(1);
 });

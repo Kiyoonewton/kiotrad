@@ -35,6 +35,22 @@ export interface PaperRun {
   net_minor: number;
   attempts: PaperAttempt[];
 }
+export interface RunCalculation {
+  mode: string;
+  status: string;
+  starting_capital_minor: number;
+  total_staked_minor: number;
+  gross_payout_minor: number;
+  realized_net_minor: number;
+  net_minor: number | null;
+  unpriced_matchday?: number;
+  attempts: (Omit<PaperAttempt, "payout_minor"> & {
+    home_team: string;
+    away_team: string;
+    result: string | null;
+    payout_minor: number | null;
+  })[];
+}
 export interface Overview {
   schema_version: string;
   mode: string;
@@ -72,6 +88,7 @@ export interface Overview {
     team?: string | null;
     trigger_day?: number | null;
     attempt?: number | null;
+    simulation?: RunCalculation | null;
     next_match?: {
       matchday: number;
       home_team: string;

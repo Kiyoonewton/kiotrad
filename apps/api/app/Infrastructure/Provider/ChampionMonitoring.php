@@ -3,12 +3,13 @@
 namespace App\Infrastructure\Provider;
 
 use App\Domain\Strategies\ChampionMonitor;
+use App\Domain\Strategies\RunReplay;
 use Illuminate\Support\Facades\DB;
 use Throwable;
 
 class ChampionMonitoring
 {
-    public function __construct(private ChampionMonitor $monitor) {}
+    public function __construct(private ChampionMonitor $monitor, private RunReplay $replay) {}
 
     public function all(): array
     {
@@ -45,12 +46,22 @@ class ChampionMonitoring
             $ids[] = $parents[0]['from_season_id'];
         }
         $seasons = [];
-        foreach ($ids as $id) {
+        $currentCaptures = [];
+        foreach (array_reverse($ids) as $id) {
             $season = ['season_id' => $id, 'matches' => [], 'champion' => null];
             $seen = [];
             $captures = $db->provider_captures->find(['competition' => $competition, 'season_id' => $id, 'observed_at' => ['$lte' => $asOf]],
                 [...$options, 'sort' => ['observed_at' => 1]]);
             foreach ($captures as $capture) {
+                $trackedTeam = $seasons[$ids[1] ?? '']['champion']['team_uid'] ?? null;
+                if ($id === $currentId && $trackedTeam !== null) {
+                    $runMatches = array_values(array_filter($capture['matches'], fn ($m) => in_array($trackedTeam,
+                        [$m['home_team_uid'], $m['away_team_uid']], true)));
+                    $matchIds = array_column($runMatches, 'provider_match_id');
+                    $currentCaptures[] = ['_id' => $capture['_id'], 'observed_at' => $capture['observed_at'],
+                        'matches' => $runMatches, 'odds_snapshots' => array_values(array_filter($capture['odds_snapshots'] ?? [],
+                            fn ($p) => in_array($p['provider_match_id'], $matchIds, true)))];
+                }
                 foreach ($capture['matches'] as $match) {
                     if ($match['status'] === 'settled') {
                         $seen[$match['provider_match_id']] ??= $capture['observed_at'];
@@ -62,10 +73,13 @@ class ChampionMonitoring
                     $season['champion'] = [...$capture['standings']['champion'], 'confirmed_at' => $capture['standings']['observed_at']];
                 }
             }
-            $seasons[] = $season;
+            $seasons[$id] = $season;
         }
 
-        return array_map(fn ($strategy) => ['competition' => $competition, ...$this->monitor->evaluate($strategy,
-            $seasons[0], $seasons[1] ?? null, $seasons[2] ?? null, $links, $asOf)], ['champion-next-win', 'champion-next-season']);
+        $rows = array_map(fn ($strategy) => ['competition' => $competition, ...$this->monitor->evaluate($strategy,
+            $seasons[$currentId], $seasons[$ids[1] ?? ''] ?? null, $seasons[$ids[2] ?? ''] ?? null, $links, $asOf)], ['champion-next-win', 'champion-next-season']);
+
+        return array_map(fn ($row) => [...$row, 'simulation' => $this->replay->calculate($row, $currentCaptures,
+            config('kiotrad.simulation_capital_minor'), $asOf)], $rows);
     }
 }
