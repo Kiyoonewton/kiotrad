@@ -98,6 +98,12 @@ export function MonitoringRows({
             </p>
           )}
           {row.simulation && <RunCalculation calculation={row.simulation} />}
+          {!row.simulation &&
+            row.data_quality_notes?.map((note) => (
+              <p className="subtle" key={note}>
+                {note}
+              </p>
+            ))}
         </li>
       ))}
     </ul>

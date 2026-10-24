@@ -44,6 +44,7 @@ export interface RunCalculation {
   realized_net_minor: number;
   net_minor: number | null;
   unpriced_matchday?: number;
+  data_quality_notes?: string[];
   attempts: (Omit<PaperAttempt, "payout_minor"> & {
     home_team: string;
     away_team: string;
@@ -52,6 +53,24 @@ export interface RunCalculation {
   })[];
 }
 export interface Overview {
+  research_simulation?: {
+    status: string;
+    from?: string;
+    to?: string;
+    generated_at?: string;
+    starting_capital_per_run_minor?: number;
+    runs: {
+      competition: string;
+      season_id: string;
+      strategy_id: string;
+      team: string;
+      status: string;
+      net_minor: number | null;
+      total_staked_minor: number;
+      gross_payout_minor: number;
+      event_at: string | null;
+    }[];
+  };
   schema_version: string;
   mode: string;
   currency: string;
@@ -83,12 +102,15 @@ export interface Overview {
   strategy_monitoring?: {
     competition: string;
     strategy_id?: string;
+    season_id?: string;
     reason?: string;
     status: string;
     team?: string | null;
     trigger_day?: number | null;
     attempt?: number | null;
     simulation?: RunCalculation | null;
+    recovered?: boolean;
+    data_quality_notes?: string[];
     next_match?: {
       matchday: number;
       home_team: string;

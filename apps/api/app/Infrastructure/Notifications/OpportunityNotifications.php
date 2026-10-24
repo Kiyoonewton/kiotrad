@@ -16,7 +16,7 @@ final class OpportunityNotifications
     public function scan(NotificationOutbox $outbox): void
     {
         $state = $this->paper->read();
-        foreach ($this->monitoring->all() as $candidate) {
+        foreach ($this->monitoring->all(false) as $candidate) {
             if (($candidate['status'] ?? '') !== 'watching_fixture' || ($candidate['attempt'] ?? 0) !== 1
                 || empty($candidate['team_uid']) || empty($candidate['next_match'])) {
                 continue;

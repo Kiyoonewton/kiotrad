@@ -10,7 +10,7 @@ final class NotificationWorker
 {
     public function __construct(private NotificationOutbox $outbox, private SlackTransport $transport,
         private OperationalNotifications $operations, private OpportunityNotifications $opportunities,
-        private PaperNotifications $paper, private StorageNotifications $storage) {}
+        private PaperNotifications $paper, private StorageNotifications $storage, private RecoveredSimulationNotifications $recovered) {}
 
     public function tick(): string
     {
@@ -32,6 +32,7 @@ final class NotificationWorker
                 $since = $this->outbox->startedAt();
                 $sources = [fn () => $this->operations->scan($this->outbox, $since),
                     fn () => $this->opportunities->scan($this->outbox), fn () => $this->paper->scan($this->outbox, $since),
+                    fn () => $this->recovered->scan($this->outbox),
                     fn () => $this->storage->scan($this->outbox)];
                 $failures = 0;
                 foreach ($sources as $source) {

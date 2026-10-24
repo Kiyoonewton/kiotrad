@@ -15,6 +15,17 @@ x-collector: &collector
   stop_grace_period: 35s
 
 services:
+  redis:
+    image: redis:7-alpine
+    command: [redis-server, --maxmemory, 256mb, --maxmemory-policy, allkeys-lru, --save, "", --appendonly, "no"]
+    mem_limit: 320m
+    healthcheck:
+      test: [CMD, redis-cli, ping]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    restart: unless-stopped
+
   notification-worker:
     <<: *collector
     profiles: [notifications]

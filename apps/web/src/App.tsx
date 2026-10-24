@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { getOverview, type Overview as OverviewData } from "./api";
 import { Overview } from "./Overview";
-import { PaperHistory } from "./PaperActivity";
+import { SimulationHistory } from "./SimulationHistory";
 import { StrategyList } from "./StrategyList";
 import { Logo } from "./Logo";
 
@@ -94,9 +94,11 @@ export default function App() {
               </label>
             )}
             <span className="mode-badge">
-              {data?.bankroll?.status === "paper"
-                ? "Paper trading"
-                : "Research foundation"}
+              {data?.research_simulation
+                ? "Research simulation"
+                : data?.bankroll?.status === "paper"
+                  ? "Paper trading"
+                  : "Research foundation"}
             </span>
           </div>
         </header>
@@ -127,8 +129,8 @@ export default function App() {
                 <h1>The strategy library.</h1>
                 <p>
                   Open a strategy to inspect its definition and observed
-                  fixtures. Paper trading requires a configured simulated
-                  bankroll and a running paper worker.
+                  fixtures. Research simulations evaluate collected events and
+                  saved odds, including data recovered after an interruption.
                 </p>
               </div>
               <StrategyList
@@ -140,7 +142,7 @@ export default function App() {
               />
             </>
           ) : (
-            <PaperHistory data={data} />
+            <SimulationHistory key={league} league={league} />
           )}
         </main>
         <footer>

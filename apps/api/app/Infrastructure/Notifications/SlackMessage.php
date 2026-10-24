@@ -8,6 +8,7 @@ final class SlackMessage
 {
     public const TYPES = [
         'qualified' => ['🟢 QUALIFIED SEASON — Opportunity Detected', '#2E8B57'],
+        'recovered_simulation' => ['🔵 RECOVERED SIMULATION — Historical Update', '#3B82F6'],
         'quote' => ['🔵 PAPER STAKE — Proposed', '#3B82F6'],
         'stake' => ['🔵 PAPER STAKE — Recorded', '#2563EB'],
         'settled' => ['🟣 PAPER RUN — Settled', '#8B5CF6'],

@@ -9,8 +9,9 @@ final class StrategyCatalog
     public function all(): array
     {
         $common = [
-            'version' => ChampionMonitor::VERSION,
-            'status' => 'observation',
+            'version' => ChampionMonitor::SIMULATION_VERSION,
+            'recorded_decision_version' => ChampionMonitor::VERSION,
+            'status' => 'simulation',
             'monitoring_enabled' => true,
             'bankroll_enabled' => false,
             'paper_policy_version' => PaperLedger::VERSION,
@@ -23,9 +24,9 @@ final class StrategyCatalog
                 'stop_at_first_win' => true,
             ],
             'unresolved' => [
-                'Monitoring records observed outcomes, not placed bets.',
-                'Paper execution requires a configured simulated bankroll and a running paper worker.',
-                'Recorded prices do not prove bookmaker acceptance; the worker skips stale prices and overlapping runs.',
+                'Research simulations replay collected events in matchday order, including recovered data.',
+                'Recorded historical odds are retained with their collection times; unverified pre-match availability is noted.',
+                'Independent runs can overlap and do not establish returns from one shared tradable portfolio.',
             ],
         ];
 

@@ -169,5 +169,5 @@ it("distinguishes an interruption from resumed collection without inventing reco
     screen.getByText(
       /Resumed .*12:00:00 WAT · 1 season\(s\) queued for repair/,
     ),
-  ).toHaveTextContent("Missed entries are not replayed.");
+  ).toHaveTextContent("Recovered events are included in research simulations.");
 });
