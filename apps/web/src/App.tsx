@@ -14,6 +14,7 @@ export default function App() {
   const [data, setData] = useState<OverviewData | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [request, setRequest] = useState(0);
+  const [lastSuccess, setLastSuccess] = useState<Date | null>(null);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -23,6 +24,7 @@ export default function App() {
         const overview = await getOverview(controller.signal);
         if (!controller.signal.aborted) {
           setData(overview);
+          setLastSuccess(new Date());
           setError(null);
         }
       } catch (cause: unknown) {
@@ -103,7 +105,28 @@ export default function App() {
           </div>
         </header>
         <main id="main" tabIndex={-1}>
-          {error ? (
+          {error && data && (
+            <div className="reconnection-banner" role="status">
+              <span className="reconnection-dot" aria-hidden="true" />
+              <div>
+                <strong>Reconnecting</strong>
+                <small>
+                  Showing saved view · last loaded{" "}
+                  {lastSuccess?.toLocaleTimeString("en-GB", {
+                    timeZone: "Africa/Lagos",
+                    hour: "2-digit",
+                    minute: "2-digit",
+                    second: "2-digit",
+                  })}{" "}
+                  WAT
+                </small>
+              </div>
+              <button onClick={() => setRequest((n) => n + 1)}>
+                Retry now
+              </button>
+            </div>
+          )}
+          {error && !data ? (
             <section className="message-panel" role="alert">
               <h1>Connection interrupted</h1>
               <p>{error}</p>
