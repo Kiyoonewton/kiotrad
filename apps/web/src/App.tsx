@@ -126,6 +126,14 @@ export default function App() {
               </button>
             </div>
           )}
+          {data?.dashboard_cache?.status === "stale" && (
+            <div className="reconnection-banner" role="status">
+              Showing saved dashboard · background refresh pending
+              {data.dashboard_cache.generated_at
+                ? ` · ${new Date(data.dashboard_cache.generated_at).toLocaleString("en-GB", { timeZone: "Africa/Lagos" })} WAT`
+                : ""}
+            </div>
+          )}
           {error && !data ? (
             <section className="message-panel" role="alert">
               <h1>Connection interrupted</h1>
@@ -138,6 +146,19 @@ export default function App() {
               >
                 Retry connection
               </button>
+            </section>
+          ) : data?.dashboard_cache?.status === "warming" ||
+            data?.dashboard_cache?.status === "unavailable" ? (
+            <section className="message-panel" role="status">
+              <h1>
+                {data.dashboard_cache.status === "warming"
+                  ? "Preparing dashboard"
+                  : "Dashboard cache unavailable"}
+              </h1>
+              <p>
+                The background worker is rebuilding the view. Stored source data
+                is preserved; this page retries automatically.
+              </p>
             </section>
           ) : !data ? (
             <p className="loading" role="status">

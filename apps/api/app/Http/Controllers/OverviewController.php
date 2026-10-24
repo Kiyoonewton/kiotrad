@@ -6,13 +6,23 @@ use App\Domain\Strategies\StrategyCatalog;
 use App\Infrastructure\Paper\PaperStatus;
 use App\Infrastructure\Paper\PaperWorkerHealth;
 use App\Infrastructure\Provider\ChampionMonitoring;
+use App\Infrastructure\Provider\DashboardSnapshot;
 use App\Infrastructure\Provider\FeedStatus;
 use App\Infrastructure\Provider\ResearchSummary;
 use Illuminate\Http\JsonResponse;
 
 final class OverviewController extends Controller
 {
-    public function __invoke(StrategyCatalog $strategies, FeedStatus $feeds, ChampionMonitoring $monitoring, PaperStatus $paper, PaperWorkerHealth $health, ResearchSummary $research): JsonResponse
+    public function __invoke(DashboardSnapshot $snapshot): JsonResponse
+    {
+        if (config('kiotrad.dashboard_async')) {
+            return response()->json($snapshot->read())->header('Cache-Control', 'no-store');
+        }
+
+        return app()->call([$this, 'build']);
+    }
+
+    public function build(StrategyCatalog $strategies, FeedStatus $feeds, ChampionMonitoring $monitoring, PaperStatus $paper, PaperWorkerHealth $health, ResearchSummary $research): JsonResponse
     {
         $paperView = $paper->overview();
 
