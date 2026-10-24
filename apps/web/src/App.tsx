@@ -15,17 +15,31 @@ export default function App() {
 
   useEffect(() => {
     const controller = new AbortController();
-    getOverview(controller.signal)
-      .then(setData)
-      .catch((cause: unknown) => {
-        if (!controller.signal.aborted)
+    let timer: ReturnType<typeof setTimeout>;
+    const refresh = async () => {
+      try {
+        const overview = await getOverview(controller.signal);
+        if (!controller.signal.aborted) {
+          setData(overview);
+          setError(null);
+        }
+      } catch (cause: unknown) {
+        if (!controller.signal.aborted) {
           setError(
             cause instanceof Error
               ? cause.message
               : "Unable to load the dashboard.",
           );
-      });
-    return () => controller.abort();
+        }
+      } finally {
+        if (!controller.signal.aborted) timer = setTimeout(refresh, 30_000);
+      }
+    };
+    void refresh();
+    return () => {
+      controller.abort();
+      clearTimeout(timer);
+    };
   }, [request]);
 
   return (

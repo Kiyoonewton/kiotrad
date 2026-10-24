@@ -1,0 +1,73 @@
+<?php
+
+namespace Tests\Feature;
+
+use App\Infrastructure\Provider\CollectionStore;
+use App\Infrastructure\Provider\CollectorState;
+use App\Infrastructure\Provider\CollectorTick;
+use Carbon\CarbonImmutable;
+use Illuminate\Support\Facades\Http;
+use Tests\TestCase;
+
+class CollectorTickTest extends TestCase
+{
+    use ProviderFixtures;
+
+    protected function tearDown(): void
+    {
+        CarbonImmutable::setTestNow();
+        parent::tearDown();
+    }
+
+    public function test_success_saves_normalized_data_and_clears_prior_failures(): void
+    {
+        CarbonImmutable::setTestNow('2026-10-24T00:00:00Z');
+        $base = config('provider.statistics_base');
+        Http::preventStrayRequests();
+        Http::fake([
+            $base.'uniquetournament_seasons/*' => Http::response(['doc' => [['data' => ['seasons' => [
+                ['_id' => '200', '_utid' => 31867, 'current' => true],
+            ]]]]]),
+            $base.'stats_season_fixtures2/200' => Http::response(['doc' => [['data' => $this->seasonFixture()]]]),
+        ]);
+        $this->mock(CollectionStore::class)->shouldReceive('save')->once()->withArgs(fn ($r) =>
+            $r['season_id'] === '200' && count($r['matches']) === 1)->andReturn('capture');
+        $state = $this->mock(CollectorState::class);
+        $state->shouldReceive('read')->once()->with('virtual-football')->andReturn(['failure_count' => 2]);
+        $state->shouldReceive('write')->once()->with('virtual-football', [
+            'failure_count' => 0, 'last_failure_at' => null, 'next_attempt_at' => '2026-10-24T00:00:45+00:00',
+        ]);
+        $this->assertSame('collected', app(CollectorTick::class)->run('virtual-football'));
+    }
+
+    public function test_failures_back_off_across_worker_restarts_without_saving_capture(): void
+    {
+        CarbonImmutable::setTestNow('2026-10-24T00:00:00Z');
+        Http::preventStrayRequests();
+        Http::fake(['*' => Http::response([], 503)]);
+        $this->mock(CollectionStore::class)->shouldNotReceive('save');
+        $state = new class implements CollectorState
+        {
+            public array $data = [];
+
+            public function read(string $competition): array
+            {
+                return $this->data[$competition] ?? [];
+            }
+
+            public function write(string $competition, array $state): void
+            {
+                $this->data[$competition] = $state;
+            }
+        };
+        $this->app->instance(CollectorState::class, $state);
+        $this->assertSame('retrying', app(CollectorTick::class)->run('virtual-football'));
+        $this->assertSame('2026-10-24T00:00:45+00:00', $state->data['virtual-football']['next_attempt_at']);
+        $this->assertSame('waiting', app(CollectorTick::class)->run('virtual-football'));
+        Http::assertSentCount(1);
+        CarbonImmutable::setTestNow('2026-10-24T00:00:45Z');
+        $this->assertSame('retrying', app(CollectorTick::class)->run('virtual-football'));
+        $this->assertSame('2026-10-24T00:02:15+00:00', $state->data['virtual-football']['next_attempt_at']);
+        $this->assertArrayNotHasKey('virtual-euro', $state->data);
+    }
+}

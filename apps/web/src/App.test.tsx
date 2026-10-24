@@ -90,3 +90,18 @@ it("reports API failure and can retry successfully", async () => {
     await screen.findByText("Bankroll not configured"),
   ).toBeInTheDocument();
 });
+
+it("shows captured season and truthful freshness without claiming live results", async () => {
+  vi.stubGlobal("fetch", vi.fn().mockResolvedValue({
+    ok: true,
+    json: async () => ({ ...payload, competitions: [{
+      id: "virtual-football", name: "English", feed_status: "stale",
+      season_id: "200", matchday: 4, last_success_at: "2026-10-24T00:00:00Z",
+    }] }),
+  }));
+  render(<App />);
+  expect(await screen.findByText("Stale capture")).toBeInTheDocument();
+  expect(screen.getByText("Season 200 · Odds day 4")).toBeInTheDocument();
+  expect(screen.getByText(/Observed .* WAT/)).toBeInTheDocument();
+  expect(screen.queryByText("Live now")).not.toBeInTheDocument();
+});

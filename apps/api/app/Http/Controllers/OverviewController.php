@@ -3,11 +3,12 @@
 namespace App\Http\Controllers;
 
 use App\Domain\Strategies\StrategyCatalog;
+use App\Infrastructure\Provider\FeedStatus;
 use Illuminate\Http\JsonResponse;
 
 final class OverviewController extends Controller
 {
-    public function __invoke(StrategyCatalog $strategies): JsonResponse
+    public function __invoke(StrategyCatalog $strategies, FeedStatus $feeds): JsonResponse
     {
         return response()->json([
             'schema_version' => '1',
@@ -24,13 +25,7 @@ final class OverviewController extends Controller
                 'net_profit_minor' => null,
                 'target_balance_minor' => null,
             ],
-            'competitions' => array_map(fn (array $competition) => [
-                ...$competition,
-                'feed_status' => 'not_connected',
-                'season_id' => null,
-                'matchday' => null,
-                'last_success_at' => null,
-            ], config('kiotrad.competitions')),
+            'competitions' => $feeds->all(),
             'strategies' => $strategies->all(),
             'active_run' => null,
             'capital_history' => [],

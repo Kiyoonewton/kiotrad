@@ -83,11 +83,16 @@ export function Overview({
             </span>
             <div>
               <strong>{item.name}</strong>
-              <small>Season — · Matchday —</small>
+              <small>Season {item.season_id ?? '—'} · Odds day {item.matchday ?? '—'}</small>
+              {item.last_success_at && <small>Observed {new Intl.DateTimeFormat('en-NG', {
+                timeZone: 'Africa/Lagos', hour: '2-digit', minute: '2-digit', second: '2-digit',
+              }).format(new Date(item.last_success_at))} WAT</small>}
             </div>
             <span className="feed-status">
               <i />
-              Not connected
+              {({ fresh: 'Fresh capture', stale: 'Stale capture', retrying: 'Retrying',
+                unavailable: 'Storage unavailable', not_connected: 'Not connected',
+              } as Record<string, string>)[item.feed_status] ?? 'Unknown'}
             </span>
           </div>
         ))}

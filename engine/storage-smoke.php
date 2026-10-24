@@ -41,6 +41,12 @@ try {
     $store->save($euro);
     $assert($database->provider_checkpoints->countDocuments() === 2, 'League checkpoints collided.');
     $assert($database->provider_captures->countDocuments() === 3, 'Unexpected capture count.');
+    $state = new App\Infrastructure\Provider\MongoCollectorState;
+    $assert($state->read('virtual-football') === [], 'Unexpected initial worker state.');
+    $state->write('virtual-football', ['failure_count' => 2, 'next_attempt_at' => '2026-10-24T00:02:15+00:00']);
+    $restarted = new App\Infrastructure\Provider\MongoCollectorState;
+    $assert($restarted->read('virtual-football')['failure_count'] === 2, 'Retry state was lost across restart.');
+    $assert($restarted->read('virtual-euro') === [], 'Worker states collided across leagues.');
     echo "Storage smoke passed: retry, chronology, immutability and league isolation.\n";
 } finally {
     $database->drop();
