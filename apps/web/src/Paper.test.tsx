@@ -151,6 +151,6 @@ it("shows the next fixed milestone after a drawdown and the worker's observed he
     screen.getByText(/1 milestone\(s\) reached · ₦14,000.00 increments/),
   ).toBeInTheDocument();
   expect(
-    screen.getByText(/Paper worker: checking regularly.*11:00:00 WAT/),
+    screen.getByText(/Paper worker: recent check observed.*11:00:00 WAT/),
   ).toBeInTheDocument();
 });

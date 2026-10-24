@@ -181,7 +181,7 @@ export function Overview({
             Paper worker:{" "}
             {(
               {
-                active: "checking regularly",
+                active: "recent check observed",
                 not_observed: "no heartbeat recorded",
                 not_recent: "no recent heartbeat",
                 unavailable: "health unavailable",
