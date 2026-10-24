@@ -40,6 +40,11 @@ final class ChampionMonitor
         }
         $firstDay = $strategy === 'champion-next-win' ? $trigger['day'] + 1 : 1;
         $readyAt = max($trigger['observed_at'], $champion['confirmed_at'], $triggerChampion['confirmed_at']);
+        foreach ($links as $link) {
+            if ($link['from_season_id'] === $prior['season_id'] && $link['to_season_id'] === $current['season_id']) {
+                $readyAt = max($readyAt, $link['observed_at']);
+            }
+        }
         $matches = $this->teamMatches($current, $champion['team_uid']);
         for ($attempt = 1; $attempt <= 4; $attempt++) {
             $day = $firstDay + $attempt - 1;

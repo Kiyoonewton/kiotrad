@@ -98,5 +98,8 @@ class ChampionMonitorTest extends TestCase
         $row = (new ChampionMonitor)->evaluate('champion-next-season', $current, $prior, $older, $links, '2026-10-24T09:59:30+00:00');
         $this->assertSame('watching_fixture', $row['status']);
         $this->assertSame(1, $row['next_match']['matchday']);
+        $links[1]['observed_at'] = '2026-10-24T10:00:30+00:00';
+        $late = (new ChampionMonitor)->evaluate('champion-next-season', $current, $prior, $older, $links, '2026-10-24T10:01:00+00:00');
+        $this->assertSame('late_evidence', $late['status']);
     }
 }
