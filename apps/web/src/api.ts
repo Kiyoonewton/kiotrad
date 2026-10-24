@@ -60,6 +60,7 @@ export interface Overview {
   strategy_monitoring?: {
     competition: string;
     strategy_id?: string;
+    reason?: string;
     status: string;
     team?: string | null;
     trigger_day?: number | null;
@@ -78,11 +79,20 @@ export interface Overview {
     committed_minor?: number | null;
     net_profit_minor?: number | null;
     target_balance_minor?: number | null;
+    next_milestone_minor?: number | null;
+    milestone_step_minor?: number | null;
+    milestones_reached?: number;
   };
   active_run?: PaperRun | null;
   capital_history?: { at: string; balance_minor: number }[];
   recent_runs?: PaperRun[];
   paper_journal_full?: boolean;
+  paper_worker?: {
+    status: string;
+    observed_at?: string | null;
+    next_check_at?: string | null;
+    last_result?: string | null;
+  };
   strategies: Strategy[];
 }
 

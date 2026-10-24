@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Domain\Paper\PaperLedger;
 use App\Infrastructure\Paper\PaperStatus;
 use App\Infrastructure\Paper\PaperStore;
+use App\Infrastructure\Paper\PaperWorkerHealth;
 use App\Infrastructure\Provider\ChampionMonitoring;
 use App\Infrastructure\Provider\FeedStatus;
 use RuntimeException;
@@ -41,6 +42,7 @@ class PaperStatusTest extends TestCase
         $store->shouldNotReceive('replace');
         $store->shouldNotReceive('create');
         $this->mock(FeedStatus::class)->shouldReceive('all')->once()->andReturn([]);
+        $this->mock(PaperWorkerHealth::class)->shouldReceive('view')->once()->andReturn(['status' => 'not_observed']);
         $this->mock(ChampionMonitoring::class)->shouldReceive('all')->once()->andReturn([]);
         $this->getJson('/api/v1/overview')->assertOk()
             ->assertJsonPath('mode', 'paper')

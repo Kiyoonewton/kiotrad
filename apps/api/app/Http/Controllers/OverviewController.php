@@ -4,13 +4,14 @@ namespace App\Http\Controllers;
 
 use App\Domain\Strategies\StrategyCatalog;
 use App\Infrastructure\Paper\PaperStatus;
+use App\Infrastructure\Paper\PaperWorkerHealth;
 use App\Infrastructure\Provider\ChampionMonitoring;
 use App\Infrastructure\Provider\FeedStatus;
 use Illuminate\Http\JsonResponse;
 
 final class OverviewController extends Controller
 {
-    public function __invoke(StrategyCatalog $strategies, FeedStatus $feeds, ChampionMonitoring $monitoring, PaperStatus $paper): JsonResponse
+    public function __invoke(StrategyCatalog $strategies, FeedStatus $feeds, ChampionMonitoring $monitoring, PaperStatus $paper, PaperWorkerHealth $health): JsonResponse
     {
         $paperView = $paper->overview();
 
@@ -25,6 +26,7 @@ final class OverviewController extends Controller
             'strategies' => array_map(fn ($strategy) => [...$strategy, 'bankroll_enabled' => $paperView['bankroll']['status'] === 'paper'], $strategies->all()),
             'strategy_monitoring' => $monitoring->all(),
             ...$paperView,
+            'paper_worker' => $health->view(),
         ])->header('Cache-Control', 'no-store');
     }
 }

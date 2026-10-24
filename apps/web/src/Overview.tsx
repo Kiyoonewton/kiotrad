@@ -91,14 +91,20 @@ export function Overview({
             part of the plan.
           </h2>
           <div className="goal-bottom">
-            <span>Capital goal</span>
+            <span>Next capital milestone</span>
             <strong>
-              {data.bankroll?.target_balance_minor != null
-                ? naira(data.bankroll.target_balance_minor)
+              {(data.bankroll?.next_milestone_minor ??
+                data.bankroll?.target_balance_minor) != null
+                ? naira(
+                    (data.bankroll?.next_milestone_minor ??
+                      data.bankroll?.target_balance_minor)!,
+                  )
                 : "Not set"}
             </strong>
             <p>
-              A target tracks progress.
+              {data.bankroll?.milestone_step_minor != null
+                ? `${data.bankroll.milestones_reached ?? 0} milestone(s) reached · ${naira(data.bankroll.milestone_step_minor)} increments`
+                : "A target tracks progress."}
               <br />
               It doesn’t predict a finish date.
             </p>
@@ -170,6 +176,23 @@ export function Overview({
             {data.bankroll?.status === "paper"
               ? "Paper ledger configured · observations below are separate"
               : "Read-only monitoring · paper bankroll not configured"}
+          </p>
+          <p>
+            Paper worker:{" "}
+            {(
+              {
+                active: "recent check observed",
+                not_observed: "no heartbeat recorded",
+                not_recent: "no recent heartbeat",
+                unavailable: "health unavailable",
+                retrying: "retrying after a failure",
+                clock_unknown: "clock needs checking",
+              } as Record<string, string>
+            )[data.paper_worker?.status ?? "not_observed"] ?? "unknown"}
+            {data.paper_worker?.observed_at &&
+              ` · ${formatLagos(data.paper_worker.observed_at)} WAT`}
+            {data.paper_worker?.last_result &&
+              ` · ${data.paper_worker.last_result.replaceAll("_", " ")}`}
           </p>
           <PaperActivity data={data} />
           {data.paper_journal_full && (

@@ -100,3 +100,25 @@ it("distinguishes unavailable monitoring and absent API observations", () => {
   ).toHaveLength(2);
   expect(screen.queryByText("waiting for history")).not.toBeInTheDocument();
 });
+
+it("shows the reported missing evidence instead of a generic wait", () => {
+  render(
+    <Overview
+      data={{
+        ...data,
+        strategy_monitoring: [
+          {
+            competition: "virtual-football",
+            strategy_id: "champion-next-win",
+            status: "waiting_for_history",
+            reason: "missing_linked_previous_season",
+          },
+        ],
+      }}
+      league="all"
+    />,
+  );
+  expect(
+    screen.getAllByText(/No unique recorded link to the previous season/),
+  ).toHaveLength(2);
+});

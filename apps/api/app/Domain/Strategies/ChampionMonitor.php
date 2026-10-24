@@ -12,15 +12,24 @@ final class ChampionMonitor
             'status' => 'waiting_for_history', 'team' => null, 'trigger_day' => null, 'attempt' => null,
             'next_match' => null, 'execution_enabled' => false, 'evaluated_at' => $asOf];
         $champion = $prior['champion'] ?? null;
-        if (! $champion || ! $this->linked($prior, $current, $links, $asOf)) {
-            return $row;
+        if ($prior === null) {
+            return [...$row, 'reason' => 'missing_linked_previous_season'];
+        }
+        if (! $champion) {
+            return [...$row, 'reason' => 'previous_champion_unverified'];
+        }
+        if (! $this->linked($prior, $current, $links, $asOf)) {
+            return [...$row, 'reason' => 'season_link_not_verified'];
         }
         $row['team'] = $champion['team_name'];
         $row['team_uid'] = $champion['team_uid'];
         $triggerSeason = $strategy === 'champion-next-win' ? $current : $prior;
         $triggerChampion = $strategy === 'champion-next-win' ? $champion : ($older['champion'] ?? null);
-        if (! $triggerChampion || ($strategy === 'champion-next-season' && ! $this->linked($older, $prior, $links, $asOf))) {
-            return $row;
+        if (! $triggerChampion) {
+            return [...$row, 'reason' => $older === null ? 'missing_linked_older_season' : 'older_champion_unverified'];
+        }
+        if ($strategy === 'champion-next-season' && ! $this->linked($older, $prior, $links, $asOf)) {
+            return [...$row, 'reason' => 'earlier_season_link_not_verified'];
         }
         $opening = $this->teamMatches($triggerSeason, $triggerChampion['team_uid'])[1] ?? null;
         if (! $opening || ! $opening['scheduled_start_at'] || $triggerChampion['confirmed_at'] >= $opening['scheduled_start_at']) {
