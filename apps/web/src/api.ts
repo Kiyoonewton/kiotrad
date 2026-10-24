@@ -51,6 +51,13 @@ export interface Overview {
     fixture_count?: number | null;
     market_observation?: string;
     unresolved_seasons?: string[];
+    collection_gap?: { expected_at: string; detected_at: string } | null;
+    last_collection_gap?: {
+      expected_at: string;
+      resumed_at: string;
+      pending_season_ids: string[];
+      reconciliation_status: string;
+    } | null;
     latest_champion?: {
       team_name: string;
       season_id: string;

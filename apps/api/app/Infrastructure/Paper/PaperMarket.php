@@ -2,6 +2,7 @@
 
 namespace App\Infrastructure\Paper;
 
+use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\DB;
 
 class PaperMarket
@@ -11,11 +12,18 @@ class PaperMarket
         $db = DB::connection('mongodb')->getDatabase();
         $options = ['typeMap' => ['root' => 'array', 'document' => 'array', 'array' => 'array']];
         $facts = [];
+        $states = [];
         foreach ($requests as $request) {
             $key = implode(':', [$request['competition'], $request['season_id'], $request['team_uid'], $request['day']]);
             if (isset($facts[$key])) {
                 continue;
             }
+            if (! array_key_exists($request['competition'], $states)) {
+                $states[$request['competition']] = $db->collector_states->findOne(['_id' => $request['competition']], $options) ?? [];
+            }
+            $state = $states[$request['competition']];
+            $overdue = isset($state['next_attempt_at']) && CarbonImmutable::parse($state['next_attempt_at'])->addSeconds(60)->lessThan(CarbonImmutable::parse($now));
+            $interrupted = isset($state['collection_gap']) || ($state['failure_count'] ?? 0) > 0 || $overdue;
             $filter = ['competition' => $request['competition'], 'season_id' => $request['season_id'], 'observed_at' => ['$lte' => $now]];
             $capture = $db->provider_captures->findOne($filter, [...$options, 'sort' => ['observed_at' => -1],
                 'projection' => ['matches' => 1, 'observed_at' => 1]]);
@@ -45,7 +53,7 @@ class PaperMarket
                 }
             }
             if ($latest !== null) {
-                $facts[$key] = [...$latest, 'price' => $price];
+                $facts[$key] = [...$latest, 'price' => $price, 'collection_interrupted' => $interrupted];
             }
         }
 

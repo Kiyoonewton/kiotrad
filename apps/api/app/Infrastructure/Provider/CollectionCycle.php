@@ -37,7 +37,21 @@ class CollectionCycle
             && (! ($previous['last_results_complete'] ?? false) || ! ($previous['last_champion_confirmed'] ?? false))) {
             $pending[$old] ??= ['next_attempt_at' => CarbonImmutable::now('UTC')->toIso8601String(), 'failures' => 0];
         }
+        $intermediate = (new GapSeasonPlan)->intermediate($previous, $discovery['seasons'], $currentId, is_int($start) ? $start : null);
+        foreach ($intermediate as $id) {
+            $pending[$id] ??= ['next_attempt_at' => CarbonImmutable::now('UTC')->toIso8601String(), 'failures' => 0, 'reason' => 'gap_reconciliation'];
+        }
         $bootstrapped = $previous['champion_bootstrap_done'] ?? false;
+        $historyBootstrapped = $previous['history_bootstrap_done'] ?? false;
+        if (! $historyBootstrapped && is_int($start)) {
+            foreach ((new HistorySeasonPlan)->previous($discovery['seasons'], $start, config('provider.history_seasons', 81)) as $id) {
+                if ($id === $old && ($previous['last_results_complete'] ?? false) && ($previous['last_champion_confirmed'] ?? false)) {
+                    continue;
+                }
+                $pending[$id] ??= ['next_attempt_at' => CarbonImmutable::now('UTC')->toIso8601String(), 'failures' => 0, 'reason' => 'initial_history'];
+            }
+            $historyBootstrapped = true;
+        }
         if (! $bootstrapped && is_int($start)) {
             $older = array_values(array_filter($discovery['seasons'], fn ($s) => is_int($s['start']['uts'] ?? null) && $s['start']['uts'] < $start));
             usort($older, fn ($a, $b) => $b['start']['uts'] <=> $a['start']['uts']);
@@ -121,7 +135,7 @@ class CollectionCycle
             'season_transition' => $old !== null && $old !== $currentId ? [
                 'from_season_id' => $old, 'to_season_id' => $currentId, 'observed_at' => $now->toIso8601String(),
                 'continuity_status' => isset($previous['collection_observed_at'])
-                    && CarbonImmutable::parse($previous['collection_observed_at'])->diffInSeconds($now) <= 600
+                    && CarbonImmutable::parse($previous['collection_observed_at'])->diffInSeconds($now) <= 600 && $intermediate === []
                     ? 'observed_rollover' : 'unconfirmed_gap',
             ] : null,
             'collection_observed_at' => $now->toIso8601String(),
@@ -130,6 +144,7 @@ class CollectionCycle
             'last_results_complete' => $report['completeness']['results_complete'],
             'last_champion_confirmed' => ($report['standings']['status'] ?? null) === 'verified_final',
             'champion_bootstrap_done' => $bootstrapped,
+            'history_bootstrap_done' => $historyBootstrapped,
             'latest_champion' => $latestChampion,
             'pending_seasons' => $pending,
             'captured_round_keys' => array_values(array_filter($keys, fn ($k) => in_array(explode(':', $k)[0], $retained, true))),

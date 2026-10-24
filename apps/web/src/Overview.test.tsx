@@ -122,3 +122,52 @@ it("shows the reported missing evidence instead of a generic wait", () => {
     screen.getAllByText(/No unique recorded link to the previous season/),
   ).toHaveLength(2);
 });
+
+it("distinguishes an interruption from resumed collection without inventing recovered entries", () => {
+  const view = render(
+    <Overview
+      data={{
+        ...data,
+        competitions: [
+          {
+            ...data.competitions[0],
+            feed_status: "interrupted",
+            collection_gap: {
+              expected_at: "2026-10-24T10:00:00Z",
+              detected_at: "2026-10-24T10:01:01Z",
+            },
+          },
+        ],
+      }}
+      league="all"
+    />,
+  );
+  expect(
+    screen.getByText(/Collection interrupted · expected update .*11:00:00 WAT/),
+  ).toBeInTheDocument();
+  view.rerender(
+    <Overview
+      data={{
+        ...data,
+        competitions: [
+          {
+            ...data.competitions[0],
+            collection_gap: null,
+            last_collection_gap: {
+              expected_at: "2026-10-24T10:00:00Z",
+              resumed_at: "2026-10-24T11:00:00Z",
+              pending_season_ids: ["200"],
+              reconciliation_status: "pending",
+            },
+          },
+        ],
+      }}
+      league="all"
+    />,
+  );
+  expect(
+    screen.getByText(
+      /Resumed .*12:00:00 WAT · 1 season\(s\) queued for repair/,
+    ),
+  ).toHaveTextContent("Missed entries are not replayed.");
+});
