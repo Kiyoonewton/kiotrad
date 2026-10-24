@@ -2,6 +2,8 @@
 
 namespace App\Providers;
 
+use App\Infrastructure\Provider\CollectionStore;
+use App\Infrastructure\Provider\MongoCollectionStore;
 use Illuminate\Support\ServiceProvider;
 
 class AppServiceProvider extends ServiceProvider
@@ -11,7 +13,7 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
-        $this->app->bind(\App\Infrastructure\Provider\CollectionStore::class, \App\Infrastructure\Provider\MongoCollectionStore::class);
+        $this->app->bind(CollectionStore::class, MongoCollectionStore::class);
     }
 
     /**
