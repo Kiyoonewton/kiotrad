@@ -35,8 +35,7 @@ class HistoricalOddsRecoveryTest extends TestCase
     {
         $this->feeds();
         $this->stored();
-        $this->mock(CollectionStore::class)->shouldReceive('save')->once()->with(Mockery::on(fn ($r) =>
-            count($r['odds_snapshots']) === 8 && $r['scope'] === 'historical_odds'
+        $this->mock(CollectionStore::class)->shouldReceive('save')->once()->with(Mockery::on(fn ($r) => count($r['odds_snapshots']) === 8 && $r['scope'] === 'historical_odds'
             && $r['odds_snapshots'][0]['pre_match_verified'] === false
             && $r['observed_at'] === $r['odds_snapshots'][0]['captured_at']
             && $r['observed_at'] > $r['matches'][0]['scheduled_start_at']

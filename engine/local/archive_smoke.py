@@ -15,10 +15,11 @@ command = ["docker", "compose", "--env-file", str(root / "engine/.env"),
 source = "kiotrad_sync_source_smoke"
 target = "kiotrad_local_ci_smoke"
 password = secrets.token_hex(24)
+admin_uri = "mongodb://ci_fixture:ci_fixture_password@127.0.0.1:27017/?authSource=admin"
 
 def shell(script):
     subprocess.run(command + ["mongosh", "--quiet", "--nodb", "--file", "/dev/stdin"],
-                   input=script.encode(), check=True, stdout=subprocess.DEVNULL)
+                   input=script.replace("new Mongo()", "new Mongo(" + json.dumps(admin_uri) + ")").encode(), check=True, stdout=subprocess.DEVNULL)
 
 try:
     shell(f'''
@@ -38,7 +39,7 @@ d.provider_captures.insertOne({{_id:"synthetic",at:new Date("2026-10-25T00:00:00
                                   "--collection=provider_captures", "--archive", "--gzip"],
                        input=config, stdout=archive, stderr=subprocess.PIPE, check=True)
         archive.seek(0)
-        subprocess.run(command + ["mongorestore", "--archive", "--gzip", "--nsFrom=" + source + ".*",
+        subprocess.run(command + ["mongorestore", "--uri=" + admin_uri, "--archive", "--gzip", "--nsFrom=" + source + ".*",
                                   "--nsTo=" + target + ".*", "--stopOnError"],
                        stdin=archive, stdout=subprocess.DEVNULL, stderr=subprocess.PIPE, check=True)
     shell(f'''

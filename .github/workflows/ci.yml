@@ -57,6 +57,8 @@ jobs:
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
+      - name: Initialize authenticated disposable MongoDB
+        run: sh engine/ci-mongo.sh
       - run: sh engine/start.sh
       - name: Check dashboard, API proxy and real MongoDB readiness
         run: |
