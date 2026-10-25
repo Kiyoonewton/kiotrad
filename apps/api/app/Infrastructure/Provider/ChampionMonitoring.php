@@ -53,35 +53,14 @@ class ChampionMonitoring
                     [...$options, 'projection' => ['capture_id' => 1], 'sort' => ['_id' => 1]]), false);
                 $blocks = iterator_to_array($db->market_blockages->find(['competition' => $competition, 'classification' => 'operator_confirmed'],
                     [...$options, 'projection' => ['season_id' => 1, 'matchday' => 1], 'sort' => ['_id' => 1]]), false);
-                // Bound capture memory; each chunk includes its two linked predecessors.
-                foreach (array_chunk($group, 10) as $chunk) {
-                    $ids = [];
-                    foreach ($chunk as $season) {
-                        $id = (string) $season['season_id'];
-                        $ids[] = $id;
-                        for ($i = 0; $i < 2; $i++) {
-                            $parents = array_values(array_filter($links, fn ($l) => $l['to_season_id'] === $id));
-                            if (count($parents) !== 1) {
-                                break;
-                            }
-                            $id = $parents[0]['from_season_id'];
-                            $ids[] = $id;
-                        }
-                    }
-                    $captures = [];
-                    foreach ($db->provider_captures->find(['competition' => $competition, 'season_id' => ['$in' => array_values(array_unique($ids))],
-                        'observed_at' => ['$lte' => now('UTC')->toIso8601String()]], [...$options, 'sort' => ['observed_at' => 1],
-                            'projection' => ['season_id' => 1, 'observed_at' => 1, 'matches' => 1, 'standings' => 1, 'odds_snapshots' => 1]]) as $capture) {
-                        $captures[(string) $capture['season_id']][] = $capture;
-                    }
-                    $this->batch = compact('competition', 'state', 'links', 'checkpoints', 'blocks', 'captures');
-                    foreach ($chunk as $season) {
-                        $ttl = ($season['start_at'] ?? '') >= now('UTC')->subDays(7)->toIso8601String()
-                            ? SimulationCache::RECENT_TTL : SimulationCache::HISTORICAL_TTL;
-                        $rows = [...$rows, ...$this->forSeason($competition, (string) $season['season_id'], $ttl)];
-                    }
-                    $this->batch = null;
+                // Reuse metadata, but stream captures only on a per-season cache miss.
+                $this->batch = compact('competition', 'state', 'links', 'checkpoints', 'blocks');
+                foreach ($group as $season) {
+                    $ttl = ($season['start_at'] ?? '') >= now('UTC')->subDays(7)->toIso8601String()
+                        ? SimulationCache::RECENT_TTL : SimulationCache::HISTORICAL_TTL;
+                    $rows = [...$rows, ...$this->forSeason($competition, (string) $season['season_id'], $ttl)];
                 }
+                $this->batch = null;
             }
         } finally {
             $this->batch = null;
@@ -138,17 +117,22 @@ class ChampionMonitoring
         foreach (array_reverse($ids) as $id) {
             $season = ['season_id' => $id, 'matches' => [], 'champion' => null];
             $seen = [];
-            $captures = $this->batch !== null ? ($this->batch['captures'][(string) $id] ?? []) : $db->provider_captures->find(['competition' => $competition, 'season_id' => $id, 'observed_at' => ['$lte' => $asOf]],
-                [...$options, 'sort' => ['observed_at' => 1]]);
+            $captures = $db->provider_captures->find(['competition' => $competition, 'season_id' => $id, 'observed_at' => ['$lte' => $asOf]],
+                [...$options, 'sort' => ['observed_at' => 1], 'batchSize' => 5,
+                    'projection' => ['observed_at' => 1, 'matches' => 1, 'standings' => 1, 'odds_snapshots' => 1]]);
             foreach ($captures as $capture) {
                 $trackedTeam = $seasons[$ids[1] ?? '']['champion']['team_uid'] ?? null;
                 if ($id === $currentId && $trackedTeam !== null) {
                     $runMatches = array_values(array_filter($capture['matches'], fn ($m) => in_array($trackedTeam,
                         [$m['home_team_uid'], $m['away_team_uid']], true)));
                     $matchIds = array_column($runMatches, 'provider_match_id');
-                    $currentCaptures[] = ['_id' => $capture['_id'], 'observed_at' => $capture['observed_at'],
-                        'matches' => $runMatches, 'odds_snapshots' => array_values(array_filter($capture['odds_snapshots'] ?? [],
-                            fn ($p) => in_array($p['provider_match_id'], $matchIds, true)))];
+                    $prices = array_values(array_filter($capture['odds_snapshots'] ?? [], fn ($p) => in_array($p['provider_match_id'], $matchIds, true)));
+                    if ($prices !== []) {
+                        $pricedIds = array_column($prices, 'provider_match_id');
+                        $currentCaptures[] = ['_id' => $capture['_id'], 'observed_at' => $capture['observed_at'],
+                            'matches' => array_values(array_filter($runMatches, fn ($m) => in_array($m['provider_match_id'], $pricedIds, true))),
+                            'odds_snapshots' => $prices];
+                    }
                 }
                 foreach ($capture['matches'] as $match) {
                     if ($match['status'] === 'settled') {

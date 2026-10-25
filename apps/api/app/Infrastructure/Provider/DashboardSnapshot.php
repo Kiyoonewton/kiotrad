@@ -39,6 +39,7 @@ class DashboardSnapshot
         if (! $lock->get()) {
             return 'busy';
         }
+        SnapshotLease::protect($lock);
         try {
             $data = $this->build();
             if (($data['research_simulation']['status'] ?? '') !== 'available'
@@ -53,7 +54,7 @@ class DashboardSnapshot
 
             return 'refreshed';
         } finally {
-            $lock->release();
+            SnapshotLease::release();
         }
     }
 
