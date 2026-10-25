@@ -74,6 +74,12 @@ class LocalSyncTests(unittest.TestCase):
                     with sync.local_lock():
                         self.fail("Concurrent sync was allowed")
 
+    def test_activation_rejects_non_snapshot_database_before_any_docker_call(self):
+        with patch.object(sync, "compose") as compose:
+            with self.assertRaises(RuntimeError):
+                sync.activate_snapshot("kiotrad", "now")
+            compose.assert_not_called()
+
     def test_environment_switch_is_local_and_preserves_other_settings(self):
         with tempfile.TemporaryDirectory() as folder:
             env = Path(folder) / ".env.local"

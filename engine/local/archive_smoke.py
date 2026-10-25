@@ -46,6 +46,14 @@ const d=new Mongo().getDB({json.dumps(target)});
 const r=d.provider_captures.findOne({{_id:"synthetic"}});
 if (!r || !(r.at instanceof Date) || r.value.toString()!=="123") throw Error("Archive changed BSON data");
 ''')
+    shell(f'''
+const d=new Mongo().getDB({json.dumps(target)});
+d.collector_states.insertOne({{_id:"synthetic-league"}});
+for (const name of ["season_checkpoints","provider_checkpoints"]) {{
+  d.getCollection(name).insertOne({{_id:"synthetic-reference",capture_id:"synthetic"}});
+}}
+''')
+    shell(sync.validation_script(target, "2026-10-25T00:00:00Z"))
     print("Database Tools stdin configuration, compressed archive and isolated namespace restore passed.")
 finally:
     shell(f'''

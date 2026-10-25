@@ -100,7 +100,7 @@ try {
     $updated = $find($monitor->forSeason('virtual-football', '200'));
     $assert($updated['simulation']['net_minor'] === 20000, 'Repaired source data did not invalidate cached calculations.');
     $assert($updated['simulation']['total_staked_minor'] === 100000, 'Recovery did not include both simulated stakes.');
-    $summary = app(ResearchSummary::class)->overview();
+    $summary = app(ResearchSummary::class)->build();
     $assert($summary['status'] === 'available' && $summary['runs'][0]['net_minor'] === 20000, 'Overview research summary did not reflect repaired data.');
     $snapshot = app(DashboardSnapshot::class);
     $assert($snapshot->refresh() === 'refreshed', 'Background dashboard could not publish real Redis snapshot.');

@@ -84,3 +84,18 @@ manual in this first version. Never remove production volumes.
 
 There is no scheduled sync or production download endpoint. Incremental syncing,
 retention cleanup and automation can follow after this manual path is verified.
+
+## Resume a completed import without another download
+
+If validation failed after all collections restored, activate that timestamped
+local database after applying the validation fix:
+
+```bash
+python3 engine/local/sync.py --activate kiotrad_local_SYNC_TIMESTAMP
+```
+
+Replace SYNC_TIMESTAMP with the timestamp directory under backups/local-sync.
+This still verifies the local Docker destination, required metadata and capture
+references before switching. It never uses SSH or accesses production. Missing required metadata or broken
+capture references are rejected. If the import did not finish, use the normal
+sync command to download a new complete copy.
