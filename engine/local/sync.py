@@ -145,7 +145,7 @@ def source_collections(server, uri):
 
 def validation_script(database, started):
     return f'''
-const d=db.getSiblingDB({json.dumps(database)});
+const d=new Mongo().getDB({json.dumps(database)});
 if (!d.getName().startsWith("kiotrad_local_")) throw Error("Unsafe database");
 const count=d.provider_captures.countDocuments();
 if (!count) throw Error("No provider captures restored");
