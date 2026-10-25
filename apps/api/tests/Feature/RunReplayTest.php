@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Domain\Strategies\ReplayCapture;
 use App\Domain\Strategies\RunReplay;
 use Tests\TestCase;
 
@@ -35,6 +36,22 @@ class RunReplayTest extends TestCase
         $this->assertSame(30000, $view['gross_payout_minor']);
         $this->assertSame(10000, $view['net_minor']);
         $this->assertCount(1, $view['attempts']);
+    }
+
+    public function test_compact_captures_preserve_result_only_evidence_and_settle_recovery(): void
+    {
+        $captures = [$this->capture(5, false), $this->capture(5, true, '1.5', 'D'),
+            $this->capture(6, false, '2.0'), $this->capture(6, true, '2.0')];
+        $captures = array_map(fn ($capture) => (new ReplayCapture)->forTeam($capture, '1'), $captures);
+        $this->assertSame([], $captures[1]['odds_snapshots']);
+        $pending = app(RunReplay::class)->calculate($this->row(), [$captures[0]], 700000, '2026-10-24T11:00:00+00:00', true);
+        $this->assertSame('awaiting_result', $pending['status']);
+        $view = app(RunReplay::class)->calculate($this->row(), $captures, 700000, '2026-10-24T11:00:00+00:00', true);
+        $this->assertSame('win', $view['status']);
+        $this->assertSame(60000, $view['total_staked_minor']);
+        $this->assertSame(80000, $view['gross_payout_minor']);
+        $this->assertSame(20000, $view['net_minor']);
+        $this->assertNull((new ReplayCapture)->forTeam($captures[0], 'unrelated'));
     }
 
     public function test_recovery_recovers_actual_prior_loss_and_two_attempts_profit(): void
