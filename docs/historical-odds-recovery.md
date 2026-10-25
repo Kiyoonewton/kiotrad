@@ -21,4 +21,13 @@ Then sync the local snapshot and allow the dashboard to refresh:
 python3 engine/local/sync.py --ssh root@169.58.227.92
 ```
 
-This is explicit recovery, not an automatic all-season backfill. Normal live collection continues independently.
+To scan every stored season in all three leagues:
+
+```bash
+docker compose --env-file engine/.env -f engine/compose.yaml \
+  exec -T api php artisan provider:recover-odds-all
+```
+
+Pass `virtual-football`, `virtual-bundesliga` or `virtual-euro` to limit the scan. Both matchday options are supported. The plan uses stored capture season IDs scoped by league, not season links or numeric ID gap guesses. Each season delegates to the resumable single-season recovery; failed/incomplete seasons do not stop later seasons. A nonzero exit reports remaining failures/deferred work. Re-run the same command after disruption: saved rounds are durable progress and are skipped. Incomplete/current seasons remain deferred until settled; no data is fabricated.
+
+This is a manual batch, not an extra live collector or scheduled retry worker. Normal live collection continues independently. Avoid running overlapping recovery batches.
