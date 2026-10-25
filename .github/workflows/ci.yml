@@ -9,6 +9,16 @@ permissions:
   contents: read
 
 jobs:
+  local-sync-safety:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: python3 -m unittest discover -s engine/local -p 'test_*.py'
+      - name: Validate isolated local Compose
+        run: |
+          cp engine/local/.env.example engine/local/.env.local
+          docker compose --env-file engine/local/.env.local -f engine/local/compose.yaml config --quiet
+
   web:
     runs-on: ubuntu-latest
     defaults:
@@ -65,6 +75,8 @@ jobs:
         run: docker compose --env-file engine/.env -f engine/compose.yaml exec -T -e APP_ENV=testing api php < engine/notification-smoke.php
       - name: Verify event-order research history and Redis cache
         run: docker compose --env-file engine/.env -f engine/compose.yaml exec -T -e APP_ENV=testing api php < engine/event-simulation-smoke.php
+      - name: Verify local sync archive tools with isolated synthetic databases
+        run: python3 engine/local/archive_smoke.py
       - name: Logs on failure
         if: failure()
         run: docker compose --env-file engine/.env -f engine/compose.yaml logs

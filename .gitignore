@@ -11,3 +11,6 @@ coverage/
 .phpunit.cache/
 engine/.env.bak
 backups/
+
+__pycache__/
+engine/local/.sync.lock
