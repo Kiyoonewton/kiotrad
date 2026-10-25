@@ -149,11 +149,14 @@ const d=db.getSiblingDB({json.dumps(database)});
 if (!d.getName().startsWith("kiotrad_local_")) throw Error("Unsafe database");
 const count=d.provider_captures.countDocuments();
 if (!count) throw Error("No provider captures restored");
+for (const name of ["collector_states","season_checkpoints","provider_checkpoints"]) {{
+  if (!d.getCollection(name).countDocuments()) throw Error("Required metadata missing: "+name);
+}}
 for (const name of ["season_checkpoints","provider_checkpoints"]) {{
-  for (const row of d.getCollection(name).find()) {{
+  d.getCollection(name).find().forEach(row => {{
     if (!row.capture_id || !d.provider_captures.findOne({{_id:row.capture_id}}))
       throw Error("Checkpoint missing capture: "+name);
-  }}
+  }});
 }}
 d.local_sync_status.updateOne({{_id:"source"}},{{$set:{{
   started_at:{json.dumps(started)},completed_at:new Date().toISOString(),
@@ -178,11 +181,20 @@ def local_lock():
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--ssh", required=True, help="SSH alias or user@server")
+    source = parser.add_mutually_exclusive_group(required=True)
+    source.add_argument("--ssh", help="SSH alias or user@server")
+    source.add_argument("--activate", help="Validate and activate an already restored local snapshot without downloading")
     args = parser.parse_args()
     guard_local()
     with local_lock():
-        perform_sync(args.ssh)
+        if args.activate:
+            if not ENV.exists():
+                raise RuntimeError("Local configuration missing; perform an initial sync first.")
+            compose("up", "-d", "--wait", "mongodb")
+            verify_destination()
+            activate_snapshot(args.activate, datetime.now(timezone.utc).isoformat())
+        else:
+            perform_sync(args.ssh)
 
 
 def perform_sync(server):
@@ -216,8 +228,15 @@ def perform_sync(server):
             compose("exec", "-T", "mongodb", "mongorestore", "--archive", "--gzip",
                     "--nsFrom=kiotrad.*", "--nsTo=" + database + ".*", "--stopOnError",
                     stdin=source, stdout=subprocess.DEVNULL)
+    activate_snapshot(database, started)
+
+
+def activate_snapshot(database, started):
+    if not re.fullmatch(r"kiotrad_local_[0-9TZ]+", database):
+        raise RuntimeError("Only timestamped local snapshot databases can be activated.")
+    print("Validating local snapshot...", flush=True)
     compose("exec", "-T", "mongodb", "mongosh", "--quiet", "--file", "/dev/stdin",
-            input=validation_script(database, started).encode())
+            phase="validate local snapshot", input=validation_script(database, started).encode())
     # Switch only after every download/import/validation succeeds. Keep old DBs.
     previous = ENV.read_bytes()
     compose("stop", "api", "dashboard-worker")
