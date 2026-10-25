@@ -7,7 +7,7 @@ use DomainException;
 
 final class RunReplay
 {
-    public const EVENT_VERSION = 'event-order-win-recovery-1.0.0';
+    public const EVENT_VERSION = 'event-order-win-recovery-1.0.1';
 
     public function __construct(private WinQuote $quotes, private HistoricalQuote $historical) {}
 

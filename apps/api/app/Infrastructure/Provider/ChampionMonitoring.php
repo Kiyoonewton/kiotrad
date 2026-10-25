@@ -3,6 +3,7 @@
 namespace App\Infrastructure\Provider;
 
 use App\Domain\Strategies\ChampionMonitor;
+use App\Domain\Strategies\ReplayCapture;
 use App\Domain\Strategies\RunReplay;
 use App\Domain\Strategies\SimulationSeasonLinks;
 use Illuminate\Support\Facades\DB;
@@ -123,15 +124,9 @@ class ChampionMonitoring
             foreach ($captures as $capture) {
                 $trackedTeam = $seasons[$ids[1] ?? '']['champion']['team_uid'] ?? null;
                 if ($id === $currentId && $trackedTeam !== null) {
-                    $runMatches = array_values(array_filter($capture['matches'], fn ($m) => in_array($trackedTeam,
-                        [$m['home_team_uid'], $m['away_team_uid']], true)));
-                    $matchIds = array_column($runMatches, 'provider_match_id');
-                    $prices = array_values(array_filter($capture['odds_snapshots'] ?? [], fn ($p) => in_array($p['provider_match_id'], $matchIds, true)));
-                    if ($prices !== []) {
-                        $pricedIds = array_column($prices, 'provider_match_id');
-                        $currentCaptures[] = ['_id' => $capture['_id'], 'observed_at' => $capture['observed_at'],
-                            'matches' => array_values(array_filter($runMatches, fn ($m) => in_array($m['provider_match_id'], $pricedIds, true))),
-                            'odds_snapshots' => $prices];
+                    $replayCapture = (new ReplayCapture)->forTeam($capture, $trackedTeam);
+                    if ($replayCapture !== null) {
+                        $currentCaptures[] = $replayCapture;
                     }
                 }
                 foreach ($capture['matches'] as $match) {
