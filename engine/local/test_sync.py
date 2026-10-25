@@ -57,6 +57,16 @@ class LocalSyncTests(unittest.TestCase):
                 self.assertEqual(compose.call_count, 1)
                 self.assertEqual(compose.call_args.args[:2], ("up", "-d"))
 
+    def test_failures_report_safe_stage_without_echoing_passwords(self):
+        error = b'SYNC_ERROR:{"stage":"connect","code":18}\nsecret mongodb://user:password@host'
+        result = subprocess.CompletedProcess([], 1, stderr=error)
+        with patch("subprocess.run", return_value=result):
+            with self.assertRaises(RuntimeError) as caught:
+                sync.run(["ssh"], phase="source discovery")
+        self.assertIn("source stage=connect, code=18", str(caught.exception))
+        self.assertNotIn("password", str(caught.exception))
+        self.assertNotIn("mongodb://", str(caught.exception))
+
     def test_concurrent_sync_is_rejected(self):
         with tempfile.TemporaryDirectory() as folder, patch.object(sync, "LOCAL", Path(folder)):
             with sync.local_lock():

@@ -25,10 +25,28 @@ COLLECTIONS = (
 )
 
 
-def run(args, **kwargs):
+def run(args, phase="command", **kwargs):
     result = subprocess.run(args, stderr=subprocess.PIPE, **kwargs)
     if result.returncode:
-        raise RuntimeError(f"{args[0]} failed (exit {result.returncode}); no credentials printed.")
+        detail = ""
+        error = (result.stderr or b"").decode(errors="replace")
+        for line in error.splitlines():
+            if line.startswith("SYNC_ERROR:"):
+                try:
+                    diagnostic = json.loads(line[len("SYNC_ERROR:"):])
+                    stage = diagnostic.get("stage", "unknown")
+                    code = diagnostic.get("code", "unknown")
+                    if stage in {"connect", "roles", "collections"} and isinstance(code, (int, str)) and re.fullmatch(r"[A-Za-z0-9_-]{1,40}", str(code)):
+                        detail = f"; source stage={stage}, code={code}"
+                except (ValueError, TypeError):
+                    pass
+        if not detail:
+            for pattern, hint in [("Permission denied", "SSH login denied"), ("No such container", "source container missing"),
+                                  ("Authentication failed", "database authentication failed"), ("Connection timed out", "SSH connection timed out")]:
+                if pattern.lower() in error.lower():
+                    detail = "; " + hint
+                    break
+        raise RuntimeError(f"{phase}: {args[0]} failed (exit {result.returncode}){detail}. Credentials hidden.")
     return result
 
 
@@ -95,18 +113,30 @@ def source_command(server, collection):
     return ssh_command(server, remote)
 
 
-def source_collections(server, uri):
-    script = f"""
+def discovery_script(uri):
+    return f"""
+let stage="connect";
 try {{
   const source=new Mongo({json.dumps(uri)}).getDB("kiotrad");
+  stage="roles";
   const roles=source.runCommand({{connectionStatus:1}}).authInfo.authenticatedUserRoles;
-  if (!roles.length || roles.some(r=>r.role!=="read" || r.db!=="kiotrad")) quit(2);
+  if (!roles.length || roles.some(r=>r.role!=="read" || r.db!=="kiotrad")) {{
+    console.error('SYNC_ERROR:'+JSON.stringify({{stage,code:"read_only_role_required"}})); quit(2);
+  }}
+  stage="collections";
   print(JSON.stringify(source.getCollectionNames().filter(n=>{json.dumps(COLLECTIONS)}.includes(n))));
-}} catch (_) {{ quit(1); }}
+}} catch (e) {{
+  console.error('SYNC_ERROR:'+JSON.stringify({{stage,code:Number.isInteger(e.code)?e.code:(["TypeError","ReferenceError"].includes(e.name)?e.name:"script_error")}}));
+  quit(1);
+}}
 """
+
+
+def source_collections(server, uri):
+    print("Checking source login and read-only permissions...", flush=True)
     result = run(ssh_command(server, ["docker", "exec", "-i", "kiotrad-mongodb-1",
                  "mongosh", "--quiet", "--nodb", "--file", "/dev/stdin"]),
-                 input=script.encode(), stdout=subprocess.PIPE)
+                 phase="source discovery", input=discovery_script(uri).encode(), stdout=subprocess.PIPE)
     names = json.loads(result.stdout)
     if not set(["collector_states", "season_checkpoints", "provider_checkpoints", "provider_captures"]).issubset(names):
         raise RuntimeError("Required source collections missing; no active local data changed.")
@@ -179,7 +209,7 @@ def perform_sync(server):
         print("Downloading " + collection + "...", flush=True)
         archive = backup / (collection + ".archive.gz")
         with archive.open("wb") as output:
-            run(source_command(server, collection), input=config, stdout=output)
+            run(source_command(server, collection), phase="download " + collection, input=config, stdout=output)
         if not archive.stat().st_size:
             raise RuntimeError("Empty archive; previous local database remains active.")
         with archive.open("rb") as source:
