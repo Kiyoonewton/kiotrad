@@ -79,6 +79,10 @@ jobs:
           grep -q '^Event simulation passed:' /tmp/event-smoke.log
       - name: Verify local sync archive tools with isolated synthetic databases
         run: python3 engine/local/archive_smoke.py
+      - name: Verify replay memory bounds and fatal worker lease cleanup
+        run: |
+          docker compose --env-file engine/.env -f engine/compose.yaml exec -T -e APP_ENV=testing api php -d memory_limit=128M < engine/replay-memory-smoke.php | tee /tmp/replay-memory.log
+          grep -q '^Replay memory smoke passed:' /tmp/replay-memory.log
       - name: Logs on failure
         if: failure()
         run: docker compose --env-file engine/.env -f engine/compose.yaml logs

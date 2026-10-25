@@ -38,7 +38,8 @@ The first refresh can take time over SSH; wait for `dashboard: refreshed`.
 Ctrl+C leaves the worker running. A refresh_failed/source_unavailable status
 requires checking connectivity; it never replaces a good snapshot with zeros.
 The worker uses a Redis lease so multiple workers cannot publish concurrently.
-A crashed worker lease expires after an hour; don't manually flush all Redis
+A PHP memory fatal attempts to release its lease using reserved shutdown memory.
+An uncatchable kill or Redis failure still leaves a lease that expires after an hour; don't manually flush all Redis
 while another rebuild is active. Snapshot keys separate database URI, bankroll
 configuration and strategy version, without exposing credentials.
 
