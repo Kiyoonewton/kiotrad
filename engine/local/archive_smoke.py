@@ -1,5 +1,6 @@
 """Synthetic CI-only Database Tools archive/config round trip; no SSH/server access."""
 import json
+import importlib.util
 import os
 import secrets
 import subprocess
@@ -26,6 +27,12 @@ d.createUser({{user:"sync_fixture",pwd:{json.dumps(password)},roles:[{{role:"rea
 d.provider_captures.insertOne({{_id:"synthetic",at:new Date("2026-10-25T00:00:00Z"),value:NumberLong("123")}});
 ''')
     config = json.dumps({"uri": f"mongodb://sync_fixture:{password}@127.0.0.1:27017/{source}?authSource={source}"}).encode()
+    spec = importlib.util.spec_from_file_location("sync", Path(__file__).with_name("sync.py"))
+    sync = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(sync)
+    uri = json.loads(config)["uri"]
+    discovery = sync.discovery_script(uri).replace('"kiotrad"', json.dumps(source))
+    shell(discovery)
     with tempfile.TemporaryFile() as archive:
         subprocess.run(command + ["mongodump", "--config=/dev/stdin", "--db=" + source,
                                   "--collection=provider_captures", "--archive", "--gzip"],
