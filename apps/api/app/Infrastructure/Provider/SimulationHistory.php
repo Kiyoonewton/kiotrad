@@ -16,7 +16,7 @@ class SimulationHistory
 
         return DB::connection('mongodb')->getDatabase()->season_checkpoints->aggregate([
             ['$lookup' => ['from' => 'provider_captures', 'localField' => 'capture_id', 'foreignField' => '_id', 'as' => 'capture']],
-            ['$unwind' => '$capture'], ['$match' => $filter],
+            ['$unwind' => '$capture'], ['$match' => (object) $filter],
             ['$project' => ['_id' => 0, 'competition' => '$capture.competition', 'season_id' => 1,
                 'start_at' => ['$reduce' => ['input' => ['$ifNull' => ['$capture.matches.scheduled_start_at', []]],
                     'initialValue' => null, 'in' => ['$cond' => [
