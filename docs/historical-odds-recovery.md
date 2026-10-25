@@ -1,0 +1,24 @@
+# Historical odds recovery
+
+Archive bootstrap collected fixtures and results with zero odds rounds. Existing seasons can therefore qualify for simulation without usable prices.
+
+After deployment, recover an explicit season on production:
+
+```bash
+docker compose --env-file engine/.env -f engine/compose.yaml \
+  exec -T api php artisan provider:recover-odds virtual-bundesliga 3148961 3148933
+```
+
+Use `--from-day=1 --to-day=1` to test one round first. Other configured leagues use the same command with their own season IDs. Complete settled seasons are required. Each successful round is saved before the next request; rerunning skips rounds with all eight saved prices and retries failures. Do not run concurrent recoveries for the same season.
+
+Captures are additive and keep actual retrieval timestamps. Archived odds are explicitly not verified pre-match prices. Research replay may use them with its existing timing note; strict trading decisions remain unchanged. No portfolio, collector state or provider current checkpoint is modified. The season checkpoint advances to invalidate research caches. Existing standings captures remain available.
+
+Failed or invalid rounds are reported and the command exits unsuccessfully after attempting the remaining requested rounds. No unavailable market is assumed to be an operator-confirmed blockage. Raw responses use the existing archive mechanism.
+
+Then sync the local snapshot and allow the dashboard to refresh:
+
+```bash
+python3 engine/local/sync.py --ssh root@169.58.227.92
+```
+
+This is explicit recovery, not an automatic all-season backfill. Normal live collection continues independently.
