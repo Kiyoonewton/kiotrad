@@ -8,6 +8,7 @@ use App\Infrastructure\Paper\PaperWorkerHealth;
 use App\Infrastructure\Provider\ChampionMonitoring;
 use App\Infrastructure\Provider\DashboardSnapshot;
 use App\Infrastructure\Provider\FeedStatus;
+use App\Infrastructure\Provider\LocalMirrorStatus;
 use App\Infrastructure\Provider\ResearchSummary;
 use Illuminate\Http\JsonResponse;
 
@@ -29,6 +30,7 @@ final class OverviewController extends Controller
         return response()->json([
             'schema_version' => '1',
             'application' => 'KioTrad',
+            'local_sync' => app(LocalMirrorStatus::class)->view(),
             'mode' => $paperView['bankroll']['status'] === 'paper' ? 'paper' : 'foundation',
             'currency' => config('kiotrad.currency'),
             'display_timezone' => config('kiotrad.display_timezone'),

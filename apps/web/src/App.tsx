@@ -95,6 +95,16 @@ export default function App() {
                 </select>
               </label>
             )}
+            {data?.local_sync && (
+              <span className="mode-badge">
+                Local copy · synced{" "}
+                {new Date(data.local_sync.completed_at).toLocaleString(
+                  "en-GB",
+                  { timeZone: "Africa/Lagos" },
+                )}{" "}
+                WAT
+              </span>
+            )}
             <span className="mode-badge">
               {data?.research_simulation
                 ? "Research simulation"

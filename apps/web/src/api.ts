@@ -53,6 +53,7 @@ export interface RunCalculation {
   })[];
 }
 export interface Overview {
+  local_sync?: { completed_at: string; captures: number; mode: string } | null;
   dashboard_cache?: {
     status: "warming" | "ready" | "stale" | "unavailable";
     generated_at: string | null;

@@ -1,0 +1,59 @@
+name: kiotrad-local
+
+x-app: &app
+  build:
+    context: ../..
+    dockerfile: engine/api.Dockerfile
+  env_file: .env.local
+  environment: &environment
+    MONGODB_URI: mongodb://mongodb:27017/${LOCAL_DATABASE:-kiotrad_local}
+    MONGODB_DATABASE: ${LOCAL_DATABASE:-kiotrad_local}
+    LOCAL_DATA_MIRROR: "true"
+    DASHBOARD_ASYNC: "true"
+    SIMULATION_CACHE_ENABLED: "true"
+    REDIS_HOST: redis
+    SLACK_NOTIFICATIONS_ENABLED: "false"
+  restart: unless-stopped
+
+services:
+  mongodb:
+    image: mongo:7
+    labels:
+      kiotrad.local-only: "true"
+    ports: ["127.0.0.1:27019:27017"]
+    volumes: [local_mongo_data:/data/db]
+    healthcheck:
+      test: [CMD, mongosh, --quiet, --eval, "db.adminCommand('ping').ok"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+    restart: unless-stopped
+  redis:
+    image: redis:7-alpine
+    command: [redis-server, --maxmemory, 256mb, --maxmemory-policy, allkeys-lru, --save, "", --appendonly, "no"]
+    restart: unless-stopped
+  api:
+    <<: *app
+    environment:
+      <<: *environment
+      PHP_CLI_SERVER_WORKERS: "4"
+    command: [php, artisan, serve, --host=0.0.0.0, --port=8000, --no-reload]
+    ports: ["127.0.0.1:8001:8000"]
+    healthcheck:
+      test: [CMD, php, -r, "exit(@file_get_contents('http://127.0.0.1:8000/api/v1/ready') === false ? 1 : 0);"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+  dashboard-worker:
+    <<: *app
+    command: [php, artisan, 'dashboard:watch']
+  web:
+    build:
+      context: ../..
+      dockerfile: engine/web.Dockerfile
+    ports: ["127.0.0.1:5174:80"]
+    restart: unless-stopped
+
+volumes:
+  local_mongo_data:
+    name: kiotrad_local_mongo_data
