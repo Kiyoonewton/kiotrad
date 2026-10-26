@@ -30,8 +30,8 @@ export function ResearchPerformance({
   const wins = completed.filter((r) => r.status === "win").length;
   const losses = completed.length - wins;
   const initial = data.starting_capital_per_run_minor ?? null;
-  const staked = completed.reduce((sum, r) => sum + r.total_staked_minor, 0);
-  const payouts = completed.reduce((sum, r) => sum + r.gross_payout_minor, 0);
+  const payoutValues = completed.map((r) => r.gross_payout_minor);
+  const stakeValues = completed.map((r) => r.total_staked_minor);
   const { drawdown } = chartData(runs, initial ?? 0);
   const rate = completed.length ? (wins / completed.length) * 100 : 0;
   const strategies = [...new Set(data.runs.map((r) => r.strategy_id))];
@@ -80,12 +80,20 @@ export function ResearchPerformance({
           </strong>
         </div>
         <div>
-          <small>Settled stakes</small>
-          <strong>{completed.length ? naira(staked) : "—"}</strong>
+          <small>Run stake-out · low / high</small>
+          <strong>
+            {completed.length
+              ? `${naira(Math.min(...stakeValues))} / ${naira(Math.max(...stakeValues))}`
+              : "—"}
+          </strong>
         </div>
         <div>
-          <small>Gross payouts</small>
-          <strong>{completed.length ? naira(payouts) : "—"}</strong>
+          <small>Run payout · low / high</small>
+          <strong>
+            {completed.length
+              ? `${naira(Math.min(...payoutValues))} / ${naira(Math.max(...payoutValues))}`
+              : "—"}
+          </strong>
         </div>
       </div>
       <div className="performance-grid">

@@ -1,0 +1,31 @@
+.chart-density-controls {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  flex-wrap: wrap;
+  margin-top: 18px;
+  font-size: 11px;
+  color: #a9b9af;
+}
+.chart-density-controls label {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+.chart-density-controls select {
+  background: #18231d;
+  border: 1px solid #39503f;
+  color: #e4ece5;
+  padding: 6px;
+  border-radius: 6px;
+}
+.density-slider input {
+  accent-color: #93d6ae;
+  width: 100px;
+}
+.density-slider output {
+  min-width: 40px;
+}
+.research-metrics strong {
+  font-size: clamp(15px, 1.5vw, 24px);
+}
