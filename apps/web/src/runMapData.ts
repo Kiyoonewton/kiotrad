@@ -41,11 +41,13 @@ export function sharedRunMap(
           gross_payout_minor: skipped ? 0 : (r.gross_payout_minor ?? 0),
           started_at: r.entry_at,
           // The map shows scheduled attempts, never archive download duration.
-          event_at: skipped
+          event_at: data.settlement_model
+            ? (r.simulation_settlement_at ?? r.observed_window?.ended_at ?? r.entry_at)
+            : skipped
             ? (r.fixtures?.find((f) => f.won === true)?.scheduled_start_at ??
               r.fixtures?.at(-1)?.scheduled_start_at ?? r.entry_at)
             : (r.attempts?.at(-1)?.scheduled_start_at ?? r.entry_at),
-          span_basis: "scheduled_attempts_not_event_finish",
+          span_basis: data.settlement_model ? "modeled_settlement_not_event_finish" : "scheduled_attempts_not_event_finish",
           result_observed_at: r.result_observed_at ?? r.released_at ?? r.observed_window?.ended_at,
           overlap_basis: r.overlap_basis,
           attempts: r.attempts?.length,

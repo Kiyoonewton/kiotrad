@@ -98,3 +98,35 @@ This presentation patch does not rewrite the portfolio balance or release capita
 at kickoff. Timing-based reallocation still needs verified event-end evidence or
 an explicitly chosen simulation timing model. Existing financial results cannot
 be promoted as a corrected historical benchmark from this patch alone.
+
+## Modelled historical settlement (replay policy 1.2.0)
+
+The shared historical simulation now uses **scheduled kickoff +201 seconds** for
+settlement, conditional on a genuine recorded result existing by the replay's
+as-of time. This is an explicit simulation assumption, not a provider finish
+field. Fifteen inspected matchdays usually first appeared settled at +200–201s;
+one appeared at +163s. Nine inspected season transitions had a 340s kickoff gap.
+These observations support testing the assumption but do not establish an exact
+or universally bounded event duration. Collection cadence affects observations.
+
+Original result-confirmation/receipt times remain in fixtures and in
+`result_observed_at`; modelled times use `simulation_settlement_at`. Permanent
+raw data is unchanged. Historical calculations do not manufacture missing prices,
+missing results, or results outside the as-of evidence boundary. Unknown prices
+and blockages retain their existing unresolved handling.
+
+All candidates are replayed from the initial capital at +201s, +180s and +220s.
+The UI displays each scenario's capital, completed runs, overlap exclusions and
+changed accepted IDs. The +201s scenario supplies the main chart/cards/history.
+Existing highest-preview tie-breaking, strictly-before release, minimum stakes
+and recovery ×1/×2 policies apply independently in each scenario. If the prior
+modelled result is not available strictly before the next scheduled attempt, the
+run stops with its incurred loss (`timing_model_entry_stop`), rather than staking
+at an unavailable decision time or keeping an artificial reservation for days.
+
+This is retrospective simulation with recorded historical outcomes and prices,
+not a recreation of what the collector knew live at each historical instant.
+The model affects shared research replay only; collector scheduling and the
+separate paper/live observation ledger are unchanged. A rebuild and dashboard
+refresh recalculate the historical portfolio; no raw resync is required for code
+alone. Missing evidence remains unresolved and still limits benchmark coverage.
