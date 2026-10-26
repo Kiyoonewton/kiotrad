@@ -85,6 +85,14 @@ jobs:
         run: |
           docker compose --env-file engine/.env -f engine/compose.yaml exec -T -e APP_ENV=testing api php -d memory_limit=128M < engine/replay-memory-smoke.php | tee /tmp/replay-memory.log
           grep -q '^Replay memory smoke passed:' /tmp/replay-memory.log
+      - name: Verify raw-only local reconstruction
+        run: |
+          if docker compose --env-file engine/.env -f engine/compose.yaml exec -T api php artisan list --raw | grep -q '^provider:rebuild-raw'; then
+            echo 'Local rebuild command must not exist in the production image'; exit 1
+          fi
+          docker build --target local -f engine/api.Dockerfile -t kiotrad-raw-rebuild-check .
+          docker run --rm -i --network kiotrad_default --env-file engine/.env -e APP_ENV=testing kiotrad-raw-rebuild-check php < engine/raw-rebuild-smoke.php | tee /tmp/raw-rebuild.log
+          grep -q '^Raw rebuild passed:' /tmp/raw-rebuild.log
       - name: Logs on failure
         if: failure()
         run: docker compose --env-file engine/.env -f engine/compose.yaml logs

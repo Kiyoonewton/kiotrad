@@ -14,3 +14,13 @@ RUN mkdir -p storage/framework/cache/data storage/framework/sessions storage/fra
     && composer dump-autoload --optimize --no-dev --no-interaction
 EXPOSE 8000
 CMD ["php", "artisan", "serve", "--host=0.0.0.0", "--port=8000"]
+
+# Explicit local target includes offline reconstruction tools.
+FROM base AS local
+
+# Default target excludes local-only commands and import implementation.
+FROM base AS production
+RUN rm -f app/Console/Commands/RebuildRawEvidence.php \
+    app/Infrastructure/Provider/RawEvidenceRebuilder.php \
+    app/Infrastructure/Provider/ArchivedFeed.php \
+    && composer dump-autoload --optimize --no-dev --no-interaction
