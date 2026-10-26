@@ -2,7 +2,7 @@ import { PaperCapital } from "./PaperCapital";
 import { PaperActivity } from "./PaperActivity";
 import { naira } from "./api";
 import type { Overview as OverviewData } from "./api";
-import { MonitoringRows } from "./MonitoringRows";
+import { MonitoringGroups } from "./MonitoringGroups";
 import { StrategyList } from "./StrategyList";
 import { LeaguePulse } from "./LeaguePulse";
 import { RunEventTimeline } from "./RunEventTimeline";
@@ -123,7 +123,7 @@ export function Overview({
         </>
       )}
       <LeaguePulse competitions={competitions} />
-      <div className="activity-grid">
+      <div className="simulation-sections">
         <section className="quiet-panel" aria-labelledby="monitoring-title">
           <p className="eyebrow">Current activity</p>
           <h2 id="monitoring-title">
@@ -169,7 +169,7 @@ export function Overview({
               )}
             </>
           )}
-          <MonitoringRows
+          <MonitoringGroups
             rows={monitoring}
             strategies={data.strategies}
             competitions={data.competitions}
