@@ -24,7 +24,7 @@ final class RunBudgetEstimate
         while ($low <= $high) {
             $target = intdiv($low + $high, 2);
             $plan = $this->project($odds, $target * 100, intdiv($available, 2));
-            if ($plan['total_minor'] * 2 <= $available) {
+            if ($available >= $plan['total_minor'] * 2) {
                 $best = [...$plan, 'profit_per_attempt_minor' => $target * 100];
                 $low = $target + 1;
             } else {
