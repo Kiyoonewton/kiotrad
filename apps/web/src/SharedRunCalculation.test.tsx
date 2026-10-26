@@ -38,3 +38,11 @@ it("displays the shared frozen target and actual-price stake instead of a fixed 
   expect(screen.getByText("1.35")).toBeInTheDocument();
   expect(screen.queryByText("₦100.10")).not.toBeInTheDocument();
 });
+it("does not describe an unfunded entry's estimate as reserved capital", () => {
+  render(<SharedRunCalculation run={{ id: "missing", status: "unfunded_entry",
+    entry_at: "2026-10-20T10:00:00Z", funded: false, entry_issue: "missing_actual_odds",
+    estimate: { allowance_minor: 5000000, plan: { total_minor: 2500000, profit_per_attempt_minor: 10000 } },
+  }} />);
+  expect(screen.getByText(/No stake placed · no capital reserved/)).toBeInTheDocument();
+  expect(screen.queryByText(/Frozen profit per attempt/)).not.toBeInTheDocument();
+});

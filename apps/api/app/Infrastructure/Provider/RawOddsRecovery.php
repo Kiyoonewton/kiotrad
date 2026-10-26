@@ -95,6 +95,9 @@ final class RawOddsRecovery
         }
         unset($match);
         $prices = $this->normalizer->normalize($feed, $matches, $tournament, $day);
+        if (($feed->provenance['origin'] ?? '') === 'legacy_file') {
+            $prices = array_values(array_filter($prices, fn ($p) => in_array($p['provider_match_id'], $feed->provenance['accepted_match_ids'] ?? [], true)));
+        }
         if ($prices === []) {
             return ['status' => 'empty_odds_files', 'competition' => $league];
         }

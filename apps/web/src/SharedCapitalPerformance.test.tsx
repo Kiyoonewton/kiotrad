@@ -142,3 +142,12 @@ it("marks the balance provisional when archive timing affects allocation", () =>
   expect(screen.getByText("Current capital · provisional")).toBeInTheDocument();
   expect(screen.getByText(/Timing correction pending/)).toHaveTextContent("Overlap exclusions are not verified event clashes");
 });
+it("keeps an unfunded missing-price entry unresolved without counting it as an accepted trade", () => {
+  render(<SharedCapitalPerformance data={{ ...data, runs: [{
+    id: "unpriced", entry_at: "2026-10-20T10:00:00Z", status: "unfunded_entry",
+    funded: false, entry_issue: "missing_actual_odds", total_staked_minor: 0,
+    estimate: { allowance_minor: 5000000, plan: { total_minor: 2500000, profit_per_attempt_minor: 10000 } },
+  }] }} />);
+  expect(screen.getByText(/missing actual odds/)).toBeInTheDocument();
+  expect(screen.getByText(/0 completed · 1 unresolved · 0 overlap exclusions/)).toBeInTheDocument();
+});

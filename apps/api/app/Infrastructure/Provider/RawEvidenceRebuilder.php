@@ -161,6 +161,10 @@ final class RawEvidenceRebuilder
         $report['scope'] = 'raw_rebuild_'.$phase;
         if ($phase === 'odds') {
             $report['odds_snapshots'] = $this->odds->normalize($feed, $matches, $tournament, $day);
+            if (($feed->provenance['origin'] ?? '') === 'legacy_file') {
+                $report['odds_snapshots'] = array_values(array_filter($report['odds_snapshots'],
+                    fn ($p) => in_array($p['provider_match_id'], $feed->provenance['accepted_match_ids'] ?? [], true)));
+            }
         } else {
             $report['standings'] = $this->standings->normalize($feed, $season, $tournament, $matches);
         }

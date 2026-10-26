@@ -8,6 +8,13 @@ export function SharedRunCalculation({ run }: { run?: SharedRun }) {
         No accepted shared-capital run for this opportunity.
       </p>
     );
+  if (run.funded === false)
+    return (
+      <div className="run-calculation">
+        <strong>Unfunded entry · {run.entry_issue?.replaceAll("_", " ")}</strong>
+        <p>No stake placed · no capital reserved · profit unresolved</p>
+      </div>
+    );
   return (
     <div className="run-calculation">
       <strong>{run.status.replaceAll("_", " ")}</strong>

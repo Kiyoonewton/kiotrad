@@ -67,7 +67,7 @@ class ModeledSettlementTest extends TestCase
         $candidate = $this->candidate('missing', '2026-10-19T10:00:00Z');
         $candidate['fixtures'][0]['actual_odds_scaled'] = null;
         $view = (new TimingSensitivityReplay)->calculate([$candidate], 5000000, '2026-10-25T00:00:00Z');
-        $this->assertSame('awaiting_price_or_market_resolution', $view['runs'][0]['status']);
+        $this->assertSame('unfunded_entry', $view['runs'][0]['status']);
         $this->assertSame(5000000, $view['balance_minor']);
         $this->assertNull($view['runs'][0]['net_minor']);
     }

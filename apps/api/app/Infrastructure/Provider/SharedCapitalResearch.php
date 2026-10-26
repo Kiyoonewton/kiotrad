@@ -97,7 +97,7 @@ class SharedCapitalResearch
                 'home_team' => $fixture['home_team'], 'away_team' => $fixture['away_team'], 'outcome' => $outcome,
                 'scheduled_start_at' => $fixture['scheduled_start_at'], 'historical_odds_scaled' => $minimum['odds_scaled'] ?? null,
                 'historical_minimum' => $minimum, 'actual_odds_scaled' => $quote['odds_scaled'] ?? null,
-                'price_capture_id' => $quote['price_capture_id'] ?? null,
+                'price_capture_id' => $quote['price_capture_id'] ?? null, 'price_provenance' => $quote['price_provenance'] ?? null,
                 'price_timing_verified' => $quote['price_timing_verified'] ?? false,
                 'market_blocked' => in_array($day, $row['blocked_matchdays'] ?? [], true),
                 'result_confirmed_at' => $confirmed, 'won' => $confirmed === null ? null : $fixture['result'] === $outcome];
