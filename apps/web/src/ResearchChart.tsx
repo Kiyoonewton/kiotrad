@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { naira } from "./api";
+import { ChartDensityControls } from "./ChartDensityControls";
 import { chartData, eventLabel, type ResearchRun } from "./researchChartData";
 
 type Mode = "Line" | "Candles" | "Bars";
@@ -12,11 +13,23 @@ export function ResearchChart({
 }) {
   const [mode, setMode] = useState<Mode>("Line");
   const [selection, setSelection] = useState(0);
-  const { points, candles } = chartData(runs, initial ?? 0);
+  const [bucketHours, setBucketHours] = useState(24);
+  const [visibleLimit, setVisibleLimit] = useState(200);
+  const full = chartData(runs, initial ?? 0, bucketHours);
+  const points = full.points.slice(-visibleLimit);
+  const candles = full.candles.slice(-visibleLimit);
+  const opening = points.length
+    ? points[0].value - points[0].run.net_minor!
+    : (initial ?? 0);
   const values =
     mode === "Bars"
-      ? [0, ...points.map((p) => p.run.net_minor!)]
-      : [initial ?? 0, ...points.map((p) => p.value)];
+      ? [0, ...points.map((p) => p.value)]
+      : mode === "Candles"
+        ? [
+            initial ?? 0,
+            ...candles.flatMap((c) => [c.open, c.high, c.low, c.close]),
+          ]
+        : [initial ?? 0, opening, ...points.map((p) => p.value)];
   const low = Math.min(...values),
     high = Math.max(...values),
     pad = Math.max(10000, (high - low) * 0.12);
@@ -53,19 +66,37 @@ export function ResearchChart({
       </div>
       <p className="subtle">
         {mode === "Candles"
-          ? "Daily open / high / low / close of the reference path · green up, red down"
+          ? "Open / high / low / close of the reference path · green up, red down"
           : mode === "Bars"
-            ? "Profit or loss per completed run event · simultaneous runs combined"
+            ? "Reference value at each date: starting capital + cumulative net"
             : initial !== null
               ? "Reference path: starting capital + cumulative independent-run net"
               : "Cumulative independent-run net · starting capital unavailable"}
       </p>
+      <ChartDensityControls
+        mode={mode}
+        bucketHours={bucketHours}
+        setBucketHours={(value) => {
+          setBucketHours(value);
+          setSelection(0);
+        }}
+        total={mode === "Candles" ? full.candles.length : full.points.length}
+        visibleLimit={visibleLimit}
+        setVisibleLimit={(value) => {
+          setVisibleLimit(value);
+          setSelection(0);
+        }}
+      />
       {points.length ? (
         <>
           <svg
             viewBox="0 0 900 325"
             role="img"
-            aria-label="Cumulative net of independent simulations in event order"
+            aria-label={
+              mode === "Bars"
+                ? "Reference capital value at each event date"
+                : "Cumulative net of independent simulations in event order"
+            }
             onPointerMove={(e) => {
               const rect = e.currentTarget.getBoundingClientRect();
               setSelection(
@@ -112,7 +143,7 @@ export function ResearchChart({
             {mode === "Line" && (
               <polyline
                 points={[
-                  [95, y(initial ?? 0)],
+                  [95, y(opening)],
                   ...points.map((p, i) => [x(i, count), y(p.value)]),
                 ]
                   .map((p) => p.join(","))
@@ -125,7 +156,7 @@ export function ResearchChart({
             {mode === "Candles" &&
               candles.map((c, i) => (
                 <g
-                  key={c.day}
+                  key={`${c.day}:${i}`}
                   stroke={c.close >= c.open ? "#81c9a0" : "#e88f86"}
                   fill={c.close >= c.open ? "#81c9a0" : "#e88f86"}
                 >
@@ -152,14 +183,15 @@ export function ResearchChart({
                 <rect
                   key={i}
                   x={x(i, count) - Math.min(9, 300 / count)}
-                  y={Math.min(y(0), y(p.run.net_minor!))}
+                  y={Math.min(y(0), y(p.value))}
                   width={Math.max(1, Math.min(18, 600 / count))}
-                  height={Math.max(1, Math.abs(y(0) - y(p.run.net_minor!)))}
+                  height={Math.max(1, Math.abs(y(0) - y(p.value)))}
+                  data-reference-minor={p.value}
                   fill={p.run.net_minor! >= 0 ? "#81c9a0" : "#e88f86"}
                 >
                   <title>
-                    {eventLabel(p.run.event_at!)} · {p.run.team} ·{" "}
-                    {naira(p.run.net_minor!)}
+                    {eventLabel(p.run.event_at!)} · {p.run.team} · reference
+                    value {naira(p.value)}
                   </title>
                 </rect>
               ))}

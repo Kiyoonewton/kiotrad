@@ -18,7 +18,11 @@ export const eventLabel = (value: string) =>
     minute: "2-digit",
     hourCycle: "h23",
   }).format(new Date(value));
-export function chartData(runs: ResearchRun[], initial: number) {
+export function chartData(
+  runs: ResearchRun[],
+  initial: number,
+  bucketHours = 24,
+) {
   const completed = runs
     .filter((r) => r.net_minor !== null && r.event_at)
     .sort(
@@ -62,10 +66,19 @@ export function chartData(runs: ResearchRun[], initial: number) {
     count: number;
   }[] = [];
   let previous = initial;
+  let previousBucket: number | null = null;
   for (const point of points) {
-    const day = lagosDay(point.run.event_at!);
+    const time = Date.parse(point.run.event_at!);
+    const shifted = time + 3600000;
+    const bucket =
+      Math.floor(shifted / (bucketHours * 3600000)) * bucketHours * 3600000 -
+      3600000;
+    const day =
+      bucketHours >= 24
+        ? lagosDay(new Date(bucket).toISOString())
+        : eventLabel(new Date(bucket).toISOString());
     let candle = candles.at(-1);
-    if (!candle || candle.day !== day) {
+    if (!candle || previousBucket !== bucket) {
       candle = {
         day,
         open: previous,
@@ -76,6 +89,7 @@ export function chartData(runs: ResearchRun[], initial: number) {
       };
       candles.push(candle);
     }
+    previousBucket = bucket;
     candle.close = point.value;
     candle.high = Math.max(candle.high, point.value);
     candle.low = Math.min(candle.low, point.value);

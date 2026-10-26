@@ -44,3 +44,14 @@ it("combines simultaneous settlements so candle extremes do not invent an event 
   expect(data.candles[0].count).toBe(2);
   expect(data.drawdown).toBe(0);
 });
+it("uses interval size to show more or fewer candles without changing the final value", () => {
+  const runs = [
+    run(10000, "2026-10-20T10:00:00Z"),
+    run(-3000, "2026-10-20T12:00:00Z"),
+  ];
+  const daily = chartData(runs, 5000000, 24),
+    hourly = chartData(runs, 5000000, 1);
+  expect(daily.candles).toHaveLength(1);
+  expect(hourly.candles).toHaveLength(2);
+  expect(hourly.candles.at(-1)?.close).toBe(daily.candles.at(-1)?.close);
+});
