@@ -144,4 +144,72 @@ class SharedCapitalReplayTest extends TestCase
         $this->assertSame(96110, $run['net_minor']);
         $this->assertSame(5096110, $view['balance_minor']);
     }
+
+    public function test_single_allowance_after_loss_returns_to_double_only_after_recovery(): void
+    {
+        $base = new \DateTimeImmutable('2026-10-20T10:00:00Z');
+        $candidates = [];
+        foreach (range(0, 40) as $run) {
+            $fixtures = [];
+            foreach (range(0, 3) as $attempt) {
+                $minutes = $run * 20 + $attempt * 4;
+                $fixtures[] = ['scheduled_start_at' => $base->modify('+'.$minutes.' minutes')->format(DATE_ATOM),
+                    'result_confirmed_at' => $base->modify('+'.($minutes + 2).' minutes')->format(DATE_ATOM),
+                    'historical_odds_scaled' => 20000, 'actual_odds_scaled' => 20000, 'won' => $run !== 0];
+            }
+            $candidates[] = ['id' => 'run:'.$run, 'fixtures' => $fixtures];
+        }
+        $view = (new SharedCapitalReplay)->calculate($candidates, 5000000, '2026-10-21T10:00:00Z');
+        $this->assertSame(2, $view['runs'][0]['estimate']['allowance_multiplier']);
+        $this->assertSame(1, $view['runs'][1]['estimate']['allowance_multiplier']);
+        $this->assertSame(5000000, $view['runs'][1]['recovery_target_at_entry_minor']);
+        $this->assertSame($view['runs'][1]['estimate']['plan']['total_minor'], $view['runs'][1]['estimate']['allowance_minor']);
+        $restored = false;
+        foreach (array_slice($view['runs'], 1) as $run) {
+            if ($run['capital_at_entry_minor'] < 5000000) {
+                $this->assertSame(1, $run['estimate']['allowance_multiplier']);
+            } else {
+                $this->assertSame(2, $run['estimate']['allowance_multiplier']);
+                $restored = true;
+            }
+        }
+        $this->assertTrue($restored);
+        $this->assertNull($view['recovery_target_minor']);
+    }
+
+    public function test_skipped_window_outcomes_do_not_change_shared_profit(): void
+    {
+        $a = $this->candidate('a', '2026-10-20T10:00:00Z', '2026-10-20T10:10:00Z');
+        $b = $this->candidate('b', '2026-10-20T10:01:00Z', '2026-10-20T10:03:00Z');
+        $c = $this->candidate('c', '2026-10-20T10:02:00Z', '2026-10-20T10:04:00Z');
+        $c['fixtures'][0]['won'] = false;
+        $view = (new SharedCapitalReplay)->calculate([$a, $b, $c], 5000000, '2026-10-20T11:00:00Z');
+        $this->assertSame('win', $view['runs'][1]['observed_window']['result']);
+        $this->assertSame('no_win', $view['runs'][2]['observed_window']['result']);
+        $this->assertArrayNotHasKey('net_minor', $view['runs'][1]);
+        $this->assertSame(7500000, $view['balance_minor']);
+        $this->assertCount(1, $view['equity']);
+    }
+
+    public function test_another_loss_keeps_original_recovery_threshold_and_skips_unaffordable_runs(): void
+    {
+        $base = new \DateTimeImmutable('2026-10-20T10:00:00Z');
+        $candidates = [];
+        foreach (range(0, 2) as $run) {
+            $fixtures = [];
+            foreach (range(0, 3) as $attempt) {
+                $minutes = $run * 20 + $attempt * 4;
+                $fixtures[] = ['scheduled_start_at' => $base->modify('+'.$minutes.' minutes')->format(DATE_ATOM),
+                    'result_confirmed_at' => $base->modify('+'.($minutes + 2).' minutes')->format(DATE_ATOM),
+                    'historical_odds_scaled' => 20000, 'actual_odds_scaled' => 20000, 'won' => false];
+            }
+            $candidates[] = ['id' => 'run:'.$run, 'fixtures' => $fixtures];
+        }
+        $view = (new SharedCapitalReplay)->calculate($candidates, 5000000, '2026-10-21T10:00:00Z');
+        $this->assertSame(5000000, $view['recovery_target_minor']);
+        $this->assertSame(1, $view['allowance_multiplier']);
+        $this->assertSame('skipped_budget', $view['runs'][2]['status']);
+        $this->assertGreaterThanOrEqual(0, $view['balance_minor']);
+        $this->assertNull($view['active_run_id']);
+    }
 }

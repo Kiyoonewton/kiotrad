@@ -8,6 +8,11 @@ export type SharedRun = {
   released_at?: string | null;
   status: string;
   blocked_by?: string;
+  observed_window?: {
+    result: "win" | "no_win" | "pending";
+    ended_at: string | null;
+  };
+  fixtures?: { scheduled_start_at: string }[];
   skip_reason?: string;
   missing_historical_fixtures?: {
     matchday: number;
@@ -22,6 +27,7 @@ export type SharedRun = {
   capital_at_entry_minor?: number;
   estimate?: {
     allowance_minor: number;
+    allowance_multiplier?: number;
     plan: { total_minor: number; profit_per_attempt_minor: number };
   };
   attempts?: {
@@ -46,4 +52,6 @@ export type SharedSimulation = {
   runs: SharedRun[];
   excluded?: { reason: string }[];
   timing_basis: string;
+  recovery_target_minor?: number | null;
+  allowance_multiplier?: number;
 };
