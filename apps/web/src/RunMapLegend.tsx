@@ -23,9 +23,10 @@ export function RunMapLegend({ shared }: { shared: boolean }) {
         ))}
       </div>
       <p className="subtle">
-        Skipped outcomes add no stakes or profit. Endpoints use recorded result
-        confirmation where available; unresolved spans end at their last
-        scheduled attempt. Late archive evidence can overstate overlap.
+        Bars connect scheduled attempts through the observed win or final attempt;
+        they do not show match finish times. Single-attempt runs are ticks.
+        Skipped outcomes add no stakes or profit. Archive receipt times are
+        shown separately when inspecting a run.
       </p>
     </div>
   );

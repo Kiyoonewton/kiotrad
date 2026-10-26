@@ -47,6 +47,7 @@ export function SharedCapitalPerformance({ data }: { data: SharedSimulation }) {
     started_at: r.entry_at,
     attempts: r.attempts?.length,
   }));
+  const provisional = data.timing_quality === "provisional_capture_timing";
   const net = data.balance_minor - data.starting_capital_minor;
   return (
     <>
@@ -60,7 +61,7 @@ export function SharedCapitalPerformance({ data }: { data: SharedSimulation }) {
           </p>
         </div>
         <div className="balance-value">
-          <p>Current capital</p>
+          <p>Current capital{provisional ? " · provisional" : ""}</p>
           <strong>{naira(data.balance_minor)}</strong>
           <span>
             Started with {naira(data.starting_capital_minor)} · next doubling
@@ -87,6 +88,10 @@ export function SharedCapitalPerformance({ data }: { data: SharedSimulation }) {
           </span>
         </div>
       </section>
+      {provisional && <p className="recovery-banner" role="status">
+        Timing correction pending. Late archive confirmations affect allocation
+        and this balance. Overlap exclusions are not verified event clashes.
+      </p>}
       {data.recovery_target_minor != null && (
         <p className="recovery-banner">
           Recovery mode · ×1 allowance until capital reaches{" "}
@@ -100,7 +105,7 @@ export function SharedCapitalPerformance({ data }: { data: SharedSimulation }) {
           <strong>{closed.length}</strong>
         </div>
         <div>
-          <small>Skipped clashes</small>
+          <small>Overlap exclusions</small>
           <strong>{skipped.length}</strong>
         </div>
         <div>
@@ -147,7 +152,7 @@ export function SharedCapitalPerformance({ data }: { data: SharedSimulation }) {
           </div>
           <p>
             {closed.length} completed · {unresolved} unresolved ·{" "}
-            {skipped.length} clashes excluded
+            {skipped.length} overlap exclusions
           </p>
           <p>{budgetSkipped.length} budget skips · not missing data</p>
           <dl className="coverage-details">
@@ -187,7 +192,9 @@ export function SharedCapitalPerformance({ data }: { data: SharedSimulation }) {
                 <tr key={r.id}>
                   <td>{r.team ?? r.id}</td>
                   <td>
-                    {r.status.replaceAll("_", " ")}
+                    {r.status === "skipped_overlap" && r.overlap_basis
+                      ? "excluded · overlap timing unverified"
+                      : r.status.replaceAll("_", " ")}
                     {r.skip_reason && (
                       <small> · {r.skip_reason.replaceAll("_", " ")}</small>
                     )}

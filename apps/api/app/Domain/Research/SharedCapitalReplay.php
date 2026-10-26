@@ -7,7 +7,7 @@ use DomainException;
 
 final class SharedCapitalReplay
 {
-    public const VERSION = 'single-active-recovery-allowance-1.1.0';
+    public const VERSION = 'single-active-recovery-allowance-1.1.1-timing-provenance';
 
     public function calculate(array $candidates, int $capital, string $asOf): array
     {
@@ -111,7 +111,7 @@ final class SharedCapitalReplay
             'allowance_multiplier' => $recoveryTarget === null ? 2 : 1, 'reserved_allowance_minor' => $active['allowance_minor'] ?? 0,
             'unreserved_capital_minor' => $balance - ($active['allowance_minor'] ?? 0),
             'active_staked_minor' => $active['total_staked_minor'] ?? 0, 'active_run_id' => $active['id'] ?? null,
-            'equity' => $equity, 'runs' => $rows];
+            'equity' => $equity, ...(new SharedTimingPresentation)->describe($rows)];
     }
 
     private function settle(array $run, int &$balance, ?int &$recoveryTarget, array &$equity): void

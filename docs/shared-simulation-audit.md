@@ -79,3 +79,22 @@ Wait for the next dashboard refresh, then rerun `strategy:audit-shared --fixture
 This cannot recover odds that were never captured. Such gaps need the existing
 production historical-odds recovery commands and a later local sync. It does not
 change the unresolved event-finish/overlap timing policy or invent prices.
+
+## Timing presentation correction
+
+The shared run map now draws scheduled attempts through the observed winning
+attempt (or last scheduled attempt for a no-win window). Accepted runs use their
+recorded attempted fixtures. A first-attempt win is a tick. These endpoints are
+not invented finish times. The inspector separately shows the result's receipt
+(timestamp previously used to stretch a bar across several days).
+
+Replay output preserves `result_observed_at` and leaves `event_finish_at` null.
+Late confirmations crossing scheduled attempts are flagged. Exclusions caused
+by those blockers have `overlap_basis=unverified_late_archive_timing` rather than
+being presented as verified actual clashes. The dashboard labels affected capital
+provisional and warns that allocation still depends on capture-based timing.
+
+This presentation patch does not rewrite the portfolio balance or release capital
+at kickoff. Timing-based reallocation still needs verified event-end evidence or
+an explicitly chosen simulation timing model. Existing financial results cannot
+be promoted as a corrected historical benchmark from this patch alone.

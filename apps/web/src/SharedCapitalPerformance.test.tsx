@@ -55,7 +55,7 @@ it("plots only accepted shared results and shows proportional targets and comple
   ).toBeInTheDocument();
   expect(screen.getByText("50.0%")).toBeInTheDocument();
   expect(
-    screen.getByText(/1 completed · 1 unresolved · 1 clashes excluded/),
+    screen.getByText(/1 completed · 1 unresolved · 1 overlap exclusions/),
   ).toBeInTheDocument();
   expect(screen.getAllByText("₦961.00").length).toBeGreaterThan(0);
   expect(screen.queryByText(/not one shared bankroll/)).not.toBeInTheDocument();
@@ -128,11 +128,17 @@ it("separates budget skips from missing history and shows the affected fixtures"
     screen.getByText(/1 budget skips · not missing data/),
   ).toBeInTheDocument();
   expect(
-    screen.getByText(/1 completed · 1 unresolved · 0 clashes excluded/),
+    screen.getByText(/1 completed · 1 unresolved · 0 overlap exclusions/),
   ).toBeInTheDocument();
   expect(
     screen.getByText(
       /D5 · Synthetic vs Opponent · H: earlier-season odds missing/,
     ),
   ).toBeInTheDocument();
+});
+
+it("marks the balance provisional when archive timing affects allocation", () => {
+  render(<SharedCapitalPerformance data={{ ...data, timing_quality: "provisional_capture_timing" }} />);
+  expect(screen.getByText("Current capital · provisional")).toBeInTheDocument();
+  expect(screen.getByText(/Timing correction pending/)).toHaveTextContent("Overlap exclusions are not verified event clashes");
 });
