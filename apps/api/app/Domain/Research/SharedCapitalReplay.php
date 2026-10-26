@@ -7,7 +7,7 @@ use DomainException;
 
 final class SharedCapitalReplay
 {
-    public const VERSION = 'single-active-highest-estimated-cost-1.0.1';
+    public const VERSION = 'single-active-recovery-allowance-1.1.0';
 
     public function calculate(array $candidates, int $capital, string $asOf): array
     {
@@ -46,19 +46,20 @@ final class SharedCapitalReplay
             }
         }
         $balance = $capital;
+        $recoveryTarget = null;
         $active = null;
         $rows = [];
         $equity = [];
         foreach ($groups as $at => $group) {
             // Strictly before: simultaneous confirmation and entry remain a clash.
             if ($active !== null && $active['released_at'] !== null && $active['released_at'] < $at) {
-                $balance += $active['net_minor'];
-                $equity[] = ['at' => $active['released_at'], 'balance_minor' => $balance, 'run_id' => $active['id']];
+                $this->settle($active, $balance, $recoveryTarget, $equity);
                 $active = null;
             }
             if ($active !== null) {
                 foreach ($group as $candidate) {
-                    $rows[] = ['id' => $candidate['id'], 'entry_at' => $at, 'status' => 'skipped_overlap', 'blocked_by' => $active['id']];
+                    $rows[] = [...$candidate, 'entry_at' => $at, 'status' => 'skipped_overlap',
+                        'blocked_by' => $active['id'], 'observed_window' => (new RunWindowOutcome)->observe($candidate, $asOf)];
                 }
 
                 continue;
@@ -73,7 +74,7 @@ final class SharedCapitalReplay
 
                     continue;
                 }
-                $estimate = (new RunBudgetEstimate)->calculate($odds, $balance);
+                $estimate = (new RunBudgetEstimate)->calculate($odds, $balance, $recoveryTarget === null ? 2 : 1);
                 if ($estimate['status'] !== 'estimated') {
                     $rows[] = [...$candidate, 'entry_at' => $at, 'status' => 'skipped_budget',
                         'skip_reason' => 'insufficient_allowance', 'capital_at_entry_minor' => $balance,
@@ -87,29 +88,42 @@ final class SharedCapitalReplay
                 ?: strcmp($a['id'], $b['id']));
             foreach ($eligible as $index => $candidate) {
                 if ($index > 0) {
-                    $rows[] = ['id' => $candidate['id'], 'entry_at' => $at, 'status' => 'skipped_simultaneous_entry',
-                        'blocked_by' => $active['id'], 'estimate' => $candidate['estimate']];
+                    $rows[] = [...$candidate, 'entry_at' => $at, 'status' => 'skipped_simultaneous_entry',
+                        'blocked_by' => $active['id'], 'observed_window' => (new RunWindowOutcome)->observe($candidate, $asOf)];
 
                     continue;
                 }
                 $settled = (new SharedRunSettlement)->calculate($candidate, $candidate['estimate'], $asOf);
                 $active = ['id' => $candidate['id'], 'allowance_minor' => $candidate['estimate']['allowance_minor'], ...$settled];
                 $rows[] = [...$candidate, ...$settled, 'capital_at_entry_minor' => $balance,
+                    'recovery_target_at_entry_minor' => $recoveryTarget,
                     'selection_reason' => 'highest_estimated_total_then_stable_run_id'];
             }
         }
         if ($active !== null && $active['released_at'] !== null && $active['released_at'] <= $asOf) {
-            $balance += $active['net_minor'];
-            $equity[] = ['at' => $active['released_at'], 'balance_minor' => $balance, 'run_id' => $active['id']];
+            $this->settle($active, $balance, $recoveryTarget, $equity);
             $active = null;
         }
 
         return ['policy_version' => self::VERSION, 'mode' => 'shared_capital_simulation', 'as_of' => $asOf,
             'timing_basis' => 'recorded_result_confirmation_conservative', 'starting_capital_minor' => $capital,
-            'balance_minor' => $balance, 'reserved_allowance_minor' => $active['allowance_minor'] ?? 0,
+            'balance_minor' => $balance, 'recovery_target_minor' => $recoveryTarget,
+            'allowance_multiplier' => $recoveryTarget === null ? 2 : 1, 'reserved_allowance_minor' => $active['allowance_minor'] ?? 0,
             'unreserved_capital_minor' => $balance - ($active['allowance_minor'] ?? 0),
             'active_staked_minor' => $active['total_staked_minor'] ?? 0, 'active_run_id' => $active['id'] ?? null,
             'equity' => $equity, 'runs' => $rows];
+    }
+
+    private function settle(array $run, int &$balance, ?int &$recoveryTarget, array &$equity): void
+    {
+        if ($run['net_minor'] < 0 && $recoveryTarget === null) {
+            $recoveryTarget = $balance;
+        }
+        $balance += $run['net_minor'];
+        if ($recoveryTarget !== null && $balance >= $recoveryTarget) {
+            $recoveryTarget = null;
+        }
+        $equity[] = ['at' => $run['released_at'], 'balance_minor' => $balance, 'run_id' => $run['id']];
     }
 
     private function time(string $value): string

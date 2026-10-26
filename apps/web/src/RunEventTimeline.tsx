@@ -1,3 +1,6 @@
+import { RunMapInspector } from "./RunMapInspector";
+import { RunMapLegend } from "./RunMapLegend";
+import { runMapColor } from "./runMapData";
 import { useRef, useState } from "react";
 import type { Overview } from "./api";
 import { useTimelineWidth } from "./useTimelineWidth";
@@ -13,9 +16,11 @@ const names: Record<string, string> = {
 export function RunEventTimeline({
   data,
   competitions,
+  shared = false,
 }: {
   data: Overview["research_simulation"];
   competitions: Overview["competitions"];
+  shared?: boolean;
 }) {
   const [level, setLevel] = useState(0);
   const [selected, setSelected] = useState<string | null>(null);
@@ -24,7 +29,7 @@ export function RunEventTimeline({
   const events = (data?.runs ?? []).filter(
     (r) =>
       Number.isFinite(Date.parse(r.event_at ?? "")) &&
-      r.net_minor !== null &&
+      (r.net_minor !== null || r.run_kind) &&
       competitions.some((c) => c.id === r.competition),
   );
   const strategies = [...new Set(events.map((r) => r.strategy_id))].sort();
@@ -94,7 +99,10 @@ export function RunEventTimeline({
         </button>
       </div>
       <p className="subtle">
-        First → final scheduled attempt · WAT · drag or scroll sideways
+        {shared
+          ? "Run overlap · entry to recorded end"
+          : "First → final scheduled attempt"}{" "}
+        · WAT · drag or scroll sideways
       </p>
       {events.length ? (
         <>
@@ -176,7 +184,10 @@ export function RunEventTimeline({
                             : end;
                         const a = x(start),
                           b = x(end),
-                          y = i * 54 + 20;
+                          y =
+                            i * 54 +
+                            20 +
+                            (shared ? (r.run_kind === "skipped" ? 8 : -4) : 0);
                         return (
                           <g
                             key={key(r)}
@@ -207,7 +218,7 @@ export function RunEventTimeline({
                               x2={b}
                               y1={y}
                               y2={y}
-                              stroke={r.net_minor! >= 0 ? "#81c9a0" : "#e88f86"}
+                              stroke={runMapColor(r)}
                               strokeWidth="6"
                               strokeLinecap="round"
                             />
@@ -253,32 +264,8 @@ export function RunEventTimeline({
               </svg>
             </div>
           </div>
-          {active && (
-            <div className="timeline-inspector" aria-live="polite">
-              <strong>
-                {active.team} ·{" "}
-                {names[active.strategy_id] ?? active.strategy_id}
-              </strong>
-              <span>
-                Season {active.season_id} · {active.attempts ?? "—"} attempts
-              </span>
-              <span>
-                {eventLabel(active.started_at ?? active.event_at!)} →{" "}
-                {eventLabel(active.event_at!)} WAT
-              </span>
-              <span>
-                {new Intl.NumberFormat("en-NG", {
-                  style: "currency",
-                  currency: "NGN",
-                }).format(active.net_minor! / 100)}{" "}
-                net
-              </span>
-            </div>
-          )}
-          <p className="subtle timeline-legend">
-            Green profit · red loss · single-attempt runs are ticks. Scheduled
-            spans do not establish settlement-time overlap.
-          </p>
+          {active && <RunMapInspector run={active} />}
+          <RunMapLegend shared={shared} />
         </>
       ) : (
         <div className="chart-empty">No priced run events yet</div>

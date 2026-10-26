@@ -79,6 +79,9 @@ export interface Overview {
       gross_payout_minor: number;
       event_at: string | null;
       started_at?: string | null;
+      run_kind?: "selected" | "skipped";
+      observed_result?: "win" | "no_win" | "pending";
+      overlap_with?: string;
       attempts?: number;
     }[];
   };

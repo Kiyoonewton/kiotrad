@@ -6,11 +6,11 @@ use DomainException;
 
 final class RunBudgetEstimate
 {
-    public const VERSION = 'historical-low-odds-double-allowance-1.0.0';
+    public const VERSION = 'historical-low-odds-recovery-allowance-1.1.0';
 
-    public function calculate(array $odds, int $available): array
+    public function calculate(array $odds, int $available, int $multiplier = 2): array
     {
-        if ($available < 0 || $available > 1000000000 || count($odds) < 1 || count($odds) > 4) {
+        if (! in_array($multiplier, [1, 2], true) || $available < 0 || $available > 1000000000 || count($odds) < 1 || count($odds) > 4) {
             throw new DomainException('invalid_budget');
         }
         foreach ($odds as $price) {
@@ -23,8 +23,8 @@ final class RunBudgetEstimate
         $best = null;
         while ($low <= $high) {
             $target = intdiv($low + $high, 2);
-            $plan = $this->project($odds, $target * 100, intdiv($available, 2));
-            if ($available >= $plan['total_minor'] * 2) {
+            $plan = $this->project($odds, $target * 100, intdiv($available, $multiplier));
+            if ($available >= $plan['total_minor'] * $multiplier) {
                 $best = [...$plan, 'profit_per_attempt_minor' => $target * 100];
                 $low = $target + 1;
             } else {
@@ -34,8 +34,8 @@ final class RunBudgetEstimate
 
         return ['policy_version' => self::VERSION, 'available_capital_minor' => $available,
             'status' => $best === null ? 'insufficient_allowance' : 'estimated', 'plan' => $best,
-            'allowance_minor' => $best === null ? null : $best['total_minor'] * 2,
-            'basis' => 'lowest_observed_exact_venue_odds', 'guaranteed_maximum' => false];
+            'allowance_minor' => $best === null ? null : $best['total_minor'] * $multiplier,
+            'allowance_multiplier' => $multiplier, 'basis' => 'lowest_observed_exact_venue_odds', 'guaranteed_maximum' => false];
     }
 
     private function project(array $odds, int $profit, int $budget): array

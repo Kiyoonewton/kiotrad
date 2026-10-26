@@ -15,7 +15,7 @@ export function SharedCapitalPerformance({ data }: { data: SharedSimulation }) {
       </section>
     );
   const accepted = data.runs.filter(
-    (r) => r.estimate && r.status !== "skipped_simultaneous_entry",
+    (r) => r.estimate && !r.status.startsWith("skipped_"),
   );
   const closed = accepted.filter((r) => r.net_minor != null && r.released_at);
   const skipped = data.runs.filter((r) =>
@@ -55,8 +55,8 @@ export function SharedCapitalPerformance({ data }: { data: SharedSimulation }) {
           <p className="eyebrow">One active run · all leagues and strategies</p>
           <h1>Shared-capital simulation.</h1>
           <p>
-            Proportional profit targets · frozen per run · ×2 estimated
-            allowance
+            Proportional profit targets · frozen per run · ×
+            {data.allowance_multiplier ?? 2} estimated allowance
           </p>
         </div>
         <div className="balance-value">
@@ -87,6 +87,13 @@ export function SharedCapitalPerformance({ data }: { data: SharedSimulation }) {
           </span>
         </div>
       </section>
+      {data.recovery_target_minor != null && (
+        <p className="recovery-banner">
+          Recovery mode · ×1 allowance until capital reaches{" "}
+          {naira(data.recovery_target_minor)}. Remaining loss:{" "}
+          {naira(Math.max(0, data.recovery_target_minor - data.balance_minor))}.
+        </p>
+      )}
       <div className="research-metrics">
         <div>
           <small>Completed accepted runs</small>

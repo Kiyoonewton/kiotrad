@@ -1,3 +1,4 @@
+import { sharedRunMap } from "./runMapData";
 import { PaperCapital } from "./PaperCapital";
 import { PaperActivity } from "./PaperActivity";
 import { naira } from "./api";
@@ -180,7 +181,12 @@ export function Overview({
           />
         </section>
         <RunEventTimeline
-          data={data.research_simulation}
+          data={
+            data.shared_simulation
+              ? sharedRunMap(data.shared_simulation)
+              : data.research_simulation
+          }
+          shared={!!data.shared_simulation}
           competitions={competitions}
         />
       </div>
