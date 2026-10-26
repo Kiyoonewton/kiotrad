@@ -1,7 +1,13 @@
+import type { SharedRun } from "./sharedSimulation";
 import type { Overview } from "./api";
 
 export interface SimulationPage {
-  rows: NonNullable<Overview["strategy_monitoring"]>;
+  calculation_mode?: string;
+  shared_calculation_status?: string;
+  rows: (NonNullable<Overview["strategy_monitoring"]>[number] & {
+    shared_run?: SharedRun | null;
+    shared_calculation_status?: string;
+  })[];
   pagination: {
     page: number;
     per_page: number;

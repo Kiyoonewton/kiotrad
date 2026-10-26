@@ -43,31 +43,40 @@ class SharedCapitalResearch
     {
         $options = ['typeMap' => ['root' => 'array', 'document' => 'array', 'array' => 'array'],
             'sort' => ['observed_at' => 1, '_id' => 1], 'batchSize' => 5];
-        $captures = [];
-        $matches = [];
-        $confirmations = [];
-        $seasonStart = null;
-        $cursor = DB::connection('mongodb')->getDatabase()->provider_captures->find([
-            'competition' => $row['competition'], 'season_id' => $row['season_id'], 'observed_at' => ['$lte' => $asOf]], $options);
-        foreach ($cursor as $capture) {
-            foreach ($capture['matches'] ?? [] as $match) {
-                $time = $match['scheduled_start_at'] ?? null;
-                if ($time !== null) {
-                    $seasonStart = $seasonStart === null ? $time : min($seasonStart, $time);
+        $checkpoint = DB::connection('mongodb')->getDatabase()->season_checkpoints->findOne(
+            ['_id' => $row['competition'].':'.$row['season_id']], $options);
+        $revision = hash('sha256', json_encode([$checkpoint['capture_id'] ?? null, $row['team_uid'], min($asOf, $checkpoint['observed_at'] ?? $asOf)], JSON_THROW_ON_ERROR));
+        $evidence = $this->cache->remember('shared-evidence:'.$row['competition'].':'.$row['season_id'].':'.$row['team_uid'],
+            $revision, SimulationCache::HISTORICAL_TTL, function () use ($row, $asOf, $options) {
+                $captures = [];
+                $matches = [];
+                $confirmations = [];
+                $seasonStart = null;
+                $cursor = DB::connection('mongodb')->getDatabase()->provider_captures->find([
+                    'competition' => $row['competition'], 'season_id' => $row['season_id'], 'observed_at' => ['$lte' => $asOf]], $options);
+                foreach ($cursor as $capture) {
+                    foreach ($capture['matches'] ?? [] as $match) {
+                        $time = $match['scheduled_start_at'] ?? null;
+                        if ($time !== null) {
+                            $seasonStart = $seasonStart === null ? $time : min($seasonStart, $time);
+                        }
+                    }
+                    $reduced = (new ReplayCapture)->forTeam($capture, $row['team_uid']);
+                    if ($reduced === null) {
+                        continue;
+                    }
+                    $captures[] = $reduced;
+                    foreach ($reduced['matches'] as $match) {
+                        $matches[$match['provider_match_id']] = $match;
+                        if (($match['status'] ?? null) === 'settled' && in_array($match['result'] ?? null, ['H', 'D', 'A'], true)) {
+                            $confirmations[$match['provider_match_id'].':'.$match['result']] ??= $capture['observed_at'];
+                        }
+                    }
                 }
-            }
-            $reduced = (new ReplayCapture)->forTeam($capture, $row['team_uid']);
-            if ($reduced === null) {
-                continue;
-            }
-            $captures[] = $reduced;
-            foreach ($reduced['matches'] as $match) {
-                $matches[$match['provider_match_id']] = $match;
-                if (($match['status'] ?? null) === 'settled' && in_array($match['result'] ?? null, ['H', 'D', 'A'], true)) {
-                    $confirmations[$match['provider_match_id'].':'.$match['result']] ??= $capture['observed_at'];
-                }
-            }
-        }
+
+                return compact('captures', 'matches', 'confirmations', 'seasonStart');
+            });
+        ['captures' => $captures, 'matches' => $matches, 'confirmations' => $confirmations, 'seasonStart' => $seasonStart] = $evidence;
         $first = $row['strategy_id'] === 'champion-next-win' ? $row['trigger_day'] + 1 : 1;
         if ($first > 30 || $seasonStart === null) {
             return null;

@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { naira } from "./api";
 import { getSimulationHistory, type SimulationPage } from "./history-api";
+import { SharedRunCalculation } from "./SharedRunCalculation";
 import { RunCalculation } from "./RunCalculation";
 
 export function SimulationHistory({ league }: { league: string }) {
@@ -34,8 +35,8 @@ export function SimulationHistory({ league }: { league: string }) {
       <p className="eyebrow">Research simulation only</p>
       <h2>Simulation history.</h2>
       <p className="subtle">
-        Newest event dates first · 10 seasons per page · independent run
-        balances.
+        Newest event dates first · 10 seasons per page · shared-capital
+        decisions.
       </p>
       <label>
         Season event date (Lagos){" "}
@@ -84,10 +85,13 @@ export function SimulationHistory({ league }: { league: string }) {
                 </thead>
                 <tbody>
                   {data.rows.map((row) => {
-                    const run = row.simulation;
+                    const shared =
+                      data.calculation_mode === "shared_capital_simulation";
+                    const run = shared ? row.shared_run : row.simulation;
                     const priced =
                       run &&
-                      (run.attempts.length > 0 || run.net_minor !== null);
+                      ((run.attempts?.length ?? 0) > 0 ||
+                        run.net_minor !== null);
                     return (
                       <tr
                         key={`${row.competition}:${row.season_id}:${row.strategy_id}`}
@@ -103,17 +107,39 @@ export function SimulationHistory({ league }: { league: string }) {
                           {run && (
                             <details>
                               <summary>View attempts</summary>
-                              <RunCalculation calculation={run} />
+                              {shared ? (
+                                <SharedRunCalculation
+                                  run={row.shared_run ?? undefined}
+                                />
+                              ) : (
+                                row.simulation && (
+                                  <RunCalculation
+                                    calculation={row.simulation}
+                                  />
+                                )
+                              )}
                             </details>
                           )}
                         </td>
                         <td>
-                          {(run?.status ?? row.status).replaceAll("_", " ")}
+                          {(
+                            run?.status ??
+                            (shared &&
+                            row.shared_calculation_status !== "available"
+                              ? "shared_calculation_refreshing"
+                              : row.status)
+                          ).replaceAll("_", " ")}
                         </td>
-                        <td>{priced ? naira(run.total_staked_minor) : "—"}</td>
-                        <td>{priced ? naira(run.gross_payout_minor) : "—"}</td>
                         <td>
-                          {run?.net_minor != null ? naira(run.net_minor) : "—"}
+                          {priced ? naira(run!.total_staked_minor ?? 0) : "—"}
+                        </td>
+                        <td>
+                          {priced ? naira(run!.gross_payout_minor ?? 0) : "—"}
+                        </td>
+                        <td>
+                          {run?.net_minor != null
+                            ? naira(run!.net_minor!)
+                            : "—"}
                         </td>
                       </tr>
                     );

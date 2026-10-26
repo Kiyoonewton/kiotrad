@@ -72,3 +72,35 @@ it("keeps the selected historical date when a slower previous response returns",
   expect(fetcher.mock.calls[1][0]).toContain("from=2026-10-20");
   expect(screen.queryByText("football / stale-season")).not.toBeInTheDocument();
 });
+
+it("uses the shared run in history instead of an older fixed-target replay", async () => {
+  const body = {
+    ...page("200"),
+    calculation_mode: "shared_capital_simulation",
+    rows: [
+      {
+        ...page("200").rows[0],
+        shared_calculation_status: "available",
+        shared_run: {
+          id: "virtual-football:200:champion-next-win",
+          entry_at: "2026-10-20T10:00:00Z",
+          status: "win",
+          capital_at_entry_minor: 5000000,
+          total_staked_minor: 274600,
+          gross_payout_minor: 370710,
+          net_minor: 96110,
+          estimate: {
+            allowance_minor: 4997200,
+            plan: { total_minor: 2498600, profit_per_attempt_minor: 96100 },
+          },
+          attempts: [],
+        },
+      },
+    ],
+  };
+  vi.stubGlobal("fetch", vi.fn().mockResolvedValue(response(body)));
+  render(<SimulationHistory league="all" />);
+  expect((await screen.findAllByText("₦961.10")).length).toBeGreaterThan(0);
+  expect(screen.getAllByText("₦2,746.00").length).toBeGreaterThan(0);
+  expect(screen.queryByText("₦100.00")).not.toBeInTheDocument();
+});

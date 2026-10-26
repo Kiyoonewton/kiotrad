@@ -127,4 +127,21 @@ class SharedCapitalReplayTest extends TestCase
         $this->assertCount(1, $view['runs'][0]['missing_historical_fixtures']);
         $this->assertSame(5000000, $view['balance_minor']);
     }
+
+    public function test_fifty_thousand_capital_uses_scaled_target_at_actual_one_point_three_five_odds(): void
+    {
+        $fixtures = [];
+        foreach (range(0, 3) as $i) {
+            $fixtures[] = ['scheduled_start_at' => sprintf('2026-10-20T10:%02d:00Z', $i * 4),
+                'result_confirmed_at' => sprintf('2026-10-20T10:%02d:00Z', $i * 4 + 2),
+                'historical_odds_scaled' => 20000, 'actual_odds_scaled' => 13500, 'won' => true];
+        }
+        $view = (new SharedCapitalReplay)->calculate([['id' => 'example', 'fixtures' => $fixtures]], 5000000, '2026-10-20T11:00:00Z');
+        $run = $view['runs'][0];
+        $this->assertSame(96100, $run['estimate']['plan']['profit_per_attempt_minor']);
+        $this->assertSame(274600, $run['total_staked_minor']);
+        $this->assertSame(370710, $run['gross_payout_minor']);
+        $this->assertSame(96110, $run['net_minor']);
+        $this->assertSame(5096110, $view['balance_minor']);
+    }
 }
