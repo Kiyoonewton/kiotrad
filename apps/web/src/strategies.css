@@ -56,7 +56,8 @@
 .strategy-description {
   padding: 0 20px 25px 35px;
   font-size: 13px;
-  max-width: 850px;
+  max-width: none;
+  min-width: 0;
   color: #aabeb0;
 }
 .strategy-description p {
@@ -87,4 +88,22 @@
   font-size: 11px;
   padding-left: 18px;
   line-height: 1.8;
+}
+
+.strategy-description > p {
+  max-width: 850px;
+}
+.strategy-description .monitoring-rows {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  padding-left: 0;
+}
+@media (max-width: 1000px) {
+  .strategy-description .monitoring-rows {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+@media (max-width: 640px) {
+  .strategy-description .monitoring-rows {
+    grid-template-columns: minmax(0, 1fr);
+  }
 }
