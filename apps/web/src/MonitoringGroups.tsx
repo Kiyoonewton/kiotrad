@@ -1,20 +1,13 @@
-import type { SharedRun } from "./sharedSimulation";
 import type { Overview } from "./api";
 import { MonitoringRows } from "./MonitoringRows";
 
 type Props = {
-  sharedRuns?: SharedRun[];
   rows: NonNullable<Overview["strategy_monitoring"]>;
   strategies: Overview["strategies"];
   competitions: Overview["competitions"];
 };
 
-export function MonitoringGroups({
-  rows,
-  strategies,
-  competitions,
-  sharedRuns,
-}: Props) {
+export function MonitoringGroups({ rows, strategies, competitions }: Props) {
   const groups = [
     ...strategies.map((s) => ({ id: s.id, name: s.name })),
     { id: undefined, name: "Monitoring availability" },
@@ -34,7 +27,6 @@ export function MonitoringGroups({
             <h3 className="monitoring-group-title">{group.name}</h3>
             <MonitoringRows
               rows={selected}
-              sharedRuns={sharedRuns}
               strategies={strategies}
               competitions={competitions}
             />
