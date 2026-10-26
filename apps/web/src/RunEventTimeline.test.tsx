@@ -98,3 +98,22 @@ it("groups cards into separate strategy rows", () => {
   expect(groups[1]).toHaveAccessibleName("Champion — Next Season");
   expect(groups[1]).toHaveTextContent("Second");
 });
+
+it("keeps lane labels outside the horizontally scrolling graph", () => {
+  render(
+    <RunEventTimeline
+      data={{ status: "available", runs: [run] }}
+      competitions={competitions}
+    />,
+  );
+  const viewport = screen.getByRole("region", {
+    name: "Scrollable run timeline",
+  });
+  expect(viewport).not.toHaveTextContent("English");
+  const labels = document.querySelector(".run-timeline-labels")!;
+  expect(labels).toHaveTextContent("English");
+  expect(labels.parentElement).toBe(viewport.parentElement);
+  fireEvent.keyDown(viewport, { key: "ArrowRight" });
+  expect(viewport.scrollLeft).toBe(180);
+  expect(labels).toHaveTextContent("Next Win");
+});

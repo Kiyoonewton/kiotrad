@@ -1,4 +1,6 @@
 .simulation-sections {
+  min-width: 0;
+  grid-template-columns: minmax(0, 1fr);
   display: grid;
   gap: 40px;
   margin-top: 36px;
@@ -94,5 +96,48 @@
   }
   .timeline-heading {
     gap: 14px;
+  }
+}
+
+.run-event-panel {
+  min-width: 0;
+  max-width: 100%;
+  overflow: hidden;
+}
+.run-timeline-layout {
+  display: grid;
+  grid-template-columns: 155px minmax(0, 1fr);
+  max-width: 100%;
+  min-width: 0;
+}
+.run-timeline-labels {
+  padding-top: 24px;
+  background: #0e1512;
+  z-index: 1;
+}
+.run-timeline-labels > div {
+  height: 54px;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  padding-top: 4px;
+  box-sizing: border-box;
+  gap: 3px;
+}
+.run-timeline-labels strong {
+  font-size: 13px;
+  font-weight: 500;
+}
+.run-timeline-labels span {
+  font-size: 11px;
+  color: #a8b8ae;
+}
+.run-timeline-viewport {
+  min-width: 0;
+  max-width: 100%;
+}
+@media (max-width: 640px) {
+  .run-timeline-layout {
+    grid-template-columns: 105px minmax(0, 1fr);
   }
 }
