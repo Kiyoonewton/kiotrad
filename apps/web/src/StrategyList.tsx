@@ -1,4 +1,3 @@
-import type { SharedRun } from "./sharedSimulation";
 import { MonitoringRows } from "./MonitoringRows";
 import { naira, type Strategy, type Overview } from "./api";
 
@@ -6,10 +5,8 @@ export function StrategyList({
   strategies,
   monitoring = [],
   competitions = [],
-  sharedRuns,
 }: {
   strategies: Strategy[];
-  sharedRuns?: SharedRun[];
   monitoring?: Overview["strategy_monitoring"];
   competitions?: Overview["competitions"];
 }) {
@@ -49,11 +46,7 @@ export function StrategyList({
               </span>
               <span>
                 Profit per attempt{" "}
-                <b>
-                  {sharedRuns
-                    ? "Proportional · frozen per run"
-                    : naira(strategy.rules.profit_per_attempt_minor)}
-                </b>
+                <b>{naira(strategy.rules.profit_per_attempt_minor)}</b>
               </span>
               <span>
                 Monitoring{" "}
@@ -73,7 +66,6 @@ export function StrategyList({
               rows={monitoring.filter(
                 (row) => row.strategy_id === strategy.id || !row.strategy_id,
               )}
-              sharedRuns={sharedRuns}
               strategies={strategies}
               competitions={competitions}
             />
