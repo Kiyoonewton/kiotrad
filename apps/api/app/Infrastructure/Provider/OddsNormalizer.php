@@ -54,8 +54,9 @@ final class OddsNormalizer
                 'prices' => $prices,
                 'captured_at' => $observation->receivedAt->toIso8601String(),
                 'provider_response_timestamp_ms' => $observation->document['timestamp'] ?? null,
-                'pre_match_verified' => $beforeStart && $active && $fixture['status'] === 'scheduled_or_unconfirmed',
+                'pre_match_verified' => $observation->provenance === [] && $beforeStart && $active && $fixture['status'] === 'scheduled_or_unconfirmed',
                 'market_status' => $market['status'] ?? null,
+                ...($observation->provenance === [] ? [] : ['provenance' => $observation->provenance]),
             ];
         }
 

@@ -44,6 +44,7 @@ final class HistoricalQuote
 
             return [...$quote, 'outcome' => $outcome, 'decided_at' => null,
                 'simulated_entry_at' => $fixture['scheduled_start_at'], 'scheduled_start_at' => $fixture['scheduled_start_at'],
+                'price_provenance' => $price['provenance'] ?? null,
                 'price_capture_id' => $price['capture_id'], 'price_observed_at' => $price['captured_at'],
                 'price_timing_verified' => ($price['pre_match_verified'] ?? false) && $price['captured_at'] < $fixture['scheduled_start_at'],
                 'home_team_uid' => $fixture['home_team_uid'], 'away_team_uid' => $fixture['away_team_uid']];

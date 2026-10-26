@@ -22,7 +22,10 @@ final class SharedRunSettlement
             }
             $price = $fixture['actual_odds_scaled'] ?? null;
             if (! is_int($price) || $price <= 10000 || $price > 10000000 || ! empty($fixture['market_blocked'])) {
-                return $this->view('awaiting_price_or_market_resolution', null, $spent, 0, $attempts);
+                return [...$this->view('awaiting_price_or_market_resolution', null, $spent, 0, $attempts),
+                    'pricing_issue' => ! empty($fixture['market_blocked']) ? 'market_blocked'
+                        : ($price === null ? 'missing_actual_odds' : 'invalid_actual_odds'),
+                    'unresolved_matchday' => $fixture['matchday'] ?? null];
             }
             $target = $spent + ($index + 1) * $profit;
             $divisor = ($price - 10000) * 100;

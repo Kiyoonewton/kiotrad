@@ -7,6 +7,8 @@ export type SharedRun = {
   entry_at: string;
   released_at?: string | null;
   status: string;
+  funded?: boolean;
+  entry_issue?: string;
   blocked_by?: string;
   overlap_basis?: string;
   timing_warning?: string | null;

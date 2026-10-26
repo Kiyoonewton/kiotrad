@@ -101,9 +101,9 @@ class SharedCapitalReplayTest extends TestCase
         $a['fixtures'][0]['actual_odds_scaled'] = null;
         $engine = new SharedCapitalReplay;
         $result = $engine->calculate([$a], 5000000, '2026-10-20T11:00:00Z');
-        $this->assertSame('awaiting_price_or_market_resolution', $result['runs'][0]['status']);
-        $this->assertSame(5000000, $result['reserved_allowance_minor']);
-        $this->assertSame(0, $result['unreserved_capital_minor']);
+        $this->assertSame('unfunded_entry', $result['runs'][0]['status']);
+        $this->assertSame(0, $result['reserved_allowance_minor']);
+        $this->assertSame(5000000, $result['unreserved_capital_minor']);
         $this->assertSame(5000000, $result['balance_minor']);
         $a['fixtures'][0]['actual_odds_scaled'] = 10100;
         $result = $engine->calculate([$a], 5000000, '2026-10-20T11:00:00Z');

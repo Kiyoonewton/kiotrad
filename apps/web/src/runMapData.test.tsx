@@ -114,3 +114,7 @@ it("uses explicitly modeled release for an occupancy span without calling it an 
   expect(run.span_basis).toBe("modeled_settlement_not_event_finish");
   expect(run.result_observed_at).toBe("2026-10-25T12:00:00Z");
 });
+it("does not draw a zero-stake unfunded entry as a selected run", () => {
+  const view = { ...data, runs: [{ ...data.runs[0], status: "unfunded_entry", funded: false }] };
+  expect(sharedRunMap(view)!.runs).toHaveLength(0);
+});

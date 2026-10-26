@@ -16,7 +16,7 @@ export function SharedCapitalPerformance({ data }: { data: SharedSimulation }) {
       </section>
     );
   const accepted = data.runs.filter(
-    (r) => r.estimate && !r.status.startsWith("skipped_"),
+    (r) => r.estimate && r.funded !== false && !r.status.startsWith("skipped_"),
   );
   const closed = accepted.filter((r) => r.net_minor != null && r.released_at);
   const skipped = data.runs.filter((r) =>
@@ -197,6 +197,7 @@ export function SharedCapitalPerformance({ data }: { data: SharedSimulation }) {
                     {r.status === "skipped_overlap" && r.overlap_basis
                       ? (r.overlap_basis === "modeled_settlement_offset" ? "excluded · modeled overlap" : "excluded · overlap timing unverified")
                       : r.status.replaceAll("_", " ")}
+                    {r.entry_issue && <small> · {r.entry_issue.replaceAll("_", " ")}</small>}
                     {r.skip_reason && (
                       <small> · {r.skip_reason.replaceAll("_", " ")}</small>
                     )}
@@ -210,12 +211,12 @@ export function SharedCapitalPerformance({ data }: { data: SharedSimulation }) {
                     ))}
                   </td>
                   <td>
-                    {r.estimate
+                    {r.estimate && r.funded !== false
                       ? naira(r.estimate.plan.profit_per_attempt_minor)
                       : "—"}
                   </td>
                   <td>
-                    {r.estimate ? naira(r.estimate.allowance_minor) : "—"}
+                    {r.estimate && r.funded !== false ? naira(r.estimate.allowance_minor) : "—"}
                   </td>
                   <td>
                     {r.total_staked_minor != null

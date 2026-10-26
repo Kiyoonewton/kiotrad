@@ -26,7 +26,7 @@ export function sharedRunMap(
         (r) =>
           r.status === "skipped_overlap" ||
           r.status === "skipped_simultaneous_entry" ||
-          (r.estimate && !r.status.startsWith("skipped_")),
+          (r.estimate && r.funded !== false && !r.status.startsWith("skipped_")),
       )
       .map((r) => {
         const skipped = r.status.startsWith("skipped_");

@@ -14,15 +14,20 @@ final class ArchivedFeed
         if ($body === false || ! hash_equals($record['body_sha256'] ?? '', hash('sha256', $body))) {
             throw new RuntimeException('Raw evidence checksum mismatch.');
         }
-        $requested = CarbonImmutable::parse($record['requested_at']);
-        $received = CarbonImmutable::parse($record['received_at']);
+        $legacy = ($record['provenance']['origin'] ?? null) === 'legacy_file';
+        if ($legacy && (($record['requested_at'] ?? null) !== null || ($record['received_at'] ?? null) !== null
+            || ($record['provenance']['source_sha256'] ?? '') !== hash('sha256', $body))) {
+            throw new RuntimeException('Legacy provenance is inconsistent.');
+        }
+        $requested = CarbonImmutable::parse($legacy ? $record['imported_at'] : $record['requested_at']);
+        $received = CarbonImmutable::parse($legacy ? $record['imported_at'] : $record['received_at']);
         if ($requested->greaterThan($received)) {
             throw new RuntimeException('Raw evidence timestamps are inconsistent.');
         }
         $payload = json_decode($body, true);
         $document = $payload['doc'][0] ?? [];
 
-        return ['status' => $record['http_status'], 'feed' => new FeedObservation($record['url'], $requested, $received,
-            is_array($document) ? $document : [], is_array($payload) ? $payload : [])];
+        return ['status' => $legacy ? 200 : $record['http_status'], 'feed' => new FeedObservation($record['url'], $requested, $received,
+            is_array($document) ? $document : [], is_array($payload) ? $payload : [], $legacy ? $record['provenance'] : [])];
     }
 }

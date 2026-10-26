@@ -14,3 +14,5 @@ backups/
 
 __pycache__/
 engine/local/.sync.lock
+
+/recovery/

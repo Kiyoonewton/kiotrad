@@ -7,7 +7,7 @@ use DomainException;
 
 final class SharedCapitalReplay
 {
-    public const VERSION = 'single-active-modeled-settlement-1.2.0';
+    public const VERSION = 'single-active-unfunded-entry-1.2.1';
 
     public function calculate(array $candidates, int $capital, string $asOf, ?int $settlementSeconds = null): array
     {
@@ -87,14 +87,20 @@ final class SharedCapitalReplay
             }
             usort($eligible, fn ($a, $b) => ($b['estimate']['plan']['total_minor'] <=> $a['estimate']['plan']['total_minor'])
                 ?: strcmp($a['id'], $b['id']));
-            foreach ($eligible as $index => $candidate) {
-                if ($index > 0) {
+            foreach ($eligible as $candidate) {
+                if ($active !== null) {
                     $rows[] = [...$candidate, 'entry_at' => $at, 'status' => 'skipped_simultaneous_entry',
                         'blocked_by' => $active['id'], 'observed_window' => (new RunWindowOutcome)->observe($candidate, $asOf)];
 
                     continue;
                 }
                 $settled = (new SharedRunSettlement)->calculate($candidate, $candidate['estimate'], $asOf);
+                if ($settled['total_staked_minor'] === 0 && $settled['status'] === 'awaiting_price_or_market_resolution') {
+                    $rows[] = [...$candidate, ...$settled, 'status' => 'unfunded_entry', 'funded' => false,
+                        'capital_at_entry_minor' => $balance, 'entry_issue' => $settled['pricing_issue']];
+
+                    continue;
+                }
                 $active = ['id' => $candidate['id'], 'allowance_minor' => $candidate['estimate']['allowance_minor'], ...$settled];
                 $rows[] = [...$candidate, ...$settled, 'capital_at_entry_minor' => $balance,
                     'recovery_target_at_entry_minor' => $recoveryTarget,

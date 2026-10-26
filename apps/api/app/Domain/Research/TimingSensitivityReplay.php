@@ -13,7 +13,7 @@ final class TimingSensitivityReplay
         foreach ([201, 180, 220] as $seconds) {
             $view = (new SharedCapitalReplay)->calculate($candidates, $capital, $asOf, $seconds);
             $ids = array_column(array_values(array_filter($view['runs'],
-                fn ($r) => isset($r['estimate']) && ! str_starts_with($r['status'], 'skipped_'))), 'id');
+                fn ($r) => isset($r['estimate']) && ($r['funded'] ?? true) && ! str_starts_with($r['status'], 'skipped_'))), 'id');
             if ($seconds === self::PRIMARY_SECONDS) {
                 $primary = $view;
                 $primaryIds = $ids;
