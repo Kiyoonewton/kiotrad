@@ -1,5 +1,5 @@
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
-import { afterEach, expect, it } from "vitest";
+import { afterEach, expect, it, vi } from "vitest";
 import { RunEventTimeline } from "./RunEventTimeline";
 import { MonitoringGroups } from "./MonitoringGroups";
 import type { Overview } from "./api";
@@ -97,4 +97,69 @@ it("groups cards into separate strategy rows", () => {
   expect(groups[0]).toHaveTextContent("First");
   expect(groups[1]).toHaveAccessibleName("Champion — Next Season");
   expect(groups[1]).toHaveTextContent("Second");
+});
+
+it("keeps lane labels outside the horizontally scrolling graph", () => {
+  render(
+    <RunEventTimeline
+      data={{ status: "available", runs: [run] }}
+      competitions={competitions}
+    />,
+  );
+  const viewport = screen.getByRole("region", {
+    name: "Scrollable run timeline",
+  });
+  expect(viewport).not.toHaveTextContent("English");
+  const labels = document.querySelector(".run-timeline-labels")!;
+  expect(labels).toHaveTextContent("English");
+  expect(labels.parentElement).toBe(viewport.parentElement);
+  fireEvent.keyDown(viewport, { key: "ArrowRight" });
+  expect(viewport.scrollLeft).toBe(180);
+  expect(labels).toHaveTextContent("Next Win");
+});
+
+it("fits the entire available graph width and responds to container resizing", () => {
+  let resize: (() => void) | undefined;
+  let available = 720;
+  const getter = vi
+    .spyOn(HTMLElement.prototype, "clientWidth", "get")
+    .mockImplementation(() => available);
+  vi.stubGlobal(
+    "ResizeObserver",
+    class {
+      constructor(callback: () => void) {
+        resize = callback;
+      }
+      observe() {}
+      disconnect() {}
+    },
+  );
+  try {
+    render(
+      <RunEventTimeline
+        data={{ status: "available", runs: [run] }}
+        competitions={competitions}
+      />,
+    );
+    const graph = screen.getByRole("img", { name: /Scheduled run spans/ });
+    expect(graph).toHaveAttribute("width", "720");
+    fireEvent.change(
+      screen.getByRole("slider", { name: "Run timeline zoom" }),
+      { target: { value: "1" } },
+    );
+    expect(graph).toHaveAttribute("width", "1440");
+    available = 900;
+    fireEvent(window, new Event("resize"));
+    // Deliver the observed container resize through a React event boundary.
+    const listener = () => resize?.();
+    window.addEventListener("timeline-resize-test", listener);
+    fireEvent(window, new Event("timeline-resize-test"));
+    window.removeEventListener("timeline-resize-test", listener);
+    expect(graph).toHaveAttribute("width", "1800");
+    fireEvent.click(screen.getByRole("button", { name: "Fit all" }));
+    expect(graph).toHaveAttribute("width", "900");
+  } finally {
+    getter.mockRestore();
+    vi.unstubAllGlobals();
+  }
 });
