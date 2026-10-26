@@ -23,3 +23,12 @@ The rebuilt dashboard describes the raw snapshot. It does not copy production sc
 ## Production isolation
 
 The default Docker target is `production` and removes the raw rebuild command and importer classes from its filesystem. Local Compose explicitly builds target `local`. The production API retains only the read-only strategy snapshot helper used over SSH. The rebuild command is not an HTTP route. Runtime database/name guards still protect the local target. CI verifies the command is absent from the production image and reconstructs synthetic evidence using the local image.
+
+
+## Sync while collection continues
+
+The local downloader first freezes a read-only list of raw file paths, compressed-file sizes and SHA-256 checksums. It passes that null-delimited list to remote GNU tar with recursion disabled. Directories are not archive entries, so new captures changing a directory no longer cause `file changed as we read it` failures.
+
+Files modified in the latest 60 seconds are deferred to the next sync to avoid copying a response still being written by an older collector. The downloaded list is retained as `raw-files.json`. After transfer, sync checks membership, size and compressed-file hashes as well as the existing decompressed-body hashes. A changed, missing or damaged file still stops activation; no tar error is ignored. The previous local snapshot remains active on failure.
+
+This fix only requires updating the local checkout. The manifest is read through the existing production PHP runtime over SSH; production services and collectors need no restart or rebuild.
