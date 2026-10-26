@@ -4,6 +4,8 @@ import { naira } from "./api";
 import type { Overview as OverviewData } from "./api";
 import { MonitoringRows } from "./MonitoringRows";
 import { StrategyList } from "./StrategyList";
+import { LeaguePulse } from "./LeaguePulse";
+import { RunEventTimeline } from "./RunEventTimeline";
 import { ResearchPerformance } from "./ResearchPerformance";
 
 function formatLagos(value: string): string {
@@ -120,78 +122,7 @@ export function Overview({
           </div>
         </>
       )}
-      <section className="league-strip" aria-label="League collection status">
-        {competitions.map((item) => (
-          <div className="league-item" key={item.id}>
-            <span className="league-monogram" aria-hidden="true">
-              {item.name.slice(0, 1)}
-            </span>
-            <div>
-              <strong>{item.name}</strong>
-              <small>
-                Season {item.season_id ?? "—"} · Odds day {item.matchday ?? "—"}
-              </small>
-              {item.last_success_at && (
-                <small>Observed {formatLagos(item.last_success_at)} WAT</small>
-              )}
-              {item.fixture_count != null && (
-                <small>
-                  {item.settled_count ?? 0}/{item.fixture_count} results
-                  recorded
-                </small>
-              )}
-              {!!item.unresolved_seasons?.length && (
-                <small>
-                  {item.unresolved_seasons.length} unresolved season(s)
-                </small>
-              )}
-              {item.collection_gap && (
-                <small>
-                  Collection interrupted · expected update{" "}
-                  {formatLagos(item.collection_gap.expected_at)} WAT
-                </small>
-              )}
-              {!item.collection_gap && item.last_collection_gap && (
-                <small>
-                  Resumed {formatLagos(item.last_collection_gap.resumed_at)} WAT
-                  · {item.last_collection_gap.pending_season_ids.length}{" "}
-                  season(s) queued for repair. Recovered events are included in
-                  research simulations.
-                </small>
-              )}
-              {item.market_observation === "availability_unknown" && (
-                <small>Availability unknown</small>
-              )}
-              {item.latest_champion && (
-                <small>
-                  Verified champion: {item.latest_champion.team_name} (season{" "}
-                  {item.latest_champion.season_id})
-                </small>
-              )}
-              {item.latest_champion && (
-                <small>
-                  Champion confirmed{" "}
-                  {formatLagos(item.latest_champion.confirmed_at)} WAT
-                </small>
-              )}
-            </div>
-            <span className="feed-status">
-              <i />
-              {(
-                {
-                  fresh: "Fresh capture",
-                  stale: "Stale capture",
-                  retrying: "Retrying",
-                  unavailable: "Storage unavailable",
-                  not_connected: "Not connected",
-                  scheduled: "Awaiting scheduled update",
-                  interrupted: "Collection interrupted",
-                } as Record<string, string>
-              )[item.feed_status] ?? "Unknown"}
-            </span>
-          </div>
-        ))}
-      </section>
+      <LeaguePulse competitions={competitions} />
       <div className="activity-grid">
         <section className="quiet-panel" aria-labelledby="monitoring-title">
           <p className="eyebrow">Current activity</p>
@@ -244,25 +175,10 @@ export function Overview({
             competitions={data.competitions}
           />
         </section>
-        <section className="quiet-panel">
-          <p className="eyebrow">A measured timeline</p>
-          <h2>Know when opportunities overlap.</h2>
-          <p>
-            Cross-league alignment needs verified event times. Collection
-            timestamps will never stand in for kickoff.
-          </p>
-          <div
-            className="timeline-placeholder"
-            aria-label="Event timeline awaiting data"
-          >
-            {competitions.map((item) => (
-              <div key={item.id}>
-                <span>{item.name}</span>
-                <i />
-              </div>
-            ))}
-          </div>
-        </section>
+        <RunEventTimeline
+          data={data.research_simulation}
+          competitions={competitions}
+        />
       </div>
       <StrategyList
         strategies={data.strategies}

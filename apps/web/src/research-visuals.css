@@ -1,0 +1,283 @@
+.research-metrics {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+  margin: 0 0 22px;
+}
+.research-metrics > div,
+.strategy-scorecards article,
+.league-pulse article {
+  background: #151d1a;
+  border: 1px solid #2b3b32;
+  border-radius: 14px;
+  padding: 22px;
+}
+.research-metrics small,
+.strategy-scorecards small {
+  display: block;
+  color: #9aac9f;
+  font-size: 12px;
+}
+.research-metrics strong {
+  display: block;
+  font-size: 24px;
+  letter-spacing: -0.5px;
+  margin-top: 12px;
+}
+.positive {
+  color: #93d6ae;
+}
+.negative {
+  color: #efa59d;
+}
+.chart-modes {
+  display: flex;
+  gap: 4px;
+  background: #0f1713;
+  border-radius: 9px;
+  padding: 4px;
+}
+.chart-modes button {
+  background: transparent;
+  border: 0;
+  color: #abbcb1;
+  padding: 8px 12px;
+  border-radius: 6px;
+  cursor: pointer;
+}
+.chart-modes button[aria-pressed="true"] {
+  background: #334c3e;
+  color: #eff8f0;
+}
+.detailed-chart svg {
+  width: 100%;
+  min-height: 220px;
+  overflow: visible;
+  margin-top: 18px;
+}
+.detailed-chart svg text,
+.run-event-panel svg text {
+  fill: #adbbb2;
+  font-size: 10px;
+  font-family: inherit;
+}
+.chart-readout {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  font-size: 12px;
+  min-height: 35px;
+}
+.chart-readout span {
+  color: #a9b9af;
+}
+.chart-scrubber {
+  width: 100%;
+  accent-color: #93d6ae;
+}
+.chart-empty {
+  display: grid;
+  place-content: center;
+  min-height: 200px;
+  color: #a9b9af;
+}
+.strategy-filter {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 22px;
+  color: #a9b9af;
+  font-size: 12px;
+}
+.strategy-filter select {
+  background: #18231d;
+  border: 1px solid #39503f;
+  color: #e4ece5;
+  padding: 9px;
+  border-radius: 7px;
+}
+.win-donut {
+  width: 165px;
+  height: 165px;
+  border-radius: 50%;
+  padding: 12px;
+  margin: 24px auto;
+}
+.win-donut > div {
+  height: 100%;
+  border-radius: 50%;
+  background: #1a2922;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+}
+.win-donut strong {
+  font-size: 32px;
+}
+.win-donut small {
+  font-size: 11px;
+  color: #a9b9af;
+}
+.coverage-counts {
+  display: flex;
+  gap: 18px;
+  font-size: 13px;
+}
+.coverage-counts i {
+  font-style: normal;
+}
+.coverage-panel h2 {
+  font-size: 21px;
+}
+.coverage-panel > p {
+  font-size: 12px;
+  color: #a9b9af;
+}
+.coverage-track {
+  height: 6px;
+  background: #34453b;
+  border-radius: 8px;
+  overflow: hidden;
+  margin: 15px 0;
+}
+.coverage-track i {
+  height: 100%;
+  display: block;
+  background: #93c9a7;
+  border-radius: 8px;
+}
+.coverage-details {
+  font-size: 12px;
+}
+.coverage-details > div {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 14px 0;
+  border-top: 1px solid #3a4d40;
+}
+.coverage-details dt {
+  color: #a9b9af;
+}
+.coverage-details dd {
+  margin: 0;
+}
+.strategy-scorecards {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 20px;
+  margin: 22px 0;
+}
+.strategy-scorecards strong {
+  display: block;
+  margin: 14px 0;
+  font-size: 26px;
+}
+.run-tiles {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin: 18px 0;
+  max-height: 100px;
+  overflow: auto;
+}
+.run-tiles span {
+  width: 9px;
+  height: 15px;
+  border-radius: 2px;
+  flex-shrink: 0;
+}
+.tile-win {
+  background: #8cca9f;
+}
+.tile-loss {
+  background: #df8f87;
+}
+.league-pulse {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 18px;
+  margin: 28px 0;
+}
+.league-pulse header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.pulse-dot {
+  height: 8px;
+  width: 8px;
+  border-radius: 50%;
+  background: #d3b36e;
+}
+.pulse-dot.fresh {
+  background: #92d8ab;
+  box-shadow: 0 0 12px #92d8ab55;
+}
+.league-progress-number {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  margin-top: 22px;
+}
+.league-progress-number strong {
+  font-size: 32px;
+}
+.league-progress-number small,
+.league-mini,
+.league-pulse details {
+  font-size: 11px;
+  color: #a9b9af;
+}
+.league-mini {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+}
+.league-pulse details {
+  margin-top: 18px;
+}
+.league-pulse summary {
+  cursor: pointer;
+}
+.run-event-panel svg {
+  width: 100%;
+  margin: 25px 0;
+}
+.run-event-panel {
+  align-self: start;
+}
+.balance-value b {
+  font-weight: 500;
+  margin-left: 8px;
+}
+.chart-modes button:focus-visible,
+.strategy-filter select:focus-visible {
+  outline: 2px solid #a6d7bb;
+  outline-offset: 3px;
+}
+@media (max-width: 900px) {
+  .research-metrics {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  .league-pulse {
+    grid-template-columns: 1fr;
+  }
+  .strategy-scorecards {
+    grid-template-columns: 1fr;
+  }
+  .chart-modes button {
+    padding: 7px;
+  }
+  .detailed-chart {
+    padding: 15px;
+  }
+  .detailed-chart .section-heading {
+    flex-wrap: wrap;
+  }
+  .research-metrics strong {
+    font-size: 20px;
+  }
+}

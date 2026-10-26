@@ -30,12 +30,14 @@ class ResearchSummary
         $catalogs = iterator_to_array($db->collector_states->find([], [...$options, 'projection' => ['season_catalog' => 1]]), false);
         $blocks = iterator_to_array($db->market_blockages->find(['classification' => 'operator_confirmed'], [...$options, 'projection' => ['matchday' => 1]]), false);
         $revision = hash('sha256', json_encode([$sources, $links, $transitions, $catalogs, $blocks,
-            ChampionMonitor::SIMULATION_VERSION, RunReplay::EVENT_VERSION, config('kiotrad.simulation_capital_minor'), intdiv(now('UTC')->timestamp, 60)], JSON_THROW_ON_ERROR));
+            ChampionMonitor::SIMULATION_VERSION, RunReplay::EVENT_VERSION, config('kiotrad.simulation_capital_minor')], JSON_THROW_ON_ERROR));
 
-        return $this->cache->remember('research:recent-week', $revision, SimulationCache::RECENT_TTL, function () {
-            $from = now('UTC')->subDays(7)->toIso8601String();
+        return $this->cache->remember('research:all-seasons-v2', $revision, SimulationCache::RECENT_TTL, function () {
+            $seasons = $this->history->seasons('all');
+            $starts = array_filter(array_column($seasons, 'start_at'));
+            $from = $starts === [] ? null : min($starts);
             $to = now('UTC')->toIso8601String();
-            $rows = $this->history->rows($this->history->seasons('all', $from, $to));
+            $rows = $this->history->rows($seasons);
             $runs = [];
             foreach ($rows as $row) {
                 $simulation = $row['simulation'] ?? null;
@@ -43,18 +45,16 @@ class ResearchSummary
                     continue;
                 }
                 $last = empty($simulation['attempts']) ? null : $simulation['attempts'][array_key_last($simulation['attempts'])];
-                if ($simulation['net_minor'] !== null && $last !== null
-                    && ($last['scheduled_start_at'] < $from || $last['scheduled_start_at'] > $to)) {
-                    continue;
-                }
                 $runs[] = ['competition' => $row['competition'], 'season_id' => $row['season_id'], 'strategy_id' => $row['strategy_id'],
                     'team' => $row['team'], 'status' => $simulation['status'], 'net_minor' => $simulation['net_minor'],
                     'total_staked_minor' => $simulation['total_staked_minor'], 'gross_payout_minor' => $simulation['gross_payout_minor'],
-                    'event_at' => $last['scheduled_start_at'] ?? null];
+                    'event_at' => $last['scheduled_start_at'] ?? null,
+                    'started_at' => $simulation['attempts'][0]['scheduled_start_at'] ?? null,
+                    'attempts' => count($simulation['attempts'])];
             }
 
             return ['status' => 'available', 'mode' => 'independent_event_order_research', 'from' => $from, 'to' => $to,
-                'generated_at' => $to, 'starting_capital_per_run_minor' => config('kiotrad.simulation_capital_minor'), 'runs' => $runs];
+                'generated_at' => $to, 'scope' => 'all_stored_seasons', 'seasons_assessed' => count($seasons), 'starting_capital_per_run_minor' => config('kiotrad.simulation_capital_minor'), 'runs' => $runs];
         });
     }
 }
