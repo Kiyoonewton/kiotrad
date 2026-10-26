@@ -77,3 +77,28 @@ it("shows overlapping entries, a colour legend and observed-only inspection", ()
   expect(screen.getByText(/not included in profit/)).toBeInTheDocument();
   expect(screen.getByText(/Active run: selected/)).toBeInTheDocument();
 });
+it("plots scheduled attempts instead of a five-day archive receipt span", () => {
+  const fixtures = [
+    { scheduled_start_at: "2026-10-20T10:00:00Z", won: false },
+    { scheduled_start_at: "2026-10-20T10:04:00Z", won: true },
+    { scheduled_start_at: "2026-10-20T10:08:00Z", won: true },
+  ];
+  const archive = "2026-10-25T12:00:00Z";
+  const view = {
+    ...data,
+    runs: [
+      { ...data.runs[0], fixtures, released_at: archive,
+        attempts: [{ scheduled_start_at: fixtures[0].scheduled_start_at },
+          { scheduled_start_at: fixtures[1].scheduled_start_at }] },
+      { ...data.runs[1], fixtures, observed_window: { result: "win", ended_at: archive },
+        overlap_basis: "unverified_late_archive_timing" },
+    ],
+  } as SharedSimulation;
+  const map = sharedRunMap(view)!;
+  expect(map.runs.map((r) => r.event_at)).toEqual([
+    fixtures[1].scheduled_start_at, fixtures[1].scheduled_start_at,
+  ]);
+  expect(map.runs[0].result_observed_at).toBe(archive);
+  expect(map.runs[1].overlap_basis).toBe("unverified_late_archive_timing");
+  expect(map.runs[1].span_basis).toBe("scheduled_attempts_not_event_finish");
+});

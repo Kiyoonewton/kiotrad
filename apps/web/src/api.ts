@@ -82,6 +82,9 @@ export interface Overview {
       run_kind?: "selected" | "skipped";
       observed_result?: "win" | "no_win" | "pending";
       overlap_with?: string;
+      overlap_basis?: string;
+      result_observed_at?: string | null;
+      span_basis?: string;
       attempts?: number;
     }[];
   };

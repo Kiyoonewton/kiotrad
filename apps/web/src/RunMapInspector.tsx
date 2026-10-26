@@ -14,6 +14,9 @@ export function RunMapInspector({ run }: { run: MapRun }) {
         {eventLabel(run.started_at ?? run.event_at!)} →{" "}
         {eventLabel(run.event_at!)} WAT
       </span>
+      {run.span_basis && <span>Scheduled attempt window · finish time unverified</span>}
+      {run.result_observed_at && <span>Result downloaded: {eventLabel(run.result_observed_at)} WAT</span>}
+      {run.overlap_basis && <span>Overlap timing unverified · {run.overlap_basis === "unverified_late_archive_timing" ? "late archive confirmation" : "recorded confirmation upper bound"}</span>}
       {run.run_kind === "skipped" ? (
         <span>
           Skipped · {run.observed_result?.replaceAll("_", " ") ?? "pending"} ·
