@@ -60,7 +60,9 @@ export interface Overview {
   };
   research_simulation?: {
     status: string;
-    from?: string;
+    from?: string | null;
+    scope?: string;
+    seasons_assessed?: number;
     to?: string;
     generated_at?: string;
     starting_capital_per_run_minor?: number;
@@ -74,6 +76,8 @@ export interface Overview {
       total_staked_minor: number;
       gross_payout_minor: number;
       event_at: string | null;
+      started_at?: string | null;
+      attempts?: number;
     }[];
   };
   schema_version: string;

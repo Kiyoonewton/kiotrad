@@ -27,7 +27,7 @@ const data: NonNullable<Overview["research_simulation"]> = {
 
 it("plots completed research results while keeping incomplete pricing out of net profit", () => {
   render(<ResearchPerformance data={data} league="all" />);
-  expect(screen.getByText("₦200.00")).toBeInTheDocument();
+  expect(screen.getAllByText("₦200.00")[0]).toBeInTheDocument();
   expect(screen.getByText("2 completed runs")).toBeInTheDocument();
   expect(screen.getByText(/1 incomplete calculations/)).toBeInTheDocument();
   expect(
@@ -38,6 +38,27 @@ it("plots completed research results while keeping incomplete pricing out of net
 
 it("filters research results by league without displaying a shared balance", () => {
   render(<ResearchPerformance data={data} league="virtual-euro" />);
-  expect(screen.getByText("₦100.00")).toBeInTheDocument();
+  expect(screen.getAllByText("₦100.00")[0]).toBeInTheDocument();
   expect(screen.queryByText("Portfolio balance")).not.toBeInTheDocument();
+});
+
+it("offers candle and bar views while displaying the configured initial capital", async () => {
+  const { fireEvent } = await import("@testing-library/react");
+  render(
+    <ResearchPerformance
+      data={{ ...data, starting_capital_per_run_minor: 1400000 }}
+      league="all"
+    />,
+  );
+  expect(screen.getAllByText("₦14,000.00").length).toBeGreaterThan(0);
+  fireEvent.click(screen.getByRole("button", { name: "Candles" }));
+  expect(screen.getByRole("button", { name: "Candles" })).toHaveAttribute(
+    "aria-pressed",
+    "true",
+  );
+  expect(screen.getByText(/Daily open/)).toBeInTheDocument();
+  fireEvent.click(screen.getByRole("button", { name: "Bars" }));
+  expect(
+    screen.getByText(/Profit or loss per completed run/),
+  ).toBeInTheDocument();
 });
