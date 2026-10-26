@@ -1,5 +1,6 @@
 import { useRef, useState } from "react";
 import type { Overview } from "./api";
+import { useTimelineWidth } from "./useTimelineWidth";
 import { eventLabel } from "./researchChartData";
 
 type Run = NonNullable<Overview["research_simulation"]>["runs"][number];
@@ -43,7 +44,8 @@ export function RunEventTimeline({
   const min = times.length ? Math.min(...times) : 0;
   const max = times.length ? Math.max(...times) : 1;
   const zoom = 2 ** level;
-  const width = 1100 * zoom;
+  const availableWidth = useTimelineWidth(viewport, events.length);
+  const width = availableWidth * zoom;
   const left = 12;
   const x = (time: number) =>
     left + ((time - min) / Math.max(1, max - min)) * (width - left - 30);
@@ -57,7 +59,7 @@ export function RunEventTimeline({
     requestAnimationFrame(() => {
       if (element)
         element.scrollLeft =
-          center * (1100 * 2 ** next) - element.clientWidth / 2;
+          center * (availableWidth * 2 ** next) - element.clientWidth / 2;
     });
   }
   return (
