@@ -7,7 +7,7 @@ use DomainException;
 
 final class SharedCapitalReplay
 {
-    public const VERSION = 'single-active-highest-estimated-cost-1.0.0';
+    public const VERSION = 'single-active-highest-estimated-cost-1.0.1';
 
     public function calculate(array $candidates, int $capital, string $asOf): array
     {
@@ -67,13 +67,17 @@ final class SharedCapitalReplay
             foreach ($group as $candidate) {
                 $odds = array_column($candidate['fixtures'], 'historical_odds_scaled');
                 if (count($odds) !== count($candidate['fixtures']) || in_array(null, $odds, true)) {
-                    $rows[] = ['id' => $candidate['id'], 'entry_at' => $at, 'status' => 'insufficient_fixture_history'];
+                    $rows[] = [...$candidate, 'entry_at' => $at, 'status' => 'insufficient_fixture_history',
+                        'missing_historical_fixtures' => array_values(array_filter($candidate['fixtures'],
+                            fn ($fixture) => ! isset($fixture['historical_odds_scaled'])))];
 
                     continue;
                 }
                 $estimate = (new RunBudgetEstimate)->calculate($odds, $balance);
                 if ($estimate['status'] !== 'estimated') {
-                    $rows[] = ['id' => $candidate['id'], 'entry_at' => $at, 'status' => 'insufficient_allowance'];
+                    $rows[] = [...$candidate, 'entry_at' => $at, 'status' => 'skipped_budget',
+                        'skip_reason' => 'insufficient_allowance', 'capital_at_entry_minor' => $balance,
+                        'budget_diagnostic' => $estimate];
 
                     continue;
                 }
