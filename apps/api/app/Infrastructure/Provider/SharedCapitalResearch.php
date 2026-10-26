@@ -104,6 +104,6 @@ class SharedCapitalResearch
 
         return ['id' => implode(':', [$row['competition'], $row['season_id'], $row['strategy_id']]),
             'competition' => $row['competition'], 'season_id' => $row['season_id'], 'strategy_id' => $row['strategy_id'],
-            'team' => $row['team'], 'fixtures' => $fixtures];
+            'team' => $row['team'], 'season_start_at' => $seasonStart, 'fixtures' => $fixtures];
     }
 }
