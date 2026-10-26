@@ -39,7 +39,7 @@ services:
       <<: *environment
       PHP_CLI_SERVER_WORKERS: "4"
     command: [php, artisan, serve, --host=0.0.0.0, --port=8000, --no-reload]
-    ports: ["127.0.0.1:8001:8000"]
+    ports: ["127.0.0.1:8011:8000"]
     healthcheck:
       test: [CMD, php, -r, "exit(@file_get_contents('http://127.0.0.1:8000/api/v1/ready') === false ? 1 : 0);"]
       interval: 5s
