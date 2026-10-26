@@ -45,7 +45,7 @@ class SharedCapitalResearch
             'sort' => ['observed_at' => 1, '_id' => 1], 'batchSize' => 5];
         $checkpoint = DB::connection('mongodb')->getDatabase()->season_checkpoints->findOne(
             ['_id' => $row['competition'].':'.$row['season_id']], $options);
-        $revision = hash('sha256', json_encode([$checkpoint['capture_id'] ?? null, $row['team_uid'], min($asOf, $checkpoint['observed_at'] ?? $asOf)], JSON_THROW_ON_ERROR));
+        $revision = hash('sha256', json_encode([$checkpoint['capture_id'] ?? null, $checkpoint['odds_evidence_revision'] ?? 0, $row['team_uid'], min($asOf, $checkpoint['observed_at'] ?? $asOf)], JSON_THROW_ON_ERROR));
         $evidence = $this->cache->remember('shared-evidence:'.$row['competition'].':'.$row['season_id'].':'.$row['team_uid'],
             $revision, SimulationCache::HISTORICAL_TTL, function () use ($row, $asOf, $options) {
                 $captures = [];

@@ -51,7 +51,7 @@ class ChampionMonitoring
                 $archive = iterator_to_array($db->provider_catalog_links->find(['competition' => $competition], $options), false);
                 $links = (new SimulationSeasonLinks)->merge([...$links, ...$archive], $state['season_catalog'] ?? [], $state['collection_observed_at'] ?? now('UTC')->toIso8601String());
                 $checkpoints = iterator_to_array($db->season_checkpoints->find(['_id' => ['$regex' => '^'.preg_quote($competition, '/').':']],
-                    [...$options, 'projection' => ['capture_id' => 1], 'sort' => ['_id' => 1]]), false);
+                    [...$options, 'projection' => ['capture_id' => 1, 'odds_evidence_revision' => 1], 'sort' => ['_id' => 1]]), false);
                 $blocks = iterator_to_array($db->market_blockages->find(['competition' => $competition, 'classification' => 'operator_confirmed'],
                     [...$options, 'projection' => ['season_id' => 1, 'matchday' => 1], 'sort' => ['_id' => 1]]), false);
                 // Reuse metadata, but stream captures only on a per-season cache miss.
@@ -103,7 +103,7 @@ class ChampionMonitoring
             return $compute();
         }
         $checkpoints = $this->batch !== null ? array_values(array_filter($this->batch['checkpoints'], fn ($c) => in_array($c['_id'], array_map(fn ($id) => $competition.':'.$id, $ids), true))) : iterator_to_array($db->season_checkpoints->find(['_id' => ['$in' => array_map(fn ($id) => $competition.':'.$id, $ids)]],
-            [...$options, 'projection' => ['capture_id' => 1], 'sort' => ['_id' => 1]]), false);
+            [...$options, 'projection' => ['capture_id' => 1, 'odds_evidence_revision' => 1], 'sort' => ['_id' => 1]]), false);
         $relevantLinks = array_values(array_filter($links, fn ($l) => in_array($l['to_season_id'], $ids, true)));
         $revision = hash('sha256', json_encode([$checkpoints, $relevantLinks, $blocks, ChampionMonitor::SIMULATION_VERSION, RunReplay::EVENT_VERSION,
             config('kiotrad.simulation_capital_minor'), $currentId === ($state['current_season_id'] ?? null) ? intdiv(now('UTC')->timestamp, 60) : null], JSON_THROW_ON_ERROR));
