@@ -1,4 +1,5 @@
 import { naira } from "./api";
+import { TimingSensitivityPanel } from "./TimingSensitivityPanel";
 import { ResearchChart } from "./ResearchChart";
 import type { SharedSimulation } from "./sharedSimulation";
 import type { ResearchRun } from "./researchChartData";
@@ -61,7 +62,7 @@ export function SharedCapitalPerformance({ data }: { data: SharedSimulation }) {
           </p>
         </div>
         <div className="balance-value">
-          <p>Current capital{provisional ? " · provisional" : ""}</p>
+          <p>Current capital{data.settlement_model ? " · modeled" : provisional ? " · provisional" : ""}</p>
           <strong>{naira(data.balance_minor)}</strong>
           <span>
             Started with {naira(data.starting_capital_minor)} · next doubling
@@ -88,6 +89,7 @@ export function SharedCapitalPerformance({ data }: { data: SharedSimulation }) {
           </span>
         </div>
       </section>
+      <TimingSensitivityPanel data={data} />
       {provisional && <p className="recovery-banner" role="status">
         Timing correction pending. Late archive confirmations affect allocation
         and this balance. Overlap exclusions are not verified event clashes.
@@ -164,8 +166,8 @@ export function SharedCapitalPerformance({ data }: { data: SharedSimulation }) {
             ))}
           </dl>
           <p className="subtle">
-            Capital release uses recorded result confirmation. Late archive
-            evidence can leave historical overlap timing unresolved.
+            Capital release follows the labelled timing policy. Modeled settlement
+            times are simulation assumptions, not verified match finishes.
           </p>
           <p>
             Pending stakes {naira(data.active_staked_minor)}. Reserved capital
@@ -193,7 +195,7 @@ export function SharedCapitalPerformance({ data }: { data: SharedSimulation }) {
                   <td>{r.team ?? r.id}</td>
                   <td>
                     {r.status === "skipped_overlap" && r.overlap_basis
-                      ? "excluded · overlap timing unverified"
+                      ? (r.overlap_basis === "modeled_settlement_offset" ? "excluded · modeled overlap" : "excluded · overlap timing unverified")
                       : r.status.replaceAll("_", " ")}
                     {r.skip_reason && (
                       <small> · {r.skip_reason.replaceAll("_", " ")}</small>

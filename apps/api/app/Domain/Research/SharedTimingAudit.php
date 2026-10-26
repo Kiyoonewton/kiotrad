@@ -27,7 +27,7 @@ final class SharedTimingAudit
                         'recorded_confirmation_at' => $confirmed, 'next_scheduled_start_at' => $next];
                 }
             }
-            $end = $run['released_at'] ?? $run['observed_window']['ended_at'] ?? null;
+            $end = $run['result_observed_at'] ?? $run['released_at'] ?? $run['observed_window']['ended_at'] ?? null;
             $hours = $end === null ? null : (new DateTimeImmutable($end))->getTimestamp() - (new DateTimeImmutable($run['entry_at']))->getTimestamp();
             $timing[] = ['id' => $run['id'], 'status' => $run['status'],
                 'entry_at' => $run['entry_at'], 'recorded_confirmation_at' => $end,

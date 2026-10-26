@@ -11,6 +11,7 @@ export type SharedRun = {
   overlap_basis?: string;
   timing_warning?: string | null;
   result_observed_at?: string | null;
+  simulation_settlement_at?: string | null;
   observed_window?: {
     result: "win" | "no_win" | "pending";
     ended_at: string | null;
@@ -57,6 +58,17 @@ export type SharedSimulation = {
   excluded?: { reason: string }[];
   timing_basis: string;
   timing_quality?: string;
+  settlement_model?: { seconds: number; version: string; basis: string };
+  timing_sensitive?: boolean;
+  timing_sensitivity?: {
+    settlement_seconds: number;
+    balance_minor: number;
+    completed_runs: number;
+    overlap_exclusions: number;
+    allocation_changed_vs_primary: boolean;
+    accepted_only_in_scenario: string[];
+    accepted_only_in_primary: string[];
+  }[];
   recovery_target_minor?: number | null;
   allowance_multiplier?: number;
 };

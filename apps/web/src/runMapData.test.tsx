@@ -102,3 +102,15 @@ it("plots scheduled attempts instead of a five-day archive receipt span", () => 
   expect(map.runs[1].overlap_basis).toBe("unverified_late_archive_timing");
   expect(map.runs[1].span_basis).toBe("scheduled_attempts_not_event_finish");
 });
+it("uses explicitly modeled release for an occupancy span without calling it an actual finish", () => {
+  const view = {
+    ...data,
+    settlement_model: { seconds: 201, version: "test", basis: "assumed" },
+    runs: [{ ...data.runs[0], simulation_settlement_at: "2026-10-20T10:03:21Z",
+      result_observed_at: "2026-10-25T12:00:00Z" }],
+  } as SharedSimulation;
+  const run = sharedRunMap(view)!.runs[0];
+  expect(run.event_at).toBe("2026-10-20T10:03:21Z");
+  expect(run.span_basis).toBe("modeled_settlement_not_event_finish");
+  expect(run.result_observed_at).toBe("2026-10-25T12:00:00Z");
+});

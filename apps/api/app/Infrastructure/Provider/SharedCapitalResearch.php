@@ -3,6 +3,7 @@
 namespace App\Infrastructure\Provider;
 
 use App\Domain\Research\SharedCapitalReplay;
+use App\Domain\Research\TimingSensitivityReplay;
 use App\Domain\Strategies\HistoricalQuote;
 use App\Domain\Strategies\ReplayCapture;
 use Illuminate\Support\Facades\DB;
@@ -35,7 +36,7 @@ class SharedCapitalResearch
         $revision = hash('sha256', json_encode([$candidates, $excluded, $capital, $asOf, SharedCapitalReplay::VERSION], JSON_THROW_ON_ERROR));
 
         return $this->cache->remember('shared-capital:'.$capital, $revision, SimulationCache::HISTORICAL_TTL,
-            fn () => [...(new SharedCapitalReplay)->calculate($candidates, $capital, $asOf),
+            fn () => [...(new TimingSensitivityReplay)->calculate($candidates, $capital, $asOf),
                 'excluded' => $excluded, 'seasons_assessed' => count($seasons)]);
     }
 

@@ -12,7 +12,7 @@ use Tests\TestCase;
 
 class SharedCapitalResearchTest extends TestCase
 {
-    public function test_stored_qualified_runs_use_prior_fixture_minima_and_recorded_confirmation(): void
+    public function test_stored_qualified_runs_use_prior_minima_and_labeled_modeled_settlement(): void
     {
         config(['provider.competitions' => ['virtual-football' => []], 'kiotrad.simulation_cache_enabled' => false]);
         $matches = [];
@@ -44,7 +44,8 @@ class SharedCapitalResearchTest extends TestCase
             ->andReturn(['odds_scaled' => 20000, 'season_id' => '99']);
         $result = app(SharedCapitalResearch::class)->build(5000000, '2026-10-20T11:00:00Z');
         $this->assertSame('win', $result['runs'][0]['status']);
-        $this->assertSame('2026-10-20T10:14:00.000000Z', $result['runs'][0]['released_at']);
+        $this->assertSame('2026-10-20T10:03:21.000000Z', $result['runs'][0]['released_at']);
+        $this->assertSame('2026-10-20T10:14:00.000000Z', $result['runs'][0]['result_observed_at']);
         $this->assertFalse($result['runs'][0]['fixtures'][0]['price_timing_verified']);
         $this->assertSame('99', $result['runs'][0]['fixtures'][0]['historical_minimum']['season_id']);
         $this->assertSame(5096100, $result['balance_minor']);

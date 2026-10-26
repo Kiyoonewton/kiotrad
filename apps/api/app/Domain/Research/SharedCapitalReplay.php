@@ -7,15 +7,16 @@ use DomainException;
 
 final class SharedCapitalReplay
 {
-    public const VERSION = 'single-active-recovery-allowance-1.1.1-timing-provenance';
+    public const VERSION = 'single-active-modeled-settlement-1.2.0';
 
-    public function calculate(array $candidates, int $capital, string $asOf): array
+    public function calculate(array $candidates, int $capital, string $asOf, ?int $settlementSeconds = null): array
     {
         if ($capital < 1 || $capital > 1000000000) {
             throw new DomainException('invalid_capital');
         }
         // Normalize offsets before sorting or comparing instants.
         $asOf = $this->time($asOf);
+        $candidates = (new SettlementTimingModel)->apply($candidates, $asOf, $settlementSeconds);
         $ids = [];
         foreach ($candidates as &$candidate) {
             if (isset($ids[$candidate['id']]) || empty($candidate['fixtures']) || count($candidate['fixtures']) > 4) {
@@ -106,12 +107,12 @@ final class SharedCapitalReplay
         }
 
         return ['policy_version' => self::VERSION, 'mode' => 'shared_capital_simulation', 'as_of' => $asOf,
-            'timing_basis' => 'recorded_result_confirmation_conservative', 'starting_capital_minor' => $capital,
+            'timing_basis' => $settlementSeconds === null ? 'recorded_result_confirmation_conservative' : 'modeled_scheduled_kickoff_offset', 'starting_capital_minor' => $capital,
             'balance_minor' => $balance, 'recovery_target_minor' => $recoveryTarget,
             'allowance_multiplier' => $recoveryTarget === null ? 2 : 1, 'reserved_allowance_minor' => $active['allowance_minor'] ?? 0,
             'unreserved_capital_minor' => $balance - ($active['allowance_minor'] ?? 0),
             'active_staked_minor' => $active['total_staked_minor'] ?? 0, 'active_run_id' => $active['id'] ?? null,
-            'equity' => $equity, ...(new SharedTimingPresentation)->describe($rows)];
+            'equity' => $equity, ...(new SharedTimingPresentation)->describe($rows, $settlementSeconds)];
     }
 
     private function settle(array $run, int &$balance, ?int &$recoveryTarget, array &$equity): void

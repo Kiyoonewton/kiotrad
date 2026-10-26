@@ -23,10 +23,9 @@ export function RunMapLegend({ shared }: { shared: boolean }) {
         ))}
       </div>
       <p className="subtle">
-        Bars connect scheduled attempts through the observed win or final attempt;
-        they do not show match finish times. Single-attempt runs are ticks.
-        Skipped outcomes add no stakes or profit. Archive receipt times are
-        shown separately when inspecting a run.
+        With a settlement model, bars show entry through modeled release; otherwise
+        they connect scheduled attempts. Neither is a verified finish time.
+        Skipped outcomes add no stakes or profit. Download times appear separately.
       </p>
     </div>
   );

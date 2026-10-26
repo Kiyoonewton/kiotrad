@@ -17,7 +17,8 @@ final class SharedRunSettlement
                 return $this->view('awaiting_fixture', null, $spent, 0, $attempts);
             }
             if ($lastConfirmation !== null && $lastConfirmation >= $start) {
-                return $this->view('unresolved_confirmation_timing', null, $spent, 0, $attempts);
+                return $this->view(isset($fixture['simulation_settlement_at']) ? 'timing_model_entry_stop' : 'unresolved_confirmation_timing',
+                    isset($fixture['simulation_settlement_at']) ? $lastConfirmation : null, $spent, 0, $attempts);
             }
             $price = $fixture['actual_odds_scaled'] ?? null;
             if (! is_int($price) || $price <= 10000 || $price > 10000000 || ! empty($fixture['market_blocked'])) {
@@ -30,7 +31,7 @@ final class SharedRunSettlement
                 return $this->view('allowance_stop', $start, $spent, 0, $attempts);
             }
             $spent += $stake;
-            $confirmation = $fixture['result_confirmed_at'] ?? null;
+            $confirmation = $fixture['simulation_settlement_at'] ?? $fixture['result_confirmed_at'] ?? null;
             $won = $fixture['won'] ?? null;
             $attempts[] = [...$fixture, 'attempt' => $index + 1, 'stake_minor' => $stake,
                 'target_profit_minor' => ($index + 1) * $profit, 'payout_minor' => null];
