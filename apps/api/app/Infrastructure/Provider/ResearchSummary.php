@@ -24,7 +24,7 @@ class ResearchSummary
     {
         $db = DB::connection('mongodb')->getDatabase();
         $options = ['typeMap' => ['root' => 'array', 'document' => 'array', 'array' => 'array'], 'sort' => ['_id' => 1]];
-        $sources = iterator_to_array($db->season_checkpoints->find([], [...$options, 'projection' => ['capture_id' => 1]]), false);
+        $sources = iterator_to_array($db->season_checkpoints->find([], [...$options, 'projection' => ['capture_id' => 1, 'odds_evidence_revision' => 1]]), false);
         $links = iterator_to_array($db->provider_catalog_links->find([], $options), false);
         $transitions = iterator_to_array($db->provider_season_transitions->find([], $options), false);
         $catalogs = iterator_to_array($db->collector_states->find([], [...$options, 'projection' => ['season_catalog' => 1]]), false);

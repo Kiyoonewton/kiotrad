@@ -17,7 +17,7 @@ class FixtureBaselineStore
         foreach ($db->season_checkpoints->find(['_id' => ['$regex' => '^'.preg_quote($competition, '/').':']], $this->options) as $checkpoint) {
             $season = (string) $checkpoint['season_id'];
             $key = $competition.':'.$season;
-            $revision = hash('sha256', $checkpoint['capture_id'].':'.FixtureOddsBaseline::VERSION);
+            $revision = hash('sha256', $checkpoint['capture_id'].':'.($checkpoint['odds_evidence_revision'] ?? 0).':'.FixtureOddsBaseline::VERSION);
             $saved = $db->fixture_baseline_progress->findOne(['_id' => $key], $this->options);
             if (($saved['revision'] ?? null) === $revision) {
                 continue;
