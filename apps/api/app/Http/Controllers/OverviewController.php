@@ -10,6 +10,7 @@ use App\Infrastructure\Provider\DashboardSnapshot;
 use App\Infrastructure\Provider\FeedStatus;
 use App\Infrastructure\Provider\LocalMirrorStatus;
 use App\Infrastructure\Provider\ResearchSummary;
+use App\Infrastructure\Provider\SharedCapitalSummary;
 use Illuminate\Http\JsonResponse;
 
 final class OverviewController extends Controller
@@ -39,6 +40,7 @@ final class OverviewController extends Controller
             'strategies' => array_map(fn ($strategy) => [...$strategy, 'bankroll_enabled' => $paperView['bankroll']['status'] === 'paper'], $strategies->all()),
             'strategy_monitoring' => $monitoring->all(),
             'research_simulation' => $research->overview(),
+            'shared_simulation' => app(SharedCapitalSummary::class)->overview(),
             ...$paperView,
             'paper_worker' => $health->view(),
         ])->header('Cache-Control', 'no-store');

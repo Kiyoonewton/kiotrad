@@ -14,7 +14,7 @@ class DashboardSnapshot
     private function key(): string
     {
         return 'dashboard:'.hash('sha256', json_encode([config('database.connections.mongodb.database'),
-            config('database.connections.mongodb.dsn'), config('kiotrad.simulation_capital_minor'), ChampionMonitor::SIMULATION_VERSION]));
+            config('database.connections.mongodb.dsn'), config('kiotrad.simulation_capital_minor'), ChampionMonitor::SIMULATION_VERSION, 'shared-dashboard-v1']));
     }
 
     public function read(): array
@@ -43,6 +43,7 @@ class DashboardSnapshot
         try {
             $data = $this->build();
             if (($data['research_simulation']['status'] ?? '') !== 'available'
+                || (isset($data['shared_simulation']) && ($data['shared_simulation']['status'] ?? '') !== 'available')
                 || array_filter($data['competitions'] ?? [], fn ($c) => ($c['feed_status'] ?? '') === 'unavailable')
                 || array_filter($data['strategy_monitoring'] ?? [], fn ($r) => ($r['status'] ?? '') === 'monitoring_unavailable')) {
                 return 'source_unavailable';
