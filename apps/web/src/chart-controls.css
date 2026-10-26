@@ -29,24 +29,3 @@
 .research-metrics strong {
   font-size: clamp(15px, 1.5vw, 24px);
 }
-
-.chart-navigation {
-  display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 12px 24px;
-  margin: 12px 0;
-}
-.chart-navigation label {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-size: 12px;
-  color: #a8b8ae;
-}
-.chart-navigation input {
-  accent-color: #81c9a0;
-}
-.chart-navigation small {
-  color: #a8b8ae;
-}

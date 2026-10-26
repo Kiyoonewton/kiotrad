@@ -51,7 +51,9 @@ export function StrategyList({
               <span>
                 Monitoring{" "}
                 <b>
-                  {monitoring.length ? "Simulation observations" : "Not connected"}
+                  {monitoring.length
+                    ? "Simulation observations"
+                    : "Not connected"}
                 </b>
               </span>
             </div>
