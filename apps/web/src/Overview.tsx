@@ -181,6 +181,7 @@ export function Overview({
         />
       </div>
       <StrategyList
+        sharedRuns={data.shared_simulation?.runs}
         strategies={data.strategies}
         monitoring={monitoring}
         competitions={data.competitions}
