@@ -91,3 +91,46 @@ it("supports candle zoom and sliding through older accepted runs", () => {
   fireEvent.click(screen.getByRole("button", { name: "Fit history" }));
   expect(pan).toHaveAttribute("max", "0");
 });
+
+it("separates budget skips from missing history and shows the affected fixtures", () => {
+  render(
+    <SharedCapitalPerformance
+      data={{
+        ...data,
+        runs: [
+          data.runs[0],
+          {
+            id: "budget",
+            entry_at: "2026-10-20T10:00:00Z",
+            status: "skipped_budget",
+            skip_reason: "insufficient_allowance",
+          },
+          {
+            id: "history",
+            entry_at: "2026-10-20T10:00:00Z",
+            status: "insufficient_fixture_history",
+            missing_historical_fixtures: [
+              {
+                matchday: 5,
+                home_team: "Synthetic",
+                away_team: "Opponent",
+                outcome: "H",
+              },
+            ],
+          },
+        ],
+      }}
+    />,
+  );
+  expect(
+    screen.getByText(/1 budget skips · not missing data/),
+  ).toBeInTheDocument();
+  expect(
+    screen.getByText(/1 completed · 1 unresolved · 0 clashes excluded/),
+  ).toBeInTheDocument();
+  expect(
+    screen.getByText(
+      /D5 · Synthetic vs Opponent · H: earlier-season odds missing/,
+    ),
+  ).toBeInTheDocument();
+});

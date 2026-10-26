@@ -111,4 +111,20 @@ class SharedCapitalReplayTest extends TestCase
         $this->assertSame(0, $result['runs'][0]['total_staked_minor']);
         $this->assertSame(5000000, $result['balance_minor']);
     }
+
+    public function test_budget_shortage_is_a_skip_and_missing_history_keeps_fixture_evidence(): void
+    {
+        $candidate = $this->candidate('budget', '2026-10-20T10:00:00Z', '2026-10-20T10:02:00Z');
+        $engine = new SharedCapitalReplay;
+        $view = $engine->calculate([$candidate], 19999, '2026-10-20T11:00:00Z');
+        $this->assertSame('skipped_budget', $view['runs'][0]['status']);
+        $this->assertSame('insufficient_allowance', $view['runs'][0]['skip_reason']);
+        $this->assertSame(19999, $view['balance_minor']);
+        $this->assertNull($view['active_run_id']);
+        $candidate['fixtures'][0]['historical_odds_scaled'] = null;
+        $view = $engine->calculate([$candidate], 5000000, '2026-10-20T11:00:00Z');
+        $this->assertSame('insufficient_fixture_history', $view['runs'][0]['status']);
+        $this->assertCount(1, $view['runs'][0]['missing_historical_fixtures']);
+        $this->assertSame(5000000, $view['balance_minor']);
+    }
 }

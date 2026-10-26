@@ -18,7 +18,10 @@ export function SharedCapitalPerformance({ data }: { data: SharedSimulation }) {
     (r) => r.estimate && r.status !== "skipped_simultaneous_entry",
   );
   const closed = accepted.filter((r) => r.net_minor != null && r.released_at);
-  const skipped = data.runs.filter((r) => r.status.startsWith("skipped_"));
+  const skipped = data.runs.filter((r) =>
+    ["skipped_overlap", "skipped_simultaneous_entry"].includes(r.status),
+  );
+  const budgetSkipped = data.runs.filter((r) => r.status === "skipped_budget");
   const reasons = new Map<string, number>();
   for (const r of data.runs.filter(
     (r) => !r.status.startsWith("skipped_") && r.net_minor == null,
@@ -139,6 +142,7 @@ export function SharedCapitalPerformance({ data }: { data: SharedSimulation }) {
             {closed.length} completed · {unresolved} unresolved ·{" "}
             {skipped.length} clashes excluded
           </p>
+          <p>{budgetSkipped.length} budget skips · not missing data</p>
           <dl className="coverage-details">
             {[...reasons].map(([reason, count]) => (
               <div key={reason}>
@@ -175,7 +179,20 @@ export function SharedCapitalPerformance({ data }: { data: SharedSimulation }) {
               {data.runs.map((r) => (
                 <tr key={r.id}>
                   <td>{r.team ?? r.id}</td>
-                  <td>{r.status.replaceAll("_", " ")}</td>
+                  <td>
+                    {r.status.replaceAll("_", " ")}
+                    {r.skip_reason && (
+                      <small> · {r.skip_reason.replaceAll("_", " ")}</small>
+                    )}
+                    {r.missing_historical_fixtures?.map((f) => (
+                      <div key={f.provider_match_id ?? f.matchday}>
+                        <small>
+                          D{f.matchday} · {f.home_team} vs {f.away_team} ·{" "}
+                          {f.outcome}: earlier-season odds missing
+                        </small>
+                      </div>
+                    ))}
+                  </td>
                   <td>
                     {r.estimate
                       ? naira(r.estimate.plan.profit_per_attempt_minor)

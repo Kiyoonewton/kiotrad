@@ -8,6 +8,14 @@ export type SharedRun = {
   released_at?: string | null;
   status: string;
   blocked_by?: string;
+  skip_reason?: string;
+  missing_historical_fixtures?: {
+    matchday: number;
+    home_team?: string;
+    away_team?: string;
+    outcome?: string;
+    provider_match_id?: string;
+  }[];
   net_minor?: number | null;
   total_staked_minor?: number;
   gross_payout_minor?: number;
