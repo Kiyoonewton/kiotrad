@@ -65,6 +65,9 @@ def perform(sync, server):
     if not isinstance(settings.get('capital_minor'), int) or settings['capital_minor'] < 10000:
         raise RuntimeError('Invalid strategy settings.')
     (folder / 'strategy.json').write_bytes(snapshot)
+    definitions = sync.ROOT / 'backups/strategy-definitions'
+    definitions.mkdir(parents=True, exist_ok=True)
+    (definitions / (hashlib.sha256(snapshot).hexdigest() + '.json')).write_bytes(snapshot)
     print('Downloading permanent raw provider evidence...', flush=True)
     archive = folder / 'raw.tar.gz'
     with archive.open('wb') as output:
@@ -90,6 +93,8 @@ def perform(sync, server):
             sync.compose('exec', '-T', 'mongodb', 'mongorestore', '--archive', '--gzip',
                          '--nsFrom=kiotrad.*', '--nsTo=' + database + '.*', '--stopOnError', stdin=source)
     previous = sync.ENV.read_bytes()
+    previous_database = next((line.split('=', 1)[1] for line in previous.decode().splitlines()
+                              if line.startswith('LOCAL_DATABASE=')), None)
     try:
         # Settings are source evidence; local simulations must use this snapshot's capital.
         content = sync.ENV.read_text()
@@ -102,4 +107,11 @@ def perform(sync, server):
         raise
     (folder / 'manifest.json').write_text(json.dumps({'database': database, 'raw_files': count,
         'started_at': started, 'mode': 'raw_evidence_rebuild'}, indent=2))
+    # The downloaded tar is only transport; validated extracted files are the retained evidence.
+    archive.unlink()
+    try:
+        from snapshot_retention import prune
+        prune(sync, database, previous_database)
+    except (RuntimeError, OSError) as error:
+        print('New snapshot is active; older-copy cleanup needs attention: ' + str(error))
     print('Raw evidence and strategy snapshot retained; local MongoDB views are rebuildable.')
