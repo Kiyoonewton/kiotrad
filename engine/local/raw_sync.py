@@ -9,6 +9,7 @@ import tarfile
 from datetime import datetime, timezone
 
 from raw_manifest import manifest_script, parse_manifest, tar_input, verify_files
+from raw_reuse import reuse_files
 
 
 def extract_evidence(archive, target):
@@ -74,14 +75,18 @@ def perform(sync, server):
     manifest = parse_manifest(sync.run(sync.ssh_command(server, ['docker', 'exec', '-i', 'kiotrad-api-1', 'php']),
                                       phase='raw file manifest', input=manifest_script(), stdout=subprocess.PIPE).stdout)
     (folder / 'raw-files.json').write_text(json.dumps(manifest, indent=2))
-    total = sum(entry['bytes'] for entry in manifest['files'])
-    print(f"Downloading {len(manifest['files'])} permanent raw files ({total / 1048576:.1f} MiB)...", flush=True)
+    delta, reused = reuse_files(manifest, folder)
+    total = sum(entry['bytes'] for entry in delta['files'])
+    print(f"Reusing {reused} verified local raw files; downloading {len(delta['files'])} new or changed files ({total / 1048576:.1f} MiB)...", flush=True)
     archive = folder / 'raw.tar.gz'
-    with archive.open('wb') as output:
-        sync.run(sync.ssh_command(server, ['docker', 'exec', '-i', 'kiotrad-api-1', 'tar',
-                 '--null', '--no-recursion', '-czf', '-', '-C', '/app/storage/app/private', '-T', '-']),
-                 phase='raw evidence download', input=tar_input(manifest), stdout=output)
-    count = extract_evidence(archive, folder)
+    downloaded = 0
+    if delta['files']:
+        with archive.open('wb') as output:
+            sync.run(sync.ssh_command(server, ['docker', 'exec', '-i', 'kiotrad-api-1', 'tar',
+                     '--null', '--no-recursion', '-czf', '-', '-C', '/app/storage/app/private', '-T', '-']),
+                     phase='raw evidence download', input=tar_input(delta), stdout=output)
+        downloaded = extract_evidence(archive, folder)
+    count = reused + downloaded
     verify_files(manifest, folder, count)
     print(f'Validated {count} raw responses. Rebuilding local derived views...', flush=True)
     sync.compose('build', 'api')
@@ -117,7 +122,7 @@ def perform(sync, server):
     (folder / 'manifest.json').write_text(json.dumps({'database': database, 'raw_files': count,
         'started_at': started, 'mode': 'raw_evidence_rebuild'}, indent=2))
     # The downloaded tar is only transport; validated extracted files are the retained evidence.
-    archive.unlink()
+    archive.unlink(missing_ok=True)
     try:
         from snapshot_retention import prune
         prune(sync, database, previous_database)
