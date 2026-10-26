@@ -1,7 +1,5 @@
 import { useState } from "react";
 import { naira } from "./api";
-import { ChartNavigation } from "./ChartNavigation";
-import { useChartNavigation } from "./useChartNavigation";
 import { ChartDensityControls } from "./ChartDensityControls";
 import { chartData, eventLabel, type ResearchRun } from "./researchChartData";
 
@@ -9,30 +7,17 @@ type Mode = "Line" | "Candles" | "Bars";
 export function ResearchChart({
   runs,
   initial,
-  shared = false,
 }: {
   runs: ResearchRun[];
   initial: number | null;
-  shared?: boolean;
 }) {
   const [mode, setMode] = useState<Mode>("Line");
   const [selection, setSelection] = useState(0);
   const [bucketHours, setBucketHours] = useState(24);
   const [visibleLimit, setVisibleLimit] = useState(200);
   const full = chartData(runs, initial ?? 0, bucketHours);
-  const total = mode === "Candles" ? full.candles.length : full.points.length;
-  const navigation = useChartNavigation(total, visibleLimit, setVisibleLimit);
-  const points =
-    mode === "Candles"
-      ? full.points
-      : full.points.slice(
-          navigation.start,
-          navigation.start + navigation.count,
-        );
-  const candles = full.candles.slice(
-    navigation.start,
-    navigation.start + navigation.count,
-  );
+  const points = full.points.slice(-visibleLimit);
+  const candles = full.candles.slice(-visibleLimit);
   const opening = points.length
     ? points[0].value - points[0].run.net_minor!
     : (initial ?? 0);
@@ -62,11 +47,7 @@ export function ResearchChart({
       <div className="section-heading">
         <div>
           <p className="eyebrow">All qualifying seasons</p>
-          <h2>
-            {shared
-              ? "Shared simulation balance"
-              : "Cumulative simulation results"}
-          </h2>
+          <h2>Cumulative simulation results</h2>
         </div>
         <div className="chart-modes" role="group" aria-label="Chart type">
           {(["Line", "Candles", "Bars"] as Mode[]).map((m) => (
@@ -84,15 +65,13 @@ export function ResearchChart({
         </div>
       </div>
       <p className="subtle">
-        {shared
-          ? "Settled shared balance · accepted runs only"
-          : mode === "Candles"
-            ? "Open / high / low / close of the reference path · green up, red down"
-            : mode === "Bars"
-              ? "Reference value at each date: starting capital + cumulative net"
-              : initial !== null
-                ? "Reference path: starting capital + cumulative independent-run net"
-                : "Cumulative independent-run net · starting capital unavailable"}
+        {mode === "Candles"
+          ? "Open / high / low / close of the reference path · green up, red down"
+          : mode === "Bars"
+            ? "Reference value at each date: starting capital + cumulative net"
+            : initial !== null
+              ? "Reference path: starting capital + cumulative independent-run net"
+              : "Cumulative independent-run net · starting capital unavailable"}
       </p>
       <ChartDensityControls
         mode={mode}
@@ -108,24 +87,17 @@ export function ResearchChart({
           setSelection(0);
         }}
       />
-      <ChartNavigation navigation={navigation} total={total} />
       {points.length ? (
         <>
           <svg
             viewBox="0 0 900 325"
             role="img"
             aria-label={
-              shared
-                ? "Shared simulation balance after each accepted run"
-                : mode === "Bars"
-                  ? "Reference capital value at each event date"
-                  : "Cumulative net of independent simulations in event order"
+              mode === "Bars"
+                ? "Reference capital value at each event date"
+                : "Cumulative net of independent simulations in event order"
             }
-            onPointerDown={navigation.down}
-            onPointerUp={navigation.up}
-            onPointerCancel={navigation.up}
             onPointerMove={(e) => {
-              navigation.move(e);
               const rect = e.currentTarget.getBoundingClientRect();
               setSelection(
                 Math.max(
@@ -261,16 +233,8 @@ export function ResearchChart({
                 </strong>
                 <span>
                   {eventLabel(point.run.event_at!)} WAT · run net{" "}
-                  {naira(point.run.net_minor!)} ·{" "}
-                  {shared ? "balance" : "reference"} {naira(point.value)}
+                  {naira(point.run.net_minor!)} · reference {naira(point.value)}
                 </span>
-                {shared && (
-                  <small>
-                    {point.run.status.replaceAll("_", " ")} · staked{" "}
-                    {naira(point.run.total_staked_minor)} · payout{" "}
-                    {naira(point.run.gross_payout_minor)}
-                  </small>
-                )}
               </>
             ) : null}
           </div>
@@ -288,9 +252,8 @@ export function ResearchChart({
         <div className="chart-empty">No completed priced simulations yet</div>
       )}
       <p className="subtle">
-        {shared
-          ? "Clashing runs are excluded. Pending stakes and reserved allowance are shown separately. Candles describe simulated balance changes."
-          : "Independent runs can overlap; this is not one shared bankroll. Candle values represent simulation results, not market prices."}
+        Independent runs can overlap; this is not one shared bankroll. Candle
+        values represent simulation results, not market prices.
       </p>
     </section>
   );

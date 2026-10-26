@@ -29,9 +29,7 @@ class SharedCapitalResearchTest extends TestCase
                 'captured_at' => '2026-10-20T10:14:00Z', 'pre_match_verified' => false,
             ], $matches)],
         ]));
-        $checkpoint = Mockery::mock();
-        $checkpoint->shouldReceive('findOne')->andReturn(['capture_id' => 'capture']);
-        DB::shouldReceive('connection->getDatabase')->andReturn((object) ['provider_captures' => $collection, 'season_checkpoints' => $checkpoint]);
+        DB::shouldReceive('connection->getDatabase')->andReturn((object) ['provider_captures' => $collection]);
         $history = $this->mock(SimulationHistory::class);
         $history->shouldReceive('seasons')->once()->andReturn([['season_id' => '100']]);
         $history->shouldReceive('rows')->once()->andReturn([

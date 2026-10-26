@@ -9,7 +9,7 @@ final class SimulationDefinitionSnapshot
     public function current(): array
     {
         $hashes = [];
-        foreach ([...glob(app_path('Domain/Strategies/*.php')), ...glob(app_path('Domain/Research/*.php')), app_path('Domain/Paper/RecoveryStake.php')] as $path) {
+        foreach ([...glob(app_path('Domain/Strategies/*.php')), app_path('Domain/Paper/RecoveryStake.php')] as $path) {
             $hashes[basename($path)] = hash_file('sha256', $path);
         }
         ksort($hashes);
