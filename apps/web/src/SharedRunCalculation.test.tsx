@@ -1,0 +1,40 @@
+import { cleanup, render, screen } from "@testing-library/react";
+import { afterEach, expect, it } from "vitest";
+import { SharedRunCalculation } from "./SharedRunCalculation";
+afterEach(cleanup);
+it("displays the shared frozen target and actual-price stake instead of a fixed hundred", () => {
+  render(
+    <SharedRunCalculation
+      run={{
+        id: "example",
+        entry_at: "2026-10-20T10:00:00Z",
+        status: "win",
+        capital_at_entry_minor: 5000000,
+        total_staked_minor: 274600,
+        gross_payout_minor: 370710,
+        net_minor: 96110,
+        estimate: {
+          allowance_minor: 4997200,
+          plan: { total_minor: 2498600, profit_per_attempt_minor: 96100 },
+        },
+        attempts: [
+          {
+            attempt: 1,
+            matchday: 5,
+            home_team: "Synthetic",
+            away_team: "Opponent",
+            actual_odds_scaled: 13500,
+            stake_minor: 274600,
+            target_profit_minor: 96100,
+            payout_minor: 370710,
+          },
+        ],
+      }}
+    />,
+  );
+  expect(screen.getByText("₦961.00")).toBeInTheDocument();
+  expect(screen.getAllByText("₦2,746.00")).toHaveLength(2);
+  expect(screen.getByText("₦961.10")).toBeInTheDocument();
+  expect(screen.getByText("1.35")).toBeInTheDocument();
+  expect(screen.queryByText("₦100.10")).not.toBeInTheDocument();
+});

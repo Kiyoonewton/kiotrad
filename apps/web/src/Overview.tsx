@@ -6,6 +6,7 @@ import { MonitoringGroups } from "./MonitoringGroups";
 import { StrategyList } from "./StrategyList";
 import { LeaguePulse } from "./LeaguePulse";
 import { RunEventTimeline } from "./RunEventTimeline";
+import { SharedCapitalPerformance } from "./SharedCapitalPerformance";
 import { ResearchPerformance } from "./ResearchPerformance";
 
 function formatLagos(value: string): string {
@@ -36,7 +37,9 @@ export function Overview({
   );
   return (
     <>
-      {data.research_simulation ? (
+      {data.shared_simulation ? (
+        <SharedCapitalPerformance data={data.shared_simulation} />
+      ) : data.research_simulation ? (
         <ResearchPerformance data={data.research_simulation} league={league} />
       ) : (
         <>
@@ -171,6 +174,7 @@ export function Overview({
           )}
           <MonitoringGroups
             rows={monitoring}
+            sharedRuns={data.shared_simulation?.runs}
             strategies={data.strategies}
             competitions={data.competitions}
           />
@@ -181,6 +185,7 @@ export function Overview({
         />
       </div>
       <StrategyList
+        sharedRuns={data.shared_simulation?.runs}
         strategies={data.strategies}
         monitoring={monitoring}
         competitions={data.competitions}

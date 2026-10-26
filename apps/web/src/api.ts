@@ -1,3 +1,4 @@
+import type { SharedSimulation } from "./sharedSimulation";
 export interface Strategy {
   id: string;
   name: string;
@@ -58,6 +59,7 @@ export interface Overview {
     status: "warming" | "ready" | "stale" | "unavailable";
     generated_at: string | null;
   };
+  shared_simulation?: SharedSimulation;
   research_simulation?: {
     status: string;
     from?: string | null;

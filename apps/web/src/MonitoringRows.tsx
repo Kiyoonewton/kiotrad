@@ -1,3 +1,5 @@
+import { SharedRunCalculation } from "./SharedRunCalculation";
+import type { SharedRun } from "./sharedSimulation";
 import type { Overview } from "./api";
 import { RunCalculation } from "./RunCalculation";
 
@@ -47,9 +49,11 @@ const reasons: Record<string, string> = {
 
 export function MonitoringRows({
   rows,
+  sharedRuns,
   strategies,
   competitions,
 }: {
+  sharedRuns?: SharedRun[];
   rows: NonNullable<Overview["strategy_monitoring"]>;
   strategies: Overview["strategies"];
   competitions: Overview["competitions"];
@@ -135,7 +139,16 @@ export function MonitoringRows({
                 "Monitoring state unavailable."}
             </p>
           </details>
-          {row.simulation && <RunCalculation calculation={row.simulation} />}
+          {sharedRuns
+            ? (() => {
+                const run = sharedRuns.find(
+                  (r) =>
+                    r.id ===
+                    `${row.competition}:${row.season_id}:${row.strategy_id}`,
+                );
+                return <SharedRunCalculation run={run} />;
+              })()
+            : row.simulation && <RunCalculation calculation={row.simulation} />}
           {!row.simulation && !!row.data_quality_notes?.length && (
             <details className="run-details">
               <summary>Data notes</summary>
