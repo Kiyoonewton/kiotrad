@@ -19,3 +19,7 @@ Local MongoDB reconstruction is a disposable materialized view, not an additiona
 Incomplete raw coverage is not repaired with invented metadata. Missing standings, fixtures or prices remain visible; no source data is deleted to hide gaps. Operator-confirmed blockages remain explicit rather than inferred from HTTP failures.
 
 The rebuilt dashboard describes the raw snapshot. It does not copy production scheduling/retry state, which is temporary operational data.
+
+## Production isolation
+
+The default Docker target is `production` and removes the raw rebuild command and importer classes from its filesystem. Local Compose explicitly builds target `local`. The production API retains only the read-only strategy snapshot helper used over SSH. The rebuild command is not an HTTP route. Runtime database/name guards still protect the local target. CI verifies the command is absent from the production image and reconstructs synthetic evidence using the local image.
