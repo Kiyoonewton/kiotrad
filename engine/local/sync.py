@@ -186,6 +186,7 @@ def main():
     source = parser.add_mutually_exclusive_group(required=True)
     source.add_argument("--ssh", help="SSH alias or user@server")
     source.add_argument("--activate", help="Validate and activate an already restored local snapshot without downloading")
+    parser.add_argument("--full-rebuild", action="store_true", help="Reconstruct all local provider views from raw evidence")
     parser.add_argument("--legacy-normalized", action="store_true", help="Explicit fallback: copy old normalized snapshots")
     args = parser.parse_args()
     guard_local()
@@ -200,13 +201,13 @@ def main():
             if args.legacy_normalized:
                 perform_legacy_sync(args.ssh)
             else:
-                perform_sync(args.ssh)
+                perform_sync(args.ssh, args.full_rebuild)
 
 
-def perform_sync(server):
+def perform_sync(server, full_rebuild=False):
     import raw_sync
     from types import SimpleNamespace
-    raw_sync.perform(SimpleNamespace(**globals()), server)
+    raw_sync.perform(SimpleNamespace(**globals()), server, full_rebuild)
 
 
 def perform_legacy_sync(server):

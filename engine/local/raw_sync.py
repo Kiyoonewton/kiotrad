@@ -50,7 +50,7 @@ echo json_encode(app(App\\Domain\\Strategies\\SimulationDefinitionSnapshot::clas
 '''
 
 
-def perform(sync, server):
+def perform(sync, server, full_rebuild=False):
     os.umask(0o077)
     if not sync.ENV.exists():
         sync.write_environment('kiotrad_local')
@@ -89,6 +89,8 @@ def perform(sync, server):
     count = reused + downloaded
     verify_files(manifest, folder, count)
     print(f'Validated {count} raw responses. Rebuilding local derived views...', flush=True)
+    from raw_seed import seed_snapshot
+    seed_snapshot(sync, database, folder, full_rebuild)
     sync.compose('build', 'api')
     sync.compose('run', '--rm', '--no-deps', '-e', 'MONGODB_DATABASE=' + database,
                  '-e', 'MONGODB_URI=mongodb://mongodb:27017/' + database,
@@ -105,7 +107,7 @@ def perform(sync, server):
             sync.run(sync.source_command(server, 'market_blockages'), input=json.dumps({'uri': uri}).encode(), stdout=output)
         with (folder / 'market_blockages.archive.gz').open('rb') as source:
             sync.compose('exec', '-T', 'mongodb', 'mongorestore', '--archive', '--gzip',
-                         '--nsFrom=kiotrad.*', '--nsTo=' + database + '.*', '--stopOnError', stdin=source)
+                         '--nsFrom=kiotrad.*', '--nsTo=' + database + '.*', '--drop', '--stopOnError', stdin=source)
     previous = sync.ENV.read_bytes()
     previous_database = next((line.split('=', 1)[1] for line in previous.decode().splitlines()
                               if line.startswith('LOCAL_DATABASE=')), None)

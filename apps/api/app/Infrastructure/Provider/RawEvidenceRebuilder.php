@@ -13,28 +13,39 @@ final class RawEvidenceRebuilder
     public function __construct(private ArchivedFeed $archive, private FixtureNormalizer $fixtures,
         private OddsNormalizer $odds, private StandingsNormalizer $standings, private MongoCollectionStore $store) {}
 
-    public function rebuild(string $folder): array
+    public function rebuild(string $folder, ?callable $progress = null): array
     {
         $database = config('database.connections.mongodb.database');
         if (! config('kiotrad.local_data_mirror') || ! preg_match('/^kiotrad_local_[0-9TZ]+$/D', $database)) {
             throw new RuntimeException('Raw rebuild requires an isolated timestamped local database.');
         }
         $db = DB::connection('mongodb')->getDatabase();
-        if ($db->provider_captures->countDocuments() > 0) {
-            throw new RuntimeException('Rebuild requires an empty destination; existing data is preserved.');
+        $index = new RawRebuildIndex;
+        $state = $db->local_raw_rebuild->findOne(['_id' => 'state']);
+        if ($state === null && $db->provider_captures->countDocuments() > 0) {
+            throw new RuntimeException('Unindexed destination requires --full-rebuild; existing data is preserved.');
         }
-        $files = [];
-        foreach (new \RecursiveIteratorIterator(new \RecursiveDirectoryIterator($folder, \FilesystemIterator::SKIP_DOTS)) as $file) {
-            if ($file->isFile() && str_ends_with($file->getFilename(), '.json.gz')) {
-                $record = $this->archive->read($file->getPathname());
-                $files[] = ['path' => $file->getPathname(), 'at' => $record['feed']->receivedAt->toIso8601String()];
-            }
+        $db->provider_captures->createIndex(['competition' => 1, 'season_id' => 1, 'scope' => 1, 'observed_at' => -1]);
+        $plan = $index->prepare($folder, $db, $this->archive, $progress);
+        $files = $plan['selected'];
+        $db->local_raw_rebuild->updateOne(['_id' => 'state'], ['$set' => ['complete' => false]], ['upsert' => true]);
+        foreach (array_keys($plan['affected']) as $season) {
+            $db->provider_captures->deleteMany(['season_id' => (string) $season, 'scope' => ['$in' => ['raw_rebuild', 'raw_rebuild_odds', 'raw_rebuild_standings']]]);
+            $db->season_checkpoints->deleteMany(['season_id' => (string) $season]);
+            $db->fixture_baseline_progress->deleteMany(['season_id' => (string) $season]);
+            $db->fixture_odds_season_minima->deleteMany(['season_id' => (string) $season]);
         }
-        usort($files, fn ($a, $b) => [$a['at'], $a['path']] <=> [$b['at'], $b['path']]);
-        $counts = ['raw_files' => count($files), 'catalogs' => 0, 'fixtures' => 0, 'odds' => 0, 'standings' => 0, 'invalid_documents' => 0];
+        $counts = ['raw_files' => count($plan['rows']), 'new_files' => $plan['new_files'], 'replayed_files' => count($files), 'incremental' => $plan['incremental'], 'catalogs' => 0, 'fixtures' => 0, 'odds' => 0, 'standings' => 0, 'invalid_documents' => 0];
         // Catalog and fixture identities must exist before prices/tables can be joined.
         foreach (['catalogs', 'fixtures', 'odds', 'standings'] as $phase) {
-            foreach ($files as $file) {
+            $phaseFiles = array_values(array_filter($files, fn ($f) => $f['phase'] === $phase));
+            if ($progress) {
+                $progress($phase, 0, count($phaseFiles));
+            }
+            foreach ($phaseFiles as $position => $file) {
+                if ($progress && $position > 0 && $position % 100 === 0) {
+                    $progress($phase, $position, count($phaseFiles));
+                }
                 $record = $this->archive->read($file['path']);
                 $feed = $record['feed'];
                 if ($record['status'] !== 200 || ! is_array($feed->document['data'] ?? null)) {
@@ -60,8 +71,11 @@ final class RawEvidenceRebuilder
                     $counts['invalid_documents']++;
                 }
             }
+            if ($progress) {
+                $progress($phase, count($phaseFiles), count($phaseFiles));
+            }
         }
-        if ($counts['fixtures'] === 0 || $counts['catalogs'] === 0) {
+        if ($db->provider_captures->countDocuments(['scope' => 'raw_rebuild']) === 0 || $db->collector_states->countDocuments() === 0) {
             throw new RuntimeException('Raw evidence lacks fixtures or league catalogs; destination not activated.');
         }
 
@@ -74,6 +88,14 @@ final class RawEvidenceRebuilder
                 ]], ['upsert' => true]);
             }
         }
+
+        foreach (array_keys($plan['affected']) as $season) {
+            $evidence = array_values(array_map(fn ($r) => $r['hash'], array_filter($plan['rows'], fn ($r) => $r['season'] === (string) $season)));
+            $db->season_checkpoints->updateMany(['season_id' => (string) $season], ['$set' => [
+                'odds_evidence_revision' => hexdec(substr(hash('sha256', json_encode($evidence)), 0, 12)),
+            ]]);
+        }
+        $index->commit($db, $plan);
 
         return $counts;
     }
@@ -114,6 +136,10 @@ final class RawEvidenceRebuilder
         foreach ((new SimulationSeasonLinks)->merge([], $catalog, $feed->receivedAt->toIso8601String()) as $link) {
             $db->provider_catalog_links->updateOne(['_id' => $league.':'.$link['from_season_id'].':'.$link['to_season_id']],
                 ['$setOnInsert' => ['competition' => $league, ...$link]], ['upsert' => true]);
+        }
+        $state = $db->collector_states->findOne(['_id' => $league]);
+        if ($state && ($state['collection_observed_at'] ?? '') > $feed->receivedAt->toIso8601String()) {
+            return 1;
         }
         $db->collector_states->updateOne(['_id' => $league], ['$set' => ['current_season_id' => $current[0],
             'collection_observed_at' => $feed->receivedAt->toIso8601String(), 'season_catalog' => $catalog]], ['upsert' => true]);
