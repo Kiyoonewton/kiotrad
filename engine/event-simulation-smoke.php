@@ -92,9 +92,9 @@ try {
     $first = $cache->remember('day', 'v1', 86400, $compute);
     $assert($first['calls'] === 2 && $calls === 2, 'Redis did not reuse historical calculation.');
     $report['observed_at'] = $now->addSeconds(2)->toIso8601String();
-    $report['matches'][4]['result'] = 'D';
-    $report['matches'][5]['result'] = 'H';
-    $report['matches'][5]['status'] = 'settled';
+    $report['matches'][5]['result'] = 'D';
+    $report['matches'][6]['result'] = 'H';
+    $report['matches'][6]['status'] = 'settled';
     $store->save($report);
     CarbonImmutable::setTestNow($now->addSeconds(5));
     $updated = $find($monitor->forSeason('virtual-football', '200'));
@@ -106,7 +106,7 @@ try {
     $assert($snapshot->refresh() === 'refreshed', 'Background dashboard could not publish real Redis snapshot.');
     $assert($snapshot->read()['dashboard_cache']['status'] === 'ready', 'Published dashboard snapshot unavailable.');
     $assert($portfolio->read() === $before, 'Research replay modified the shared journal.');
-    $assert($db->provider_captures->findOne(['_id' => $original])['matches'][4]['result'] === 'H', 'Recovery rewrote an immutable capture.');
+    $assert($db->provider_captures->findOne(['_id' => $original])['matches'][5]['result'] === 'H', 'Recovery rewrote an immutable capture.');
     echo "Event simulation passed: recovered result, historical pagination, real Redis TTLs, source invalidation, summary and immutable journal.\n";
 } finally {
     CarbonImmutable::setTestNow();

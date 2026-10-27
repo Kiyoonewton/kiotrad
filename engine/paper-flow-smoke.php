@@ -37,18 +37,18 @@ try {
             'champion' => ['team_uid' => '1', 'team_name' => 'Synthetic champion']]];
     $store->save($previous);
     $matches = [];
-    foreach (['D', 'A', 'D', 'H', null] as $index => $result) {
+    foreach (['D', 'A', 'D', 'A', 'H', null] as $index => $result) {
         $matches[] = ['provider_match_id' => 'vf:match:'.(5001 + $index), 'season_id' => '200', 'matchday' => $index + 1,
             'home_team_uid' => '1', 'home_team' => 'Synthetic champion', 'away_team_uid' => (string) (2 + $index),
             'away_team' => 'Synthetic opponent '.($index + 1),
-            'scheduled_start_at' => ($index === 4 ? $time->addMinute() : $time->subMinutes(20 - $index * 4))->toIso8601String(),
+            'scheduled_start_at' => ($index === 5 ? $time->addMinute() : $time->subMinutes(20 - $index * 4))->toIso8601String(),
             'status' => $result === null ? 'scheduled_or_unconfirmed' : 'settled', 'result' => $result,
             'home_score' => $result === null ? null : ($result === 'H' ? 1 : 0),
             'away_score' => $result === null ? null : ($result === 'A' ? 1 : 0)];
     }
     $report = ['competition' => 'virtual-football', 'season_id' => '200', 'scope' => 'current',
         'observed_at' => $time->subSeconds(10)->toIso8601String(), 'matches' => $matches,
-        'odds_snapshots' => [['provider_match_id' => 'vf:match:5005', 'market' => '1X2', 'market_status' => 1,
+        'odds_snapshots' => [['provider_match_id' => 'vf:match:5006', 'market' => '1X2', 'market_status' => 1,
             'prices' => ['H' => '1.5', 'D' => '3.4', 'A' => '4.2'], 'pre_match_verified' => true,
             'captured_at' => $time->subSeconds(9)->toIso8601String()]]];
     $capture = $store->save($report);
@@ -57,7 +57,7 @@ try {
         'continuity_status' => 'observed_rollover']]);
     $rows = app(ChampionMonitoring::class)->all();
     $candidate = array_values(array_filter($rows, fn ($row) => ($row['strategy_id'] ?? null) === 'champion-next-win'))[0];
-    $assert($candidate['status'] === 'watching_fixture' && $candidate['trigger_day'] === 4, 'Provider history did not produce the qualifying observation.');
+    $assert($candidate['status'] === 'watching_fixture' && $candidate['trigger_day'] === 5, 'Provider history did not produce the qualifying observation.');
     $assert($candidate['simulation']['status'] === 'awaiting_result' && $candidate['simulation']['total_staked_minor'] === 20000,
         'Observation did not calculate a NGN 200 simulation stake before portfolio configuration.');
     $portfolio = new MongoPaperStore;
@@ -76,7 +76,7 @@ try {
     $runner = app(PaperRunner::class); // New instance: resume solely from persisted data.
     CarbonImmutable::setTestNow($time->addMinutes(4));
     $report['observed_at'] = $time->addMinutes(3)->toIso8601String();
-    $report['matches'][4] = [...$matches[4], 'status' => 'settled', 'result' => 'H', 'home_score' => 1, 'away_score' => 0];
+    $report['matches'][5] = [...$matches[5], 'status' => 'settled', 'result' => 'H', 'home_score' => 1, 'away_score' => 0];
     $report['odds_snapshots'] = [];
     $resultCapture = $store->save($report);
     $assert($runner->tick() === 'updated', 'Confirmed result did not settle the paper entry.');
