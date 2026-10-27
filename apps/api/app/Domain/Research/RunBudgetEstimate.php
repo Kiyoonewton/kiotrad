@@ -6,11 +6,11 @@ use DomainException;
 
 final class RunBudgetEstimate
 {
-    public const VERSION = 'historical-low-odds-single-allowance-2.0.0';
+    public const VERSION = 'historical-low-odds-configurable-2.1.0';
 
     public function calculate(array $odds, int $available, int $multiplier = 1): array
     {
-        if (! in_array($multiplier, [1, 2], true) || $available < 0 || $available > 1000000000 || count($odds) < 1 || count($odds) > 4) {
+        if (! in_array($multiplier, [1, 2], true) || $available < 0 || $available > 1000000000 || count($odds) < 1 || count($odds) > 10) {
             throw new DomainException('invalid_budget');
         }
         foreach ($odds as $price) {

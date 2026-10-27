@@ -3,6 +3,7 @@
 namespace App\Console\Commands;
 
 use App\Infrastructure\Provider\DashboardSnapshot;
+use App\Infrastructure\Provider\PreparedResearch;
 use Illuminate\Console\Command;
 use Throwable;
 
@@ -21,6 +22,15 @@ class WatchDashboard extends Command
                 $status = 'refresh_failed';
             }
             $this->line(now('UTC')->toIso8601String().' dashboard: '.$status);
+            if ($status === 'refreshed') {
+                try {
+                    $this->line(now('UTC')->toIso8601String().' workbench: checking reusable evidence');
+                    $this->line(now('UTC')->toIso8601String().' workbench: '.app(PreparedResearch::class)->refresh());
+                } catch (Throwable $exception) {
+                    report($exception);
+                    $this->line(now('UTC')->toIso8601String().' workbench: preparation_failed');
+                }
+            }
             if ($this->option('once')) {
                 return $status === 'refreshed' ? self::SUCCESS : self::FAILURE;
             }

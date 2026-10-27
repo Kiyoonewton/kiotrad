@@ -32,6 +32,11 @@ class SimulationHistory
         ], ['typeMap' => ['root' => 'array', 'document' => 'array', 'array' => 'array']])->toArray();
     }
 
+    public function preparedRows(array $seasons): array
+    {
+        return $this->monitoring->preparedRows($seasons);
+    }
+
     public function rows(array $seasons): array
     {
         return $this->monitoring->forSeasons($seasons);

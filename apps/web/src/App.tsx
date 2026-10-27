@@ -3,9 +3,10 @@ import { getOverview, type Overview as OverviewData } from "./api";
 import { Overview } from "./Overview";
 import { SimulationHistory } from "./SimulationHistory";
 import { StrategyList } from "./StrategyList";
+import { Simulator } from "./Simulator";
 import { Logo } from "./Logo";
 
-const pages = ["Overview", "Strategies", "History"] as const;
+const pages = ["Overview", "Strategies", "History", "Simulator"] as const;
 type Page = (typeof pages)[number];
 
 export default function App() {
@@ -63,7 +64,7 @@ export default function App() {
               aria-current={page === item ? "page" : undefined}
               onClick={() => setPage(item)}
             >
-              <span aria-hidden="true">{["◫", "◇", "◷"][index]}</span>
+              <span aria-hidden="true">{["◫", "◇", "◷", "◈"][index]}</span>
               {item}
             </button>
           ))}
@@ -176,6 +177,8 @@ export default function App() {
             </p>
           ) : page === "Overview" ? (
             <Overview data={data} league={league} />
+          ) : page === "Simulator" ? (
+            <Simulator data={data} league={league} />
           ) : page === "Strategies" ? (
             <>
               <div className="page-intro">

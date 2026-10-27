@@ -7,10 +7,13 @@ use DomainException;
 
 final class SharedCapitalReplay
 {
-    public const VERSION = 'single-active-single-allowance-2.0.0';
+    public const VERSION = 'single-active-parameterized-2.1.0';
 
-    public function calculate(array $candidates, int $capital, string $asOf, ?int $settlementSeconds = null): array
+    public function calculate(array $candidates, int $capital, string $asOf, ?int $settlementSeconds = null, int $maxAttempts = 4, int $multiplier = 1): array
     {
+        if ($maxAttempts < 1 || $maxAttempts > 10 || ! in_array($multiplier, [1, 2], true)) {
+            throw new DomainException('invalid_scenario_settings');
+        }
         if ($capital < 1 || $capital > 1000000000) {
             throw new DomainException('invalid_capital');
         }
@@ -19,7 +22,7 @@ final class SharedCapitalReplay
         $candidates = (new SettlementTimingModel)->apply($candidates, $asOf, $settlementSeconds);
         $ids = [];
         foreach ($candidates as &$candidate) {
-            if (isset($ids[$candidate['id']]) || empty($candidate['fixtures']) || count($candidate['fixtures']) > 4) {
+            if (isset($ids[$candidate['id']]) || empty($candidate['fixtures']) || count($candidate['fixtures']) > $maxAttempts) {
                 throw new DomainException('invalid_candidate');
             }
             $ids[$candidate['id']] = true;
@@ -67,6 +70,12 @@ final class SharedCapitalReplay
             }
             $eligible = [];
             foreach ($group as $candidate) {
+                if ($balance > 1000000000) {
+                    $rows[] = [...$candidate, 'entry_at' => $at, 'status' => 'skipped_budget',
+                        'skip_reason' => 'calculation_range_limit', 'capital_at_entry_minor' => $balance];
+
+                    continue;
+                }
                 $odds = array_column($candidate['fixtures'], 'historical_odds_scaled');
                 if (count($odds) !== count($candidate['fixtures']) || in_array(null, $odds, true)) {
                     $rows[] = [...$candidate, 'entry_at' => $at, 'status' => 'insufficient_fixture_history',
@@ -75,7 +84,7 @@ final class SharedCapitalReplay
 
                     continue;
                 }
-                $estimate = (new RunBudgetEstimate)->calculate($odds, $balance, 1);
+                $estimate = (new RunBudgetEstimate)->calculate($odds, $balance, $multiplier);
                 if ($estimate['status'] !== 'estimated') {
                     $rows[] = [...$candidate, 'entry_at' => $at, 'status' => 'skipped_budget',
                         'skip_reason' => 'insufficient_allowance', 'capital_at_entry_minor' => $balance,
@@ -94,7 +103,7 @@ final class SharedCapitalReplay
 
                     continue;
                 }
-                $settled = (new SharedRunSettlement)->calculate($candidate, $candidate['estimate'], $asOf);
+                $settled = (new SharedRunSettlement)->calculate($candidate, $candidate['estimate'], $asOf, $maxAttempts);
                 if ($settled['total_staked_minor'] === 0 && $settled['status'] === 'awaiting_price_or_market_resolution') {
                     $rows[] = [...$candidate, ...$settled, 'status' => 'unfunded_entry', 'funded' => false,
                         'capital_at_entry_minor' => $balance, 'entry_issue' => $settled['pricing_issue']];
@@ -115,7 +124,7 @@ final class SharedCapitalReplay
         return ['policy_version' => self::VERSION, 'mode' => 'shared_capital_simulation', 'as_of' => $asOf,
             'timing_basis' => $settlementSeconds === null ? 'recorded_result_confirmation_conservative' : 'modeled_scheduled_kickoff_offset', 'starting_capital_minor' => $capital,
             'balance_minor' => $balance, 'recovery_target_minor' => $recoveryTarget,
-            'allowance_multiplier' => 1, 'reserved_allowance_minor' => $active['allowance_minor'] ?? 0,
+            'allowance_multiplier' => $multiplier, 'max_attempts' => $maxAttempts, 'reserved_allowance_minor' => $active['allowance_minor'] ?? 0,
             'unreserved_capital_minor' => $balance - ($active['allowance_minor'] ?? 0),
             'active_staked_minor' => $active['total_staked_minor'] ?? 0, 'active_run_id' => $active['id'] ?? null,
             'equity' => $equity, ...(new SharedTimingPresentation)->describe($rows, $settlementSeconds)];
