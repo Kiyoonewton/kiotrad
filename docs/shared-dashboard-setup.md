@@ -1,6 +1,6 @@
 # Shared-capital dashboard setup
 
-The overview now receives `shared_simulation` built by the dashboard worker. It uses the versioned one-active-run replay, proportional profit per attempt frozen at entry, actual recorded prices, double-cost allowance and recorded result-confirmation release times. No real bets are placed. Independent research remains a separate API field; it is not substituted when the shared calculation is unavailable.
+The overview now receives `shared_simulation` built by the dashboard worker. It uses the versioned one-active-run replay, proportional profit per attempt frozen at entry, actual recorded prices, single-cost allowance and recorded result-confirmation release times. No real bets are placed. Independent research remains a separate API field; it is not substituted when the shared calculation is unavailable.
 
 ## What was missing
 
@@ -57,4 +57,4 @@ This is a conditional repair, not a command to run for every dashboard rebuild. 
 
 The integration is deliberately restored after the earlier revert. `SharedRunCalculation` renders the same stored-in-cache shared run on current strategy cards and history rows. History joins the cached portfolio by league, season and strategy; it clears independent financial fields and never recomputes a different target for a filtered page or league. A warming portfolio shows a refreshing state rather than old ₦100 figures. HTTP history reads do not trigger full portfolio reconstruction.
 
-Regression coverage uses synthetic four-attempt historical floor odds of 2.00 and ₦50,000 capital: the frozen per-attempt target is ₦961. If the first actual price is 1.35 and wins, stake is ₦2,746, payout ₦3,707.10 and net ₦961.10. This demonstrates the formula; the actual target for Borussia M’gladbach depends on its own four historical fixture floors, so ₦961 is not asserted as that real run’s target.
+Regression coverage uses synthetic four-attempt historical floor odds of 2.00 and ₦50,000 capital: the frozen per-attempt target is ₦1,923. If the first actual price is 1.35 and wins, stake is ₦5,495, payout ₦7,418.25 and net ₦1,923.25. This demonstrates the formula; the actual target for Borussia M’gladbach depends on its own four historical fixture floors, so ₦1,923 is not asserted as that real run’s target.

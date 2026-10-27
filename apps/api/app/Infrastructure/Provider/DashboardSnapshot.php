@@ -2,6 +2,8 @@
 
 namespace App\Infrastructure\Provider;
 
+use App\Domain\Research\RunBudgetEstimate;
+use App\Domain\Research\SharedCapitalReplay;
 use App\Domain\Strategies\ChampionMonitor;
 use App\Domain\Strategies\StrategyCatalog;
 use App\Http\Controllers\OverviewController;
@@ -14,7 +16,7 @@ class DashboardSnapshot
     private function key(): string
     {
         return 'dashboard:'.hash('sha256', json_encode([config('database.connections.mongodb.database'),
-            config('database.connections.mongodb.dsn'), config('kiotrad.simulation_capital_minor'), ChampionMonitor::SIMULATION_VERSION, 'consistent-shared-dashboard-v2']));
+            config('database.connections.mongodb.dsn'), config('kiotrad.simulation_capital_minor'), ChampionMonitor::SIMULATION_VERSION, SharedCapitalReplay::VERSION, RunBudgetEstimate::VERSION, 'consistent-shared-dashboard-v2']));
     }
 
     public function read(): array

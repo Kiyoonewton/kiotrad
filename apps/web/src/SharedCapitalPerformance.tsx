@@ -58,7 +58,7 @@ export function SharedCapitalPerformance({ data }: { data: SharedSimulation }) {
           <h1>Shared-capital simulation.</h1>
           <p>
             Proportional profit targets · frozen per run · ×
-            {data.allowance_multiplier ?? 2} estimated allowance
+            {data.allowance_multiplier ?? 1} estimated allowance
           </p>
         </div>
         <div className="balance-value">
@@ -96,8 +96,8 @@ export function SharedCapitalPerformance({ data }: { data: SharedSimulation }) {
       </p>}
       {data.recovery_target_minor != null && (
         <p className="recovery-banner">
-          Recovery mode · ×1 allowance until capital reaches{" "}
-          {naira(data.recovery_target_minor)}. Remaining loss:{" "}
+          Pre-loss capital:{" "}
+          {naira(data.recovery_target_minor)}. Amount to recover:{" "}
           {naira(Math.max(0, data.recovery_target_minor - data.balance_minor))}.
         </p>
       )}

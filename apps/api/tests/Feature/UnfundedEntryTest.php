@@ -18,7 +18,7 @@ class UnfundedEntryTest extends TestCase
         $this->assertSame(['unfunded_entry', 'win'], array_column($view['runs'], 'status'));
         $this->assertFalse($view['runs'][0]['funded']);
         $this->assertSame('missing_actual_odds', $view['runs'][0]['entry_issue']);
-        $this->assertSame(7500000, $view['balance_minor']);
+        $this->assertSame(10000000, $view['balance_minor']);
         $this->assertNull($view['active_run_id']);
         $this->assertCount(1, $view['equity']);
     }

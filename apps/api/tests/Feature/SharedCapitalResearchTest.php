@@ -48,6 +48,6 @@ class SharedCapitalResearchTest extends TestCase
         $this->assertSame('2026-10-20T10:14:00.000000Z', $result['runs'][0]['result_observed_at']);
         $this->assertFalse($result['runs'][0]['fixtures'][0]['price_timing_verified']);
         $this->assertSame('99', $result['runs'][0]['fixtures'][0]['historical_minimum']['season_id']);
-        $this->assertSame(5096100, $result['balance_minor']);
+        $this->assertSame(5192300, $result['balance_minor']);
     }
 }
