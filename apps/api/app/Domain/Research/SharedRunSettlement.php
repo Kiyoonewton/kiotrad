@@ -4,7 +4,7 @@ namespace App\Domain\Research;
 
 final class SharedRunSettlement
 {
-    public function calculate(array $candidate, array $estimate, string $asOf): array
+    public function calculate(array $candidate, array $estimate, string $asOf, int $maxAttempts = 4): array
     {
         $profit = $estimate['plan']['profit_per_attempt_minor'];
         $allowance = $estimate['allowance_minor'];
@@ -49,7 +49,7 @@ final class SharedRunSettlement
             }
         }
 
-        return $this->view(count($attempts) === 4 ? 'four_losses' : 'season_end', $lastConfirmation, $spent, 0, $attempts);
+        return $this->view(count($attempts) === $maxAttempts ? ($maxAttempts === 4 ? 'four_losses' : 'attempt_limit_losses') : 'season_end', $lastConfirmation, $spent, 0, $attempts);
     }
 
     private function view(string $status, ?string $ended, int $spent, int $payout, array $attempts): array

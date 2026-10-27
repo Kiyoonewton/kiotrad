@@ -6,6 +6,7 @@ use App\Infrastructure\Provider\ChampionMonitoring;
 use App\Infrastructure\Provider\DashboardSnapshot;
 use App\Infrastructure\Provider\MongoCollectionStore;
 use App\Infrastructure\Provider\MongoCollectorState;
+use App\Infrastructure\Provider\PreparedResearch;
 use App\Infrastructure\Provider\ResearchSummary;
 use App\Infrastructure\Provider\SimulationCache;
 use App\Infrastructure\Provider\SimulationHistory;
@@ -107,6 +108,18 @@ try {
     $assert($snapshot->read()['dashboard_cache']['status'] === 'ready', 'Published dashboard snapshot unavailable.');
     $assert($portfolio->read() === $before, 'Research replay modified the shared journal.');
     $assert($db->provider_captures->findOne(['_id' => $original])['matches'][5]['result'] === 'H', 'Recovery rewrote an immutable capture.');
+    // Interactive scenarios reuse one prepared Redis frame, never mutate provider/journal data.
+    $prepared = app(PreparedResearch::class);
+    $assert($prepared->refresh() === 'prepared', 'Reusable scenario evidence was not prepared.');
+    $countBefore = $db->provider_captures->countDocuments();
+    $settings = ['capital' => 50000, 'qualification' => 5, 'attempts' => 2, 'allowance' => 1, 'strategy' => 'all', 'league' => 'all'];
+    $scenario = $prepared->scenario($settings);
+    $assert($scenario['status'] === 'available' && $scenario['scenario_cache'] === 'miss', 'Prepared scenario did not calculate.');
+    $assert($prepared->scenario($settings)['scenario_cache'] === 'hit', 'Identical scenario did not reuse Redis.');
+    $stricter = $prepared->scenario([...$settings, 'qualification' => 6, 'allowance' => 2]);
+    $assert($stricter['runs'] === [] && $stricter['allowance_multiplier'] === 2, 'Scenario settings leaked or qualification was ignored.');
+    $assert($db->provider_captures->countDocuments() === $countBefore && $portfolio->read() === $before,
+        'Scenario calculation modified provider evidence or paper journal.');
     echo "Event simulation passed: recovered result, historical pagination, real Redis TTLs, source invalidation, summary and immutable journal.\n";
 } finally {
     CarbonImmutable::setTestNow();

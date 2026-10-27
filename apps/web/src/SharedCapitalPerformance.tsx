@@ -4,7 +4,7 @@ import { ResearchChart } from "./ResearchChart";
 import type { SharedSimulation } from "./sharedSimulation";
 import type { ResearchRun } from "./researchChartData";
 
-export function SharedCapitalPerformance({ data }: { data: SharedSimulation }) {
+export function SharedCapitalPerformance({ data, scopeLabel }: { data: SharedSimulation; scopeLabel?: string }) {
   if (data.status !== "available")
     return (
       <section className="message-panel">
@@ -54,7 +54,7 @@ export function SharedCapitalPerformance({ data }: { data: SharedSimulation }) {
     <>
       <section className="balance-header">
         <div>
-          <p className="eyebrow">One active run · all leagues and strategies</p>
+          <p className="eyebrow">{scopeLabel ?? "One active run · all leagues and strategies"}</p>
           <h1>Shared-capital simulation.</h1>
           <p>
             Proportional profit targets · frozen per run · ×

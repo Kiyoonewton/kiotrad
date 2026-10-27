@@ -13,6 +13,8 @@ class ChampionMonitoring
 {
     private ?array $batch = null;
 
+    private bool $preparing = false;
+
     public function __construct(private ChampionMonitor $monitor, private RunReplay $replay, private SimulationCache $cache) {}
 
     public function all(bool $eventOrder = true): array
@@ -33,6 +35,16 @@ class ChampionMonitoring
     public function forSeason(string $competition, string $season, int $ttl = SimulationCache::HISTORICAL_TTL): array
     {
         return $this->league($competition, true, $season, $ttl);
+    }
+
+    public function preparedRows(array $seasons): array
+    {
+        $this->preparing = true;
+        try {
+            return $this->forSeasons($seasons);
+        } finally {
+            $this->preparing = false;
+        }
     }
 
     public function forSeasons(array $seasons): array
@@ -105,10 +117,10 @@ class ChampionMonitoring
         $checkpoints = $this->batch !== null ? array_values(array_filter($this->batch['checkpoints'], fn ($c) => in_array($c['_id'], array_map(fn ($id) => $competition.':'.$id, $ids), true))) : iterator_to_array($db->season_checkpoints->find(['_id' => ['$in' => array_map(fn ($id) => $competition.':'.$id, $ids)]],
             [...$options, 'projection' => ['capture_id' => 1, 'odds_evidence_revision' => 1], 'sort' => ['_id' => 1]]), false);
         $relevantLinks = array_values(array_filter($links, fn ($l) => in_array($l['to_season_id'], $ids, true)));
-        $revision = hash('sha256', json_encode([$checkpoints, $relevantLinks, $blocks, ChampionMonitor::SIMULATION_VERSION, RunReplay::EVENT_VERSION,
+        $revision = hash('sha256', json_encode([$checkpoints, $relevantLinks, $blocks, $this->preparing, ChampionMonitor::SIMULATION_VERSION, RunReplay::EVENT_VERSION,
             config('kiotrad.simulation_capital_minor'), $currentId === ($state['current_season_id'] ?? null) ? intdiv(now('UTC')->timestamp, 60) : null], JSON_THROW_ON_ERROR));
 
-        return $this->cache->remember($competition.':'.$currentId, $revision, $ttl, $compute);
+        return $this->cache->remember($competition.':'.$currentId.($this->preparing ? ':prepared' : ''), $revision, $ttl, $compute);
     }
 
     private function evaluateSeasons($db, array $options, string $competition, string $currentId, array $ids, array $links, string $asOf, bool $eventOrder, array $blockedDays): array
@@ -123,7 +135,7 @@ class ChampionMonitoring
                     'projection' => ['observed_at' => 1, 'matches' => 1, 'standings' => 1, 'odds_snapshots' => 1]]);
             foreach ($captures as $capture) {
                 $trackedTeam = $seasons[$ids[1] ?? '']['champion']['team_uid'] ?? null;
-                if ($id === $currentId && $trackedTeam !== null) {
+                if (! $this->preparing && $id === $currentId && $trackedTeam !== null) {
                     $replayCapture = (new ReplayCapture)->forTeam($capture, $trackedTeam);
                     if ($replayCapture !== null) {
                         $currentCaptures[] = $replayCapture;
@@ -144,7 +156,11 @@ class ChampionMonitoring
         }
 
         $rows = array_map(fn ($strategy) => ['competition' => $competition, 'blocked_matchdays' => $blockedDays, ...$this->monitor->evaluate($strategy,
-            $seasons[$currentId], $seasons[$ids[1] ?? ''] ?? null, $seasons[$ids[2] ?? ''] ?? null, $links, $asOf, $eventOrder)], ['champion-next-win', 'champion-next-season']);
+            $seasons[$currentId], $seasons[$ids[1] ?? ''] ?? null, $seasons[$ids[2] ?? ''] ?? null, $links, $asOf, $eventOrder, $this->preparing ? 1 : ChampionMonitor::MIN_FIRST_WIN_DAY, $this->preparing ? 1 : 4)], ['champion-next-win', 'champion-next-season']);
+
+        if ($this->preparing) {
+            return $rows;
+        }
 
         return array_map(fn ($row) => [...$row, 'simulation' => $this->replay->calculate($row, $currentCaptures,
             config('kiotrad.simulation_capital_minor'), $asOf, $eventOrder)], $rows);

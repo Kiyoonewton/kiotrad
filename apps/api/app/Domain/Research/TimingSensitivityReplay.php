@@ -6,12 +6,12 @@ final class TimingSensitivityReplay
 {
     public const PRIMARY_SECONDS = 201;
 
-    public function calculate(array $candidates, int $capital, string $asOf): array
+    public function calculate(array $candidates, int $capital, string $asOf, int $maxAttempts = 4, int $multiplier = 1): array
     {
         $scenarios = [];
         $primary = null;
         foreach ([201, 180, 220] as $seconds) {
-            $view = (new SharedCapitalReplay)->calculate($candidates, $capital, $asOf, $seconds);
+            $view = (new SharedCapitalReplay)->calculate($candidates, $capital, $asOf, $seconds, $maxAttempts, $multiplier);
             $ids = array_column(array_values(array_filter($view['runs'],
                 fn ($r) => isset($r['estimate']) && ($r['funded'] ?? true) && ! str_starts_with($r['status'], 'skipped_'))), 'id');
             if ($seconds === self::PRIMARY_SECONDS) {

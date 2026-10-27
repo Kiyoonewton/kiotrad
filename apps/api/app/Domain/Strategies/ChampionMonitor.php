@@ -10,7 +10,7 @@ final class ChampionMonitor
 
     public const MIN_FIRST_WIN_DAY = 5;
 
-    public function evaluate(string $strategy, array $current, ?array $prior, ?array $older, array $links, string $asOf, bool $eventOrder = false): array
+    public function evaluate(string $strategy, array $current, ?array $prior, ?array $older, array $links, string $asOf, bool $eventOrder = false, int $qualification = self::MIN_FIRST_WIN_DAY, int $maxAttempts = 4): array
     {
         $row = ['strategy_id' => $strategy, 'version' => $eventOrder ? self::SIMULATION_VERSION : self::VERSION, 'season_id' => $current['season_id'] ?? null,
             'recovered' => false, 'data_quality_notes' => [], 'timing_basis' => $eventOrder ? 'event_order' : 'as_observed',
@@ -52,7 +52,7 @@ final class ChampionMonitor
             return $row;
         }
         $row['trigger_day'] = $trigger['day'];
-        if ($trigger['day'] < self::MIN_FIRST_WIN_DAY) {
+        if ($trigger['day'] < $qualification) {
             $row['status'] = 'not_qualified';
 
             return $row;
@@ -66,7 +66,7 @@ final class ChampionMonitor
         }
         $row['evidence_ready_at'] = $readyAt;
         $matches = $this->teamMatches($current, $champion['team_uid']);
-        for ($attempt = 1; $attempt <= 4; $attempt++) {
+        for ($attempt = 1; $attempt <= $maxAttempts; $attempt++) {
             $day = $firstDay + $attempt - 1;
             $row['attempt'] = $attempt;
             if ($day > 30) {

@@ -42,7 +42,30 @@ class SharedCapitalResearch
                 'strategy_version' => ChampionMonitor::SIMULATION_VERSION, 'qualification_first_win_day_min' => ChampionMonitor::MIN_FIRST_WIN_DAY]);
     }
 
-    private function candidate(array $row, string $asOf): ?array
+    public function prepare(string $asOf): array
+    {
+        $seasons = $this->history->seasons('all', null, $asOf);
+        foreach (array_keys(config('provider.competitions')) as $competition) {
+            $this->baselines->refresh($competition);
+        }
+        $candidates = $excluded = [];
+        foreach ($this->history->preparedRows($seasons) as $row) {
+            if (empty($row['trigger_day']) || empty($row['evidence_ready_at']) || empty($row['team_uid'])) {
+                continue;
+            }
+            $candidate = $this->candidate($row, $asOf, 10, true);
+            if ($candidate !== null) {
+                $candidates[] = $candidate;
+            } else {
+                $excluded[] = [...array_intersect_key($row, array_flip(['competition', 'season_id', 'strategy_id', 'trigger_day'])),
+                    'reason' => 'missing_fixture_or_schedule'];
+            }
+        }
+
+        return ['candidates' => $candidates, 'excluded' => $excluded, 'seasons_assessed' => count($seasons), 'as_of' => $asOf];
+    }
+
+    private function candidate(array $row, string $asOf, int $attempts = 4, bool $permitMissing = false): ?array
     {
         $options = ['typeMap' => ['root' => 'array', 'document' => 'array', 'array' => 'array'],
             'sort' => ['observed_at' => 1, '_id' => 1], 'batchSize' => 5];
@@ -85,10 +108,15 @@ class SharedCapitalResearch
             return null;
         }
         $fixtures = [];
-        for ($day = $first; $day <= min(30, $first + 3); $day++) {
+        for ($day = $first; $day <= min(30, $first + $attempts - 1); $day++) {
             $found = array_values(array_filter($matches, fn ($m) => $m['matchday'] === $day));
             if (count($found) !== 1 || empty($found[0]['scheduled_start_at'])) {
-                return null;
+                if (! $permitMissing) {
+                    return null;
+                }
+                $fixtures[] = ['matchday' => $day, 'scheduled_start_at' => null];
+
+                continue;
             }
             $fixture = $found[0];
             $outcome = $fixture['home_team_uid'] === $row['team_uid'] ? 'H' : 'A';
@@ -107,6 +135,6 @@ class SharedCapitalResearch
 
         return ['id' => implode(':', [$row['competition'], $row['season_id'], $row['strategy_id']]),
             'competition' => $row['competition'], 'season_id' => $row['season_id'], 'strategy_id' => $row['strategy_id'],
-            'team' => $row['team'], 'season_start_at' => $seasonStart, 'fixtures' => $fixtures];
+            'team' => $row['team'], 'trigger_day' => $row['trigger_day'], 'season_start_at' => $seasonStart, 'fixtures' => $fixtures];
     }
 }
