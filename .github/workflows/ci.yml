@@ -71,7 +71,9 @@ jobs:
       - name: Verify shared paper bankroll against real MongoDB
         run: docker compose --env-file engine/.env -f engine/compose.yaml exec -T -e APP_ENV=testing api php < engine/paper-smoke.php
       - name: Verify observed strategy entry through paper settlement
-        run: docker compose --env-file engine/.env -f engine/compose.yaml exec -T -e APP_ENV=testing api php < engine/paper-flow-smoke.php
+        run: |
+          docker compose --env-file engine/.env -f engine/compose.yaml exec -T -e APP_ENV=testing api php < engine/paper-flow-smoke.php | tee /tmp/paper-flow-smoke.log
+          grep -q '^Paper flow passed:' /tmp/paper-flow-smoke.log
       - name: Verify disruption recovery and delayed paper settlement
         run: docker compose --env-file engine/.env -f engine/compose.yaml exec -T -e APP_ENV=testing api php < engine/gap-smoke.php
       - name: Verify notification outbox persistence and safe delivery

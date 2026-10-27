@@ -16,7 +16,7 @@ final class StrategyCatalog
             'bankroll_enabled' => false,
             'paper_policy_version' => PaperLedger::VERSION,
             'rules' => [
-                'irregular_first_win_day_min' => 4,
+                'irregular_first_win_day_min' => ChampionMonitor::MIN_FIRST_WIN_DAY,
                 'max_attempts' => 4,
                 'minimum_stake_minor' => 10000,
                 'profit_per_attempt_minor' => 10000,
@@ -34,13 +34,13 @@ final class StrategyCatalog
             array_merge($common, [
                 'id' => 'champion-next-season',
                 'name' => 'Champion — Next Season',
-                'description' => 'After a delayed first win in one season, follow the next season’s own previous champion for its first win, for up to four attempts.',
+                'description' => 'After the previous champion first wins on matchday 5 or later in one season, follow the next season’s own previous champion for its first win, for up to four attempts.',
                 'entry' => 'Following season, matchday 1; preceding transition must qualify.',
             ]),
             array_merge($common, [
                 'id' => 'champion-next-win',
                 'name' => 'Champion — Next Win',
-                'description' => 'When the previous champion first wins on matchday 4 or later, follow the same team for its next win, for up to four attempts.',
+                'description' => 'When the previous champion first wins on matchday 5 or later, follow the same team for its next win, for up to four attempts.',
                 'entry' => 'Next fixture after the qualifying first win has settled.',
             ]),
         ];

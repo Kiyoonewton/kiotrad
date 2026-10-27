@@ -3,6 +3,7 @@
 namespace App\Infrastructure\Provider;
 
 use App\Domain\Research\RunBudgetEstimate;
+use App\Domain\Strategies\ChampionMonitor;
 use Illuminate\Support\Facades\DB;
 
 class QualifiedRunSizer
@@ -22,7 +23,7 @@ class QualifiedRunSizer
         $start = $starts === [] ? null : min($starts);
         $runs = [];
         foreach ($this->monitor->forSeason($competition, $season) as $row) {
-            if (($row['trigger_day'] ?? 0) < 4 || empty($row['team_uid']) || empty($row['evidence_ready_at'])) {
+            if (($row['trigger_day'] ?? 0) < ChampionMonitor::MIN_FIRST_WIN_DAY || empty($row['team_uid']) || empty($row['evidence_ready_at'])) {
                 continue;
             }
             $firstDay = $row['strategy_id'] === 'champion-next-win' ? $row['trigger_day'] + 1 : 1;

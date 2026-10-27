@@ -4,9 +4,11 @@ namespace App\Domain\Strategies;
 
 final class ChampionMonitor
 {
-    public const VERSION = '0.2.0-observation';
+    public const VERSION = '0.3.0-observation-day5';
 
-    public const SIMULATION_VERSION = '0.3.0-event-simulation';
+    public const SIMULATION_VERSION = '0.4.0-event-simulation-day5';
+
+    public const MIN_FIRST_WIN_DAY = 5;
 
     public function evaluate(string $strategy, array $current, ?array $prior, ?array $older, array $links, string $asOf, bool $eventOrder = false): array
     {
@@ -50,7 +52,7 @@ final class ChampionMonitor
             return $row;
         }
         $row['trigger_day'] = $trigger['day'];
-        if ($trigger['day'] < 4) {
+        if ($trigger['day'] < self::MIN_FIRST_WIN_DAY) {
             $row['status'] = 'not_qualified';
 
             return $row;

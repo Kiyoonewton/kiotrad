@@ -7,13 +7,13 @@ use DomainException;
 
 final class RunReplay
 {
-    public const EVENT_VERSION = 'event-order-win-recovery-1.0.1';
+    public const EVENT_VERSION = 'event-order-win-recovery-1.1.0-day5';
 
     public function __construct(private WinQuote $quotes, private HistoricalQuote $historical) {}
 
     public function calculate(array $row, array $captures, int $capital, string $asOf, bool $eventOrder = false): ?array
     {
-        if (($row['trigger_day'] ?? 0) < 4 || empty($row['team_uid']) || empty($row['evidence_ready_at'])
+        if (($row['trigger_day'] ?? 0) < ChampionMonitor::MIN_FIRST_WIN_DAY || empty($row['team_uid']) || empty($row['evidence_ready_at'])
             || ! in_array($row['status'], ['watching_fixture', 'awaiting_result', 'observed_win', 'four_attempts_without_win', 'window_ended', 'missing_fixture'], true)) {
             return null;
         }
@@ -30,7 +30,7 @@ final class RunReplay
             }
         }
         $view = ['mode' => $eventOrder ? 'event_order_simulation' : 'independent_run_replay',
-            'policy_version' => $eventOrder ? self::EVENT_VERSION : 'as-observed-win-recovery-1.0.0',
+            'policy_version' => $eventOrder ? self::EVENT_VERSION : 'as-observed-win-recovery-1.1.0-day5',
             'data_quality_notes' => $row['data_quality_notes'] ?? [],
             'starting_capital_minor' => $capital, 'total_staked_minor' => 0, 'gross_payout_minor' => 0,
             'realized_net_minor' => 0, 'net_minor' => null, 'status' => 'awaiting_fixture', 'attempts' => []];
