@@ -26,4 +26,8 @@ RUN rm -f app/Console/Commands/RebuildRawEvidence.php \
     app/Infrastructure/Provider/ArchivedFeed.php \
     app/Console/Commands/RecoverRawOdds.php \
     app/Infrastructure/Provider/RawOddsRecovery.php \
+    app/Console/Commands/AuditLegacyHistory.php \
+    app/Infrastructure/Provider/LegacyHistoryPackage.php \
+    app/Infrastructure/Provider/LegacyHistoryParser.php \
+    app/Infrastructure/Provider/LegacyHistoryComparison.php \
     && composer dump-autoload --optimize --no-dev --no-interaction
