@@ -24,7 +24,7 @@ def read_payload(path):
     return payload
 
 
-def scan(roots):
+def scan(roots, coverage=None):
     odds = defaultdict(set)
     times = defaultdict(lambda: defaultdict(set))
     counts = Counter()
@@ -42,6 +42,8 @@ def scan(roots):
                 if not isinstance(payload, dict):
                     continue
                 route = ROUTE.fullmatch(str(payload.get("queryUrl", "")))
+                if coverage is not None:
+                    coverage.collect(payload, route)
                 docs = payload.get("doc", [])
                 if not isinstance(docs, list):
                     raise ValueError("invalid doc array")
@@ -87,7 +89,7 @@ def assess(odds, times, counts):
             errors.append(abs(predicted - verified[held]))
         rows.append({
             "competition": league, "season_id": season,
-            "legacy_match_ids": len(odds.get((league, season), set())),
+            "combined_odds_match_ids": len(odds.get((league, season), set())),
             "verified_days": len(verified), "conflicting_days": conflicts,
             "day1_utc_epoch": verified.get(1),
             "matchday_spacing_seconds": sorted(set(cadence)),
@@ -95,7 +97,7 @@ def assess(odds, times, counts):
             "max_interpolation_error_seconds": max(errors) if errors else None,
             "status": "conflicting_timing" if conflicts else "verified_anchor_available" if 1 in verified else "day1_anchor_missing",
         })
-    return {"version": "historical-timing-audit-1.0.0", "scan": dict(counts), "seasons": rows,
+    return {"version": "historical-timing-audit-2.0.0", "scan": dict(counts), "seasons": rows,
             "limits": ["No timestamps estimated or persisted by this audit.",
                        "Legacy match-ID coverage does not establish complete odds or results.",
                        "Cross-season extrapolation requires independently verified consecutive links; numeric IDs and discovery-list order are insufficient.",
@@ -105,12 +107,34 @@ def assess(odds, times, counts):
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("roots", nargs="+", help="Legacy raw and KioTrad raw snapshot directories")
+    parser.add_argument("legacy", help="Original my_trade raw directory")
+    parser.add_argument("kiotrad", help="KioTrad raw snapshot directory")
     args = parser.parse_args()
-    if any(not Path(root).is_dir() for root in args.roots):
-        parser.error("Every input must be an existing directory")
-    odds, times, counts = scan(args.roots)
-    print(json.dumps(assess(odds, times, counts), indent=2))
+    roots = [Path(args.legacy).resolve(), Path(args.kiotrad).resolve()]
+    if any(not root.is_dir() for root in roots):
+        parser.error("Both inputs must be existing directories")
+    if roots[0] == roots[1] or roots[0] in roots[1].parents or roots[1] in roots[0].parents:
+        parser.error("Use separate, non-nested source directories")
+    from source_coverage import Coverage, compare_sources
+    legacy, kiotrad = Coverage(), Coverage()
+    _, _, old_counts = scan([roots[0]], legacy)
+    odds, times, current_counts = scan([roots[1]], kiotrad)
+    report = assess(odds, times, current_counts)
+    report["scan"] = {"legacy": dict(old_counts), "kiotrad": dict(current_counts)}
+    timing = {(row["competition"], row["season_id"]): row for row in report["seasons"]}
+    rows = compare_sources(legacy, kiotrad)
+    for row in rows:
+        row["kiotrad_timing"] = timing.get((row["competition"], row["season_id"]), {
+            "verified_days": 0, "status": "day1_anchor_missing"})
+    report["seasons"] = rows
+    report["source_roots"] = {"legacy": str(roots[0]), "kiotrad": str(roots[1])}
+    report["limits"].extend([
+        "Partial seasons are retained; missing evidence is not a loss or confirmed blockage.",
+        "Multiple historical prices can be legitimate changes, not a data conflict.",
+        "Source presence means evidence in the supplied snapshot, not a live database audit.",
+        "Coverage checks do not certify season continuity or full fixture integrity.",
+    ])
+    print(json.dumps(report, indent=2))
 
 
 if __name__ == "__main__":

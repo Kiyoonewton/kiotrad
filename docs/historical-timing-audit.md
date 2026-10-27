@@ -27,3 +27,23 @@ lists are not verified consecutive links. This first audit deliberately does
 not extrapolate across seasons, modify the capital graph or create estimated
 fixture records. The resulting report supplies evidence for the next decision
 about explicit interpolation policy and uncertainty.
+
+## Source-aware report (version 2)
+
+The two positional arguments are explicitly legacy first, KioTrad second.
+Overlapping or nested input directories are rejected. Each season has separate
+`legacy` and `kiotrad` coverage, `source_presence`, shared odds match IDs,
+legacy priced IDs without a KioTrad price, and `kiotrad_timing`. Timing anchors
+come only from the KioTrad input. A fixture in KioTrad does not imply odds exist.
+
+Both complete and partial seasons remain in the report. Each source lists
+priced IDs, odds-derived results, missing/partial days, empty 1X2 market event
+responses and conflicting results. These are evidence descriptions, not proof
+of a market interruption. Empty responses followed by priced responses remain
+visible. Multiple price versions can be normal market changes. No historical
+collection-failure cause is inferred from missing files. Match-ID coverage is
+not a full season-integrity certificate, and this command does not access live
+MongoDB or import any records.
+
+The former flat `legacy_match_ids` field was incorrect: it combined sources.
+Do not reuse version-1 overlap summaries. Generate a new version-2 report.

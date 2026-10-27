@@ -43,7 +43,7 @@ class TimingAuditTest(unittest.TestCase):
             row = assess(coverage, times, counts)['seasons'][0]
             self.assertEqual(row['day1_utc_epoch'], 1000)
             self.assertEqual(row['verified_days'], 1)
-            self.assertEqual(row['legacy_match_ids'], 1)
+            self.assertEqual(row['combined_odds_match_ids'], 1)
             self.assertEqual(counts['malformed'], 1)
             self.assertEqual(before, {p.name: p.read_bytes() for p in root.iterdir()})
 
