@@ -10,7 +10,7 @@ class SizeQualifiedRun extends Command
 {
     protected $signature = 'strategy:size-qualified {competition} {season} {--capital=50000}';
 
-    protected $description = 'Preview qualified-run profit targets using prior exact-fixture minima and a double-cost allowance';
+    protected $description = 'Preview qualified-run profit targets using prior exact-fixture minima and a single-cost allowance';
 
     public function handle(FixtureBaselineStore $baselines, QualifiedRunSizer $sizer): int
     {

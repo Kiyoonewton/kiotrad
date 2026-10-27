@@ -7,7 +7,7 @@ use DomainException;
 
 final class SharedCapitalReplay
 {
-    public const VERSION = 'single-active-unfunded-entry-1.2.1';
+    public const VERSION = 'single-active-single-allowance-2.0.0';
 
     public function calculate(array $candidates, int $capital, string $asOf, ?int $settlementSeconds = null): array
     {
@@ -75,7 +75,7 @@ final class SharedCapitalReplay
 
                     continue;
                 }
-                $estimate = (new RunBudgetEstimate)->calculate($odds, $balance, $recoveryTarget === null ? 2 : 1);
+                $estimate = (new RunBudgetEstimate)->calculate($odds, $balance, 1);
                 if ($estimate['status'] !== 'estimated') {
                     $rows[] = [...$candidate, 'entry_at' => $at, 'status' => 'skipped_budget',
                         'skip_reason' => 'insufficient_allowance', 'capital_at_entry_minor' => $balance,
@@ -115,7 +115,7 @@ final class SharedCapitalReplay
         return ['policy_version' => self::VERSION, 'mode' => 'shared_capital_simulation', 'as_of' => $asOf,
             'timing_basis' => $settlementSeconds === null ? 'recorded_result_confirmation_conservative' : 'modeled_scheduled_kickoff_offset', 'starting_capital_minor' => $capital,
             'balance_minor' => $balance, 'recovery_target_minor' => $recoveryTarget,
-            'allowance_multiplier' => $recoveryTarget === null ? 2 : 1, 'reserved_allowance_minor' => $active['allowance_minor'] ?? 0,
+            'allowance_multiplier' => 1, 'reserved_allowance_minor' => $active['allowance_minor'] ?? 0,
             'unreserved_capital_minor' => $balance - ($active['allowance_minor'] ?? 0),
             'active_staked_minor' => $active['total_staked_minor'] ?? 0, 'active_run_id' => $active['id'] ?? null,
             'equity' => $equity, ...(new SharedTimingPresentation)->describe($rows, $settlementSeconds)];

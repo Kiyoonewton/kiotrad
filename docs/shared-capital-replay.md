@@ -15,8 +15,8 @@ The command assesses stored qualified seasons across all three leagues and both 
 ## Selection and money
 
 - One active run across every league and strategy.
-- At the same scheduled entry instant, calculate each candidate's existing preview using the same current capital. Pick the highest estimated total stake cost **before** its double-cost allowance. Record both estimate and reason. Exact amount ties use the stable `competition:season:strategy` identifier, ascending.
-- Freeze that selected run's profit per attempt and double-cost allowance. Actual recorded odds determine actual stakes, rounded upwards to whole naira with a ₦100 minimum stake.
+- At the same scheduled entry instant, calculate each candidate's existing preview using the same current capital. Pick the highest estimated total stake cost **before** its single-cost allowance. Record both estimate and reason. Exact amount ties use the stable `competition:season:strategy` identifier, ascending.
+- Freeze that selected run's profit per attempt and single-cost allowance. Actual recorded odds determine actual stakes, rounded upwards to whole naira with a ₦100 minimum stake.
 - Never exceed the frozen allowance. Actual prices may be below historical minima; minima are observations, not guaranteed bounds.
 - Other entries while active are recorded as skipped overlaps. They add no stakes, payout or profit. They are not re-entered after their original start has passed.
 - Release on the recorded winning result confirmation, fourth loss confirmation, season end, or allowance stop. A win confirmed **strictly before** another entry permits that entry with updated capital. Identical confirmation and entry instants conservatively clash.
@@ -29,3 +29,7 @@ The command assesses stored qualified seasons across all three leagues and both 
 `timing_basis=recorded_result_confirmation_conservative` is intentional. Kickoff is not settlement. Old archive captures often confirm a result much later than the actual match finished. They can prove the outcome but cannot prove exactly when capital was reusable; such delayed evidence can conservatively block later runs, including subsequent recovery attempts. The replay reports `unresolved_confirmation_timing` rather than assuming a match duration or assigning backdated confirmation times. This limitation must remain visible before wiring these figures into the main balance graph.
 
 Next interface milestone: display shared-capital equity, accepted/skipped overlap markers, an initial-capital input, and timing-quality indicators. The existing independent chart remains labeled independently until that integration is complete.
+
+## Single allowance policy
+
+Policy `single-active-single-allowance-2.0.0` uses ×1 estimated run cost for every entry, before a loss, during recovery and after recovery. It replaces the former normal ×2 / recovery ×1 policy. The pre-loss balance remains an informational recovery target; it never changes the multiplier. The estimated total must fit available capital, and actual stakes must fit the frozen allowance. Historical minima remain estimates, not guaranteed prices. Qualification remains day 5+ with a maximum of four attempts. Historical research is recalculated from initial capital; permanent source evidence and recorded journal decisions are unchanged.

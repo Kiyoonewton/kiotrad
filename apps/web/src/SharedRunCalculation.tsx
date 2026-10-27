@@ -22,7 +22,7 @@ export function SharedRunCalculation({ run }: { run?: SharedRun }) {
         <p>
           Frozen profit per attempt{" "}
           <b>{naira(run.estimate.plan.profit_per_attempt_minor)}</b> · reserved
-          allowance ×{run.estimate.allowance_multiplier ?? 2}:{" "}
+          allowance ×{run.estimate.allowance_multiplier ?? 1}:{" "}
           {naira(run.estimate.allowance_minor)}
         </p>
       )}

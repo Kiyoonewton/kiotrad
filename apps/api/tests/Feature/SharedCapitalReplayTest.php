@@ -29,7 +29,7 @@ class SharedCapitalReplayTest extends TestCase
         $this->assertSame('b', $result['runs'][0]['id']);
         $this->assertSame('skipped_simultaneous_entry', $result['runs'][1]['status']);
         $this->assertSame($result, $engine->calculate([$b, $a], 5000000, $end));
-        $this->assertSame(7500000, $result['balance_minor']);
+        $this->assertSame(10000000, $result['balance_minor']);
         $b['fixtures'][0]['won'] = false;
         $this->assertSame('b', $engine->calculate([$a, $b], 5000000, $end)['runs'][0]['id']);
     }
@@ -41,8 +41,8 @@ class SharedCapitalReplayTest extends TestCase
             $this->candidate('b', '2026-10-20T10:03:00Z', '2026-10-20T10:05:00Z'),
         ], 5000000, '2026-10-20T11:00:00Z');
         $this->assertSame(['win', 'win'], array_column($result['runs'], 'status'));
-        $this->assertSame(7500000, $result['runs'][1]['capital_at_entry_minor']);
-        $this->assertSame(11250000, $result['balance_minor']);
+        $this->assertSame(10000000, $result['runs'][1]['capital_at_entry_minor']);
+        $this->assertSame(20000000, $result['balance_minor']);
         $this->assertCount(2, $result['equity']);
     }
 
@@ -54,7 +54,7 @@ class SharedCapitalReplayTest extends TestCase
             $this->candidate('c', '2026-10-20T10:02:00Z', '2026-10-20T10:04:00Z'),
         ], 5000000, '2026-10-20T11:00:00Z');
         $this->assertSame(['win', 'skipped_overlap', 'skipped_overlap'], array_column($result['runs'], 'status'));
-        $this->assertSame(7500000, $result['balance_minor']);
+        $this->assertSame(10000000, $result['balance_minor']);
         $this->assertCount(1, $result['equity']);
     }
 
@@ -81,8 +81,8 @@ class SharedCapitalReplayTest extends TestCase
         }
         $result = (new SharedCapitalReplay)->calculate([$a], 5000000, '2026-10-20T11:00:00Z');
         $this->assertSame('four_losses', $result['runs'][0]['status']);
-        $this->assertSame([96100, 288300, 672700, 1441500], array_column($result['runs'][0]['attempts'], 'stake_minor'));
-        $this->assertSame(2501400, $result['balance_minor']);
+        $this->assertSame([192300, 576900, 1346100, 2884500], array_column($result['runs'][0]['attempts'], 'stake_minor'));
+        $this->assertSame(200, $result['balance_minor']);
     }
 
     public function test_equal_estimates_use_stable_id_and_timezone_offsets_compare_as_instants(): void
@@ -116,10 +116,10 @@ class SharedCapitalReplayTest extends TestCase
     {
         $candidate = $this->candidate('budget', '2026-10-20T10:00:00Z', '2026-10-20T10:02:00Z');
         $engine = new SharedCapitalReplay;
-        $view = $engine->calculate([$candidate], 19999, '2026-10-20T11:00:00Z');
+        $view = $engine->calculate([$candidate], 9999, '2026-10-20T11:00:00Z');
         $this->assertSame('skipped_budget', $view['runs'][0]['status']);
         $this->assertSame('insufficient_allowance', $view['runs'][0]['skip_reason']);
-        $this->assertSame(19999, $view['balance_minor']);
+        $this->assertSame(9999, $view['balance_minor']);
         $this->assertNull($view['active_run_id']);
         $candidate['fixtures'][0]['historical_odds_scaled'] = null;
         $view = $engine->calculate([$candidate], 5000000, '2026-10-20T11:00:00Z');
@@ -138,14 +138,14 @@ class SharedCapitalReplayTest extends TestCase
         }
         $view = (new SharedCapitalReplay)->calculate([['id' => 'example', 'fixtures' => $fixtures]], 5000000, '2026-10-20T11:00:00Z');
         $run = $view['runs'][0];
-        $this->assertSame(96100, $run['estimate']['plan']['profit_per_attempt_minor']);
-        $this->assertSame(274600, $run['total_staked_minor']);
-        $this->assertSame(370710, $run['gross_payout_minor']);
-        $this->assertSame(96110, $run['net_minor']);
-        $this->assertSame(5096110, $view['balance_minor']);
+        $this->assertSame(192300, $run['estimate']['plan']['profit_per_attempt_minor']);
+        $this->assertSame(549500, $run['total_staked_minor']);
+        $this->assertSame(741825, $run['gross_payout_minor']);
+        $this->assertSame(192325, $run['net_minor']);
+        $this->assertSame(5192325, $view['balance_minor']);
     }
 
-    public function test_single_allowance_after_loss_returns_to_double_only_after_recovery(): void
+    public function test_single_allowance_is_used_before_loss_during_recovery_and_after_recovery(): void
     {
         $base = new \DateTimeImmutable('2026-10-20T10:00:00Z');
         $candidates = [];
@@ -155,12 +155,12 @@ class SharedCapitalReplayTest extends TestCase
                 $minutes = $run * 20 + $attempt * 4;
                 $fixtures[] = ['scheduled_start_at' => $base->modify('+'.$minutes.' minutes')->format(DATE_ATOM),
                     'result_confirmed_at' => $base->modify('+'.($minutes + 2).' minutes')->format(DATE_ATOM),
-                    'historical_odds_scaled' => 20000, 'actual_odds_scaled' => 20000, 'won' => $run !== 0];
+                    'historical_odds_scaled' => 20000, 'actual_odds_scaled' => $run === 0 ? 40000 : 20000, 'won' => $run !== 0];
             }
             $candidates[] = ['id' => 'run:'.$run, 'fixtures' => $fixtures];
         }
         $view = (new SharedCapitalReplay)->calculate($candidates, 5000000, '2026-10-21T10:00:00Z');
-        $this->assertSame(2, $view['runs'][0]['estimate']['allowance_multiplier']);
+        $this->assertSame(1, $view['runs'][0]['estimate']['allowance_multiplier']);
         $this->assertSame(1, $view['runs'][1]['estimate']['allowance_multiplier']);
         $this->assertSame(5000000, $view['runs'][1]['recovery_target_at_entry_minor']);
         $this->assertSame($view['runs'][1]['estimate']['plan']['total_minor'], $view['runs'][1]['estimate']['allowance_minor']);
@@ -169,7 +169,7 @@ class SharedCapitalReplayTest extends TestCase
             if ($run['capital_at_entry_minor'] < 5000000) {
                 $this->assertSame(1, $run['estimate']['allowance_multiplier']);
             } else {
-                $this->assertSame(2, $run['estimate']['allowance_multiplier']);
+                $this->assertSame(1, $run['estimate']['allowance_multiplier']);
                 $restored = true;
             }
         }
@@ -187,7 +187,7 @@ class SharedCapitalReplayTest extends TestCase
         $this->assertSame('win', $view['runs'][1]['observed_window']['result']);
         $this->assertSame('no_win', $view['runs'][2]['observed_window']['result']);
         $this->assertArrayNotHasKey('net_minor', $view['runs'][1]);
-        $this->assertSame(7500000, $view['balance_minor']);
+        $this->assertSame(10000000, $view['balance_minor']);
         $this->assertCount(1, $view['equity']);
     }
 
@@ -201,7 +201,7 @@ class SharedCapitalReplayTest extends TestCase
                 $minutes = $run * 20 + $attempt * 4;
                 $fixtures[] = ['scheduled_start_at' => $base->modify('+'.$minutes.' minutes')->format(DATE_ATOM),
                     'result_confirmed_at' => $base->modify('+'.($minutes + 2).' minutes')->format(DATE_ATOM),
-                    'historical_odds_scaled' => 20000, 'actual_odds_scaled' => 20000, 'won' => false];
+                    'historical_odds_scaled' => 20000, 'actual_odds_scaled' => $run === 0 ? 40000 : 20000, 'won' => false];
             }
             $candidates[] = ['id' => 'run:'.$run, 'fixtures' => $fixtures];
         }

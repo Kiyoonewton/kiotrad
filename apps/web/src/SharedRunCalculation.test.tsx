@@ -10,12 +10,13 @@ it("displays the shared frozen target and actual-price stake instead of a fixed 
         entry_at: "2026-10-20T10:00:00Z",
         status: "win",
         capital_at_entry_minor: 5000000,
-        total_staked_minor: 274600,
-        gross_payout_minor: 370710,
-        net_minor: 96110,
+        total_staked_minor: 549500,
+        gross_payout_minor: 741825,
+        net_minor: 192325,
         estimate: {
-          allowance_minor: 4997200,
-          plan: { total_minor: 2498600, profit_per_attempt_minor: 96100 },
+          allowance_minor: 4999800,
+          allowance_multiplier: 1,
+          plan: { total_minor: 4999800, profit_per_attempt_minor: 192300 },
         },
         attempts: [
           {
@@ -24,17 +25,18 @@ it("displays the shared frozen target and actual-price stake instead of a fixed 
             home_team: "Synthetic",
             away_team: "Opponent",
             actual_odds_scaled: 13500,
-            stake_minor: 274600,
-            target_profit_minor: 96100,
-            payout_minor: 370710,
+            stake_minor: 549500,
+            target_profit_minor: 192300,
+            payout_minor: 741825,
           },
         ],
       }}
     />,
   );
-  expect(screen.getByText("₦961.00")).toBeInTheDocument();
-  expect(screen.getAllByText("₦2,746.00")).toHaveLength(2);
-  expect(screen.getByText("₦961.10")).toBeInTheDocument();
+  expect(screen.getByText("₦1,923.00")).toBeInTheDocument();
+  expect(screen.getAllByText("₦5,495.00")).toHaveLength(2);
+  expect(screen.getByText("₦1,923.25")).toBeInTheDocument();
+  expect(screen.getByText(/allowance ×1:/)).toBeInTheDocument();
   expect(screen.getByText("1.35")).toBeInTheDocument();
   expect(screen.queryByText("₦100.10")).not.toBeInTheDocument();
 });

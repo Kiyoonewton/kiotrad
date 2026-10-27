@@ -32,14 +32,16 @@ class FixtureOddsBaselineTest extends TestCase
         $this->assertSame('3.5', $rows[0]['minima']['D']['odds']);
     }
 
-    public function test_budget_uses_four_attempt_recovery_and_double_allowance(): void
+    public function test_budget_uses_four_attempt_recovery_and_single_allowance(): void
     {
         $result = (new RunBudgetEstimate)->calculate([20000, 20000, 20000, 20000], 5000000);
         $plan = $result['plan'];
-        $this->assertSame(96100, $plan['profit_per_attempt_minor']);
-        $this->assertSame([96100, 288300, 672700, 1441500], array_column($plan['attempts'], 'stake_minor'));
-        $this->assertSame(4997200, $result['allowance_minor']);
+        $this->assertSame(192300, $plan['profit_per_attempt_minor']);
+        $this->assertSame([192300, 576900, 1346100, 2884500], array_column($plan['attempts'], 'stake_minor'));
+        $this->assertSame(4999800, $result['allowance_minor']);
         $this->assertLessThanOrEqual(5000000, $result['allowance_minor']);
+        $this->assertSame(1, $result['allowance_multiplier']);
+        $this->assertSame($plan['total_minor'], $result['allowance_minor']);
         $this->assertFalse($result['guaranteed_maximum']);
         $this->assertSame('insufficient_allowance', (new RunBudgetEstimate)->calculate([10001, 10001, 10001, 10001], 5000000)['status']);
     }
@@ -47,8 +49,8 @@ class FixtureOddsBaselineTest extends TestCase
     public function test_minimum_ticket_and_whole_naira_rounding_are_included_in_budget(): void
     {
         $result = (new RunBudgetEstimate)->calculate([15000], 31400);
-        $this->assertSame(7800, $result['plan']['profit_per_attempt_minor']);
-        $this->assertSame(15600, $result['plan']['total_minor']);
-        $this->assertSame('insufficient_allowance', (new RunBudgetEstimate)->calculate([20000], 19999)['status']);
+        $this->assertSame(15700, $result['plan']['profit_per_attempt_minor']);
+        $this->assertSame(31400, $result['plan']['total_minor']);
+        $this->assertSame('insufficient_allowance', (new RunBudgetEstimate)->calculate([20000], 9999)['status']);
     }
 }

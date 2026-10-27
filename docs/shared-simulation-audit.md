@@ -119,7 +119,7 @@ All candidates are replayed from the initial capital at +201s, +180s and +220s.
 The UI displays each scenario's capital, completed runs, overlap exclusions and
 changed accepted IDs. The +201s scenario supplies the main chart/cards/history.
 Existing highest-preview tie-breaking, strictly-before release, minimum stakes
-and recovery ×1/×2 policies apply independently in each scenario. If the prior
+and fixed ×1 allowance policy apply independently in each scenario. If the prior
 modelled result is not available strictly before the next scheduled attempt, the
 run stops with its incurred loss (`timing_model_entry_stop`), rather than staking
 at an unavailable decision time or keeping an artificial reservation for days.

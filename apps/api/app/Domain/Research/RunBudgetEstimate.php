@@ -6,9 +6,9 @@ use DomainException;
 
 final class RunBudgetEstimate
 {
-    public const VERSION = 'historical-low-odds-recovery-allowance-1.1.0';
+    public const VERSION = 'historical-low-odds-single-allowance-2.0.0';
 
-    public function calculate(array $odds, int $available, int $multiplier = 2): array
+    public function calculate(array $odds, int $available, int $multiplier = 1): array
     {
         if (! in_array($multiplier, [1, 2], true) || $available < 0 || $available > 1000000000 || count($odds) < 1 || count($odds) > 4) {
             throw new DomainException('invalid_budget');
