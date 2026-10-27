@@ -51,6 +51,33 @@ try {
         || $db->provider_checkpoints->countDocuments() !== 1) {
         throw new RuntimeException('Raw replay lost identity, timing, prices or catalog history.');
     }
+    // Unchanged snapshots must do zero normalization work.
+    $same = app(RawEvidenceRebuilder::class)->rebuild($folder);
+    if ($same['new_files'] !== 0 || $same['replayed_files'] !== 0 || ! $same['incremental']) {
+        throw new RuntimeException('Unchanged raw snapshot was unnecessarily replayed.');
+    }
+    // A late fixture changes the identity join: replay that season, including older prices.
+    $write('stats_season_fixtures2/200', ['_id' => '200', '_utid' => 31867, 'matches' => [[
+        '_id' => 99, '_seasonid' => 200, '_utid' => 31867, 'round' => 1, 'time' => ['uts' => 1700010000],
+        'teams' => ['home' => ['uid' => 1, 'name' => 'Synthetic home'], 'away' => ['uid' => 2, 'name' => 'Synthetic away']],
+        'periods' => ['ft' => ['home' => 0, 'away' => 1]],
+    ]]], '2026-10-24T00:00:03Z');
+    $delta = app(RawEvidenceRebuilder::class)->rebuild($folder);
+    $readCaptures = function () use ($db): array {
+        $rows = iterator_to_array($db->provider_captures->find([], ['sort' => ['_id' => 1],
+            'typeMap' => ['root' => 'array', 'document' => 'array', 'array' => 'array']]), false);
+
+        return json_decode(json_encode($rows), true);
+    };
+    $incrementalRows = $readCaptures();
+    if ($delta['new_files'] !== 1 || $delta['replayed_files'] !== 2) {
+        throw new RuntimeException('Changed season must replay its fixture and dependent odds only.');
+    }
+    $db->drop();
+    app(RawEvidenceRebuilder::class)->rebuild($folder);
+    if ($incrementalRows !== $readCaptures()) {
+        throw new RuntimeException('Incremental result differs from a clean full reconstruction.');
+    }
     // Legacy plain files keep unknown transport times, but must survive source-only reconstruction.
     $oddsPath = $folder.'/'.hash('sha256', 'vfc_stats_round_odds2/vf:season:200/1').'.json.gz';
     $legacyPayload = app(ArchivedFeed::class)->read($oddsPath)['feed']->payload;
