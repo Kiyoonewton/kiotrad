@@ -1,4 +1,5 @@
 import base64
+import gzip
 import json
 import tempfile
 import unittest
@@ -33,8 +34,8 @@ class TimingAuditTest(unittest.TestCase):
         with tempfile.TemporaryDirectory() as folder:
             root = Path(folder)
             (root / 'fixture.json').write_text(json.dumps(fixture))
-            (root / 'envelope.json').write_text(json.dumps({
-                'body_base64': base64.b64encode(json.dumps(fixture).encode()).decode()}))
+            (root / 'envelope.json.gz').write_bytes(gzip.compress(json.dumps({
+                'body_base64': base64.b64encode(json.dumps(fixture).encode()).decode()}).encode()))
             (root / 'odds.json').write_text(json.dumps(odds))
             (root / 'bad.json').write_text('invalid')
             before = {p.name: p.read_bytes() for p in root.iterdir()}
