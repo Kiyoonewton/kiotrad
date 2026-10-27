@@ -34,14 +34,14 @@ class EventOrderSimulationTest extends TestCase
 
     public function test_delayed_collection_replays_a_completed_first_attempt_win(): void
     {
-        $season = $this->season(['D', 'A', 'D', 'H', 'H']);
+        $season = $this->season(['D', 'A', 'D', 'A', 'H', 'H']);
         $row = $this->evaluate($season, true);
         $this->assertSame('observed_win', $row['status']);
         $this->assertTrue($row['recovered']);
         $this->assertSame(ChampionMonitor::SIMULATION_VERSION, $row['version']);
         $this->assertSame('late_evidence', $this->evaluate($season, false)['status']);
         $capture = ['_id' => 'recovered', 'observed_at' => '2026-10-24T11:00:00+00:00', 'matches' => $season['matches'],
-            'odds_snapshots' => [['provider_match_id' => 'synthetic:4', 'captured_at' => '2026-10-24T11:00:00+00:00',
+            'odds_snapshots' => [['provider_match_id' => 'synthetic:5', 'captured_at' => '2026-10-24T11:00:00+00:00',
                 'pre_match_verified' => false, 'prices' => ['H' => '1.5']]]];
         $view = app(RunReplay::class)->calculate($row, [$capture], 700000, '2026-10-24T11:30:00+00:00', true);
         $this->assertSame('win', $view['status']);
@@ -55,7 +55,7 @@ class EventOrderSimulationTest extends TestCase
 
     public function test_delayed_results_do_not_skip_to_a_later_win_or_extend_the_window(): void
     {
-        $row = $this->evaluate($this->season(['D', 'A', 'D', 'H', 'D', 'A', 'D', 'A', 'H']), true);
+        $row = $this->evaluate($this->season(['D', 'A', 'D', 'A', 'H', 'D', 'A', 'D', 'A', 'H']), true);
         $this->assertSame('four_attempts_without_win', $row['status']);
         $this->assertSame(4, $row['attempt']);
         $missing = $this->evaluate($this->season(['D', null, 'D', 'H', 'H']), true);
@@ -64,14 +64,14 @@ class EventOrderSimulationTest extends TestCase
 
     public function test_open_window_remains_pending_and_missing_odds_are_not_invented(): void
     {
-        $season = $this->season(['D', 'A', 'D', 'H', null]);
+        $season = $this->season(['D', 'A', 'D', 'A', 'H', null]);
         $row = $this->evaluate($season, true);
         $this->assertSame('awaiting_result', $row['status']);
         $view = app(RunReplay::class)->calculate($row, [['_id' => 'no-price', 'observed_at' => '2026-10-24T11:00:00+00:00',
             'matches' => $season['matches'], 'odds_snapshots' => []]], 700000, '2026-10-24T11:30:00+00:00', true);
         $this->assertSame('awaiting_recorded_odds', $view['status']);
         $this->assertNull($view['net_minor']);
-        $blocked = app(RunReplay::class)->calculate([...$row, 'blocked_matchdays' => [5]], [], 700000, '2026-10-24T11:30:00+00:00', true);
+        $blocked = app(RunReplay::class)->calculate([...$row, 'blocked_matchdays' => [6]], [], 700000, '2026-10-24T11:30:00+00:00', true);
         $this->assertSame('market_blocked', $blocked['status']);
         $this->assertSame([], $blocked['attempts']);
     }

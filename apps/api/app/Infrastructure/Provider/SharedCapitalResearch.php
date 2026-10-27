@@ -4,6 +4,7 @@ namespace App\Infrastructure\Provider;
 
 use App\Domain\Research\SharedCapitalReplay;
 use App\Domain\Research\TimingSensitivityReplay;
+use App\Domain\Strategies\ChampionMonitor;
 use App\Domain\Strategies\HistoricalQuote;
 use App\Domain\Strategies\ReplayCapture;
 use Illuminate\Support\Facades\DB;
@@ -22,7 +23,7 @@ class SharedCapitalResearch
         $candidates = [];
         $excluded = [];
         foreach ($this->history->rows($seasons) as $row) {
-            if (($row['trigger_day'] ?? 0) < 4 || empty($row['evidence_ready_at']) || empty($row['team_uid'])) {
+            if (($row['trigger_day'] ?? 0) < ChampionMonitor::MIN_FIRST_WIN_DAY || empty($row['evidence_ready_at']) || empty($row['team_uid'])) {
                 continue;
             }
             $candidate = $this->candidate($row, $asOf);
@@ -37,7 +38,8 @@ class SharedCapitalResearch
 
         return $this->cache->remember('shared-capital:'.$capital, $revision, SimulationCache::HISTORICAL_TTL,
             fn () => [...(new TimingSensitivityReplay)->calculate($candidates, $capital, $asOf),
-                'excluded' => $excluded, 'seasons_assessed' => count($seasons)]);
+                'excluded' => $excluded, 'seasons_assessed' => count($seasons),
+                'strategy_version' => ChampionMonitor::SIMULATION_VERSION, 'qualification_first_win_day_min' => ChampionMonitor::MIN_FIRST_WIN_DAY]);
     }
 
     private function candidate(array $row, string $asOf): ?array

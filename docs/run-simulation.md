@@ -1,7 +1,7 @@
 # Event-order research simulations
 
-The research UI uses strategy `0.3.0-event-simulation` and replay policy
-`event-order-win-recovery-1.0.0`. Collection delays are data-quality notes, not
+The research UI uses strategy `0.4.0-event-simulation-day5` and replay policy
+`event-order-win-recovery-1.1.0-day5`. Both champion strategies require a first win on matchday 5 or later; day 4 no longer qualifies. The trading window remains four attempts. Collection delays are data-quality notes, not
 missed-entry outcomes. Recovered results are replayed in the original matchday
 order, with the same four-attempt windows and stop-at-first-win rule. Current
 progress stays pending until source results arrive; a completed window shows its
@@ -17,8 +17,8 @@ response/receipt times. Simulated entry times are not recorded actual decisions.
 
 Minimum stake NGN 100, whole-naira stakes, recovery target prior losses plus
 attempt × NGN 100; maximum four attempts. Per-run capital defaults to NGN 7,000
-(`SIMULATION_CAPITAL_NAIRA`). The existing strict as-observed worker/journal keeps
-its original `0.2.0-observation` rules and frozen records; research replay never
+(`SIMULATION_CAPITAL_NAIRA`). New strict observations use `0.3.0-observation-day5`; the existing worker/journal keeps
+previously recorded decisions under their original versions and frozen records; research replay never
 rewrites them or reserves money.
 
 ## UI and history

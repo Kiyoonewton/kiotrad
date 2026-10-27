@@ -3,6 +3,7 @@
 namespace App\Infrastructure\Notifications;
 
 use App\Domain\Paper\WinQuote;
+use App\Domain\Strategies\ChampionMonitor;
 use App\Infrastructure\Paper\PaperMarket;
 use App\Infrastructure\Paper\PaperStore;
 use App\Infrastructure\Provider\ChampionMonitoring;
@@ -33,7 +34,7 @@ final class OpportunityNotifications
             $fact = $this->market->facts([$request], $now)[$key] ?? [];
             $details = ['League' => $candidate['competition'], 'Season' => $candidate['season_id'],
                 'Strategy' => $candidate['strategy_id'].' / '.$candidate['version'],
-                'Qualification' => 'Champion first win on matchday '.$candidate['trigger_day'].' (4 or later).',
+                'Qualification' => 'Champion first win on matchday '.$candidate['trigger_day'].' ('.ChampionMonitor::MIN_FIRST_WIN_DAY.' or later).',
                 'Team' => $candidate['team'], 'Fixture' => $match['home_team'].' vs '.$match['away_team'],
                 'Selection' => $candidate['team'].' to win', 'Matchday' => $match['matchday'],
                 'Scheduled Lagos' => CarbonImmutable::parse($match['scheduled_start_at'])->setTimezone('Africa/Lagos')->format('Y-m-d H:i:s T'),

@@ -16,10 +16,10 @@ class SharedCapitalResearchTest extends TestCase
     {
         config(['provider.competitions' => ['virtual-football' => []], 'kiotrad.simulation_cache_enabled' => false]);
         $matches = [];
-        foreach (range(5, 8) as $day) {
+        foreach (range(6, 9) as $day) {
             $matches[] = ['provider_match_id' => (string) $day, 'matchday' => $day,
                 'home_team_uid' => '1', 'away_team_uid' => '2', 'home_team' => 'Synthetic', 'away_team' => 'Opponent',
-                'scheduled_start_at' => sprintf('2026-10-20T10:%02d:00Z', ($day - 5) * 4),
+                'scheduled_start_at' => sprintf('2026-10-20T10:%02d:00Z', ($day - 6) * 4),
                 'status' => 'settled', 'result' => 'H'];
         }
         $collection = Mockery::mock();
@@ -36,7 +36,7 @@ class SharedCapitalResearchTest extends TestCase
         $history->shouldReceive('seasons')->once()->andReturn([['season_id' => '100']]);
         $history->shouldReceive('rows')->once()->andReturn([
             ['competition' => 'virtual-football', 'season_id' => '100', 'strategy_id' => 'champion-next-win',
-                'trigger_day' => 4, 'team_uid' => '1', 'team' => 'Synthetic', 'evidence_ready_at' => '2026-10-20T09:58:00Z'],
+                'trigger_day' => 5, 'team_uid' => '1', 'team' => 'Synthetic', 'evidence_ready_at' => '2026-10-20T09:58:00Z'],
         ]);
         $baseline = $this->mock(FixtureBaselineStore::class);
         $baseline->shouldReceive('refresh')->once()->with('virtual-football')->andReturn([]);

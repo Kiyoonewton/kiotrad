@@ -40,14 +40,14 @@ try {
         'standings' => ['status' => 'verified_final', 'observed_at' => $now->subSeconds(10)->toIso8601String(),
             'champion' => ['team_uid' => '1', 'team_name' => 'Synthetic champion']]]);
     $matches = [];
-    foreach (['D', 'A', 'D', 'H', 'H', null] as $i => $result) {
+    foreach (['D', 'A', 'D', 'A', 'H', 'H', null] as $i => $result) {
         $matches[] = ['provider_match_id' => 'synthetic:'.$i, 'season_id' => '200', 'matchday' => $i + 1,
             'home_team_uid' => '1', 'away_team_uid' => '2', 'home_team' => 'Synthetic champion', 'away_team' => 'Synthetic opponent',
             'scheduled_start_at' => $base->addMinutes($i * 4)->toIso8601String(),
             'status' => $result === null ? 'scheduled_or_unconfirmed' : 'settled', 'result' => $result];
     }
     $prices = array_map(fn ($i) => ['provider_match_id' => 'synthetic:'.$i, 'captured_at' => $now->subSeconds(5)->toIso8601String(),
-        'pre_match_verified' => false, 'prices' => ['H' => '1.5']], [4, 5]);
+        'pre_match_verified' => false, 'prices' => ['H' => '1.5']], [5, 6]);
     $report = ['competition' => 'virtual-football', 'season_id' => '200', 'scope' => 'current',
         'observed_at' => $now->subSeconds(3)->toIso8601String(), 'matches' => $matches, 'odds_snapshots' => $prices];
     $original = $store->save($report);

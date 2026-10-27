@@ -27,7 +27,7 @@ const reasons: Record<string, string> = {
   awaiting_first_win:
     "Waiting for consecutive confirmed results through the champion’s first win.",
   not_qualified:
-    "The champion’s first win came before day four, so this season does not qualify.",
+    "The champion’s first win came before day five, so this season does not qualify.",
   late_champion_evidence:
     "The champion was not verified before the opening fixture, or that fixture’s time is missing.",
   late_evidence:
