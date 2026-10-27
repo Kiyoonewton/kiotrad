@@ -96,13 +96,13 @@ jobs:
           docker build --target local -f engine/api.Dockerfile -t kiotrad-raw-rebuild-check .
           docker run --rm -i --network kiotrad_default --env-file engine/.env -e APP_ENV=testing kiotrad-raw-rebuild-check php < engine/raw-rebuild-smoke.php | tee /tmp/raw-rebuild.log
           grep -q '^Raw rebuild passed:' /tmp/raw-rebuild.log
+      - name: Verify local historical import and retry safety
+        run: |
+          docker run --rm -i --network kiotrad_default --env-file engine/.env -e APP_ENV=testing kiotrad-raw-rebuild-check php < engine/history-import-smoke.php | tee /tmp/history-import.log
+          grep -q '^History import passed:' /tmp/history-import.log
       - name: Logs on failure
         if: failure()
         run: docker compose --env-file engine/.env -f engine/compose.yaml logs
       - name: Stop services
         if: always()
         run: docker compose --env-file engine/.env -f engine/compose.yaml down
-      - name: Verify local historical import and retry safety
-        run: |
-          docker run --rm -i --network kiotrad_default --env-file engine/.env -e APP_ENV=testing kiotrad-raw-rebuild-check php < engine/history-import-smoke.php | tee /tmp/history-import.log
-          grep -q '^History import passed:' /tmp/history-import.log
