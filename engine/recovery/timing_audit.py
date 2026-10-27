@@ -5,6 +5,7 @@ provider archive, MongoDB or Redis, and never treats response times as kickoff.
 """
 import argparse
 import base64
+import gzip
 import json
 import re
 import sys
@@ -16,7 +17,8 @@ ROUTE = re.compile(r"vfc_stats_round_odds2/vf:season:(\d+)/(\d+)$")
 
 
 def read_payload(path):
-    payload = json.loads(path.read_bytes())
+    body = gzip.decompress(path.read_bytes()) if path.name.endswith(".gz") else path.read_bytes()
+    payload = json.loads(body)
     if isinstance(payload, dict) and "body_base64" in payload:
         payload = json.loads(base64.b64decode(payload["body_base64"], validate=True))
     return payload
@@ -27,7 +29,9 @@ def scan(roots):
     times = defaultdict(lambda: defaultdict(set))
     counts = Counter()
     for root in roots:
-        for path in Path(root).rglob("*.json"):
+        for path in Path(root).rglob("*"):
+            if not path.is_file() or not path.name.endswith((".json", ".json.gz")):
+                continue
             if path.is_symlink():
                 continue
             counts["files"] += 1
@@ -62,7 +66,7 @@ def scan(roots):
                         uts = (match.get("time") or {}).get("uts")
                         if league and season.isdigit() and type(day) is int and 1 <= day <= 30 and type(uts) is int and uts > 0:
                             times[(league, season)][day].add(uts)
-            except (ValueError, TypeError, KeyError, AttributeError):
+            except (ValueError, TypeError, KeyError, AttributeError, OSError, EOFError):
                 counts["malformed"] += 1
     return odds, times, counts
 
