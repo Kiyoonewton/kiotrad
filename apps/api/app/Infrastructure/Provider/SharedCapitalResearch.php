@@ -42,14 +42,24 @@ class SharedCapitalResearch
                 'strategy_version' => ChampionMonitor::SIMULATION_VERSION, 'qualification_first_win_day_min' => ChampionMonitor::MIN_FIRST_WIN_DAY]);
     }
 
-    public function prepare(string $asOf): array
+    public function prepare(string $asOf, ?callable $progress = null): array
     {
         $seasons = $this->history->seasons('all', null, $asOf);
-        foreach (array_keys(config('provider.competitions')) as $competition) {
+        $done = 0;
+        $competitions = array_keys(config('provider.competitions'));
+        $progress && $progress('fixture_baselines', 0, count($competitions));
+        foreach ($competitions as $competition) {
             $this->baselines->refresh($competition);
+            $progress && $progress('fixture_baselines', ++$done, count($competitions));
         }
         $candidates = $excluded = [];
-        foreach ($this->history->preparedRows($seasons) as $row) {
+        $rows = $this->history->preparedRows($seasons, $progress);
+        $done = 0;
+        foreach ($rows as $row) {
+            if ($progress && $done % 10 === 0) {
+                $progress('run_evidence', $done, count($rows));
+            }
+            $done++;
             if (empty($row['trigger_day']) || empty($row['evidence_ready_at']) || empty($row['team_uid'])) {
                 continue;
             }
@@ -61,6 +71,8 @@ class SharedCapitalResearch
                     'reason' => 'missing_fixture_or_schedule'];
             }
         }
+
+        $progress && $progress('run_evidence', $done, count($rows));
 
         return ['candidates' => $candidates, 'excluded' => $excluded, 'seasons_assessed' => count($seasons), 'as_of' => $asOf];
     }

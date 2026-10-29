@@ -255,10 +255,11 @@ def activate_snapshot(database, started):
     compose("stop", "api", "dashboard-worker")
     try:
         write_environment(database)
-        compose("up", "-d", "--build", "--no-deps", "redis", "api", "web", "dashboard-worker")
+        compose("up", "-d", "--no-deps", "redis")
+        compose("up", "-d", "--build", "--force-recreate", "--no-deps", "api", "web", "dashboard-worker")
     except BaseException:
         ENV.write_bytes(previous)
-        compose("up", "-d", "--no-deps", "api", "web", "dashboard-worker")
+        compose("up", "-d", "--no-deps", "--force-recreate", "api", "web", "dashboard-worker")
         raise
     print("Local snapshot ready: http://localhost:5174")
     print("Previous local databases and downloaded archives retained. No continuous SSH tunnel needed.")

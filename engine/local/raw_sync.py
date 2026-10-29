@@ -108,6 +108,8 @@ def perform(sync, server, full_rebuild=False):
         with (folder / 'market_blockages.archive.gz').open('rb') as source:
             sync.compose('exec', '-T', 'mongodb', 'mongorestore', '--archive', '--gzip',
                          '--nsFrom=kiotrad.*', '--nsTo=' + database + '.*', '--drop', '--stopOnError', stdin=source)
+    from prewarm import prepare
+    prepare(sync, database, settings['capital_minor'])
     previous = sync.ENV.read_bytes()
     previous_database = next((line.split('=', 1)[1] for line in previous.decode().splitlines()
                               if line.startswith('LOCAL_DATABASE=')), None)
@@ -119,7 +121,7 @@ def perform(sync, server, full_rebuild=False):
         sync.activate_snapshot(database, started)
     except BaseException:
         sync.ENV.write_bytes(previous)
-        sync.compose('up', '-d', '--no-deps', '--force-recreate', 'api', 'dashboard-worker')
+        sync.compose('up', '-d', '--no-deps', '--force-recreate', 'api', 'web', 'dashboard-worker')
         raise
     (folder / 'manifest.json').write_text(json.dumps({'database': database, 'raw_files': count,
         'started_at': started, 'mode': 'raw_evidence_rebuild'}, indent=2))

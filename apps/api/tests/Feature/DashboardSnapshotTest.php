@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Infrastructure\Provider\DashboardSnapshot;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
 use Mockery;
 use Tests\TestCase;
 
@@ -13,6 +14,7 @@ class DashboardSnapshotTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
+        Storage::fake('local');
         config(['cache.stores.redis' => ['driver' => 'array'], 'kiotrad.dashboard_async' => true]);
     }
 
@@ -38,6 +40,7 @@ class DashboardSnapshotTest extends TestCase
         $this->assertSame('source_unavailable', $snapshot->refresh());
         $this->assertSame('available', $snapshot->read()['research_simulation']['status']);
         Cache::store('redis')->flush();
-        $this->assertSame('warming', $snapshot->read()['dashboard_cache']['status']);
+        $this->assertSame('stale', $snapshot->read()['dashboard_cache']['status']);
+        $this->assertSame('last_good_backup', $snapshot->read()['dashboard_cache']['source']);
     }
 }

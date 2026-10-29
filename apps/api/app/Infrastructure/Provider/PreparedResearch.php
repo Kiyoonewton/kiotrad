@@ -24,16 +24,32 @@ class PreparedResearch
     public function scenario(array $settings): array
     {
         try {
-            $prepared = Cache::store('redis')->get($this->key());
+            try {
+                $prepared = Cache::store('redis')->get($this->key());
+            } catch (Throwable) {
+                $prepared = null;
+            }
             if (! is_array($prepared)) {
-                return ['status' => 'warming', 'message' => 'Preparing reusable fixture and price evidence.'];
+                $prepared = (new DerivedViewBackup)->read($this->key());
+            }
+            if (! is_array($prepared)) {
+                $state = $this->state();
+
+                return ['status' => ($state['status'] ?? '') === 'failed' ? 'unavailable' : 'warming',
+                    'message' => ($state['status'] ?? '') === 'failed'
+                        ? 'Evidence preparation failed; the worker will retry. Stored source data is preserved.'
+                        : 'Preparing reusable fixture and price evidence.', 'preparation' => $state];
             }
             $revision = hash('sha256', json_encode([$prepared['revision'], $settings, ResearchScenario::VERSION,
                 SharedCapitalReplay::VERSION, RunBudgetEstimate::VERSION]));
             $key = $this->key().':scenario:'.$revision;
-            $cached = Cache::store('redis')->get($key);
+            try {
+                $cached = Cache::store('redis')->get($key);
+            } catch (Throwable) {
+                $cached = null;
+            }
             if (is_array($cached)) {
-                return [...$cached, 'scenario_cache' => 'hit'];
+                return [...$cached, 'scenario_cache' => 'hit', 'preparation' => $this->state()];
             }
             $result = [...(new ResearchScenario)->calculate($prepared, $settings), 'data_revision' => $prepared['revision']];
             try {
@@ -42,7 +58,7 @@ class PreparedResearch
                 report($exception);
             }
 
-            return [...$result, 'scenario_cache' => 'miss'];
+            return [...$result, 'scenario_cache' => 'miss', 'preparation' => $this->state()];
         } catch (Throwable $exception) {
             report($exception);
 
@@ -50,7 +66,18 @@ class PreparedResearch
         }
     }
 
-    public function refresh(): string
+    private function state(): ?array
+    {
+        try {
+            $state = Cache::store('redis')->get($this->key().':state');
+
+            return is_array($state) ? $state : null;
+        } catch (Throwable) {
+            return null;
+        }
+    }
+
+    public function refresh(?callable $progress = null): string
     {
         $cache = Cache::store('redis');
         $lock = $cache->lock($this->key().':lock', 3600);
@@ -67,17 +94,35 @@ class PreparedResearch
                 ]), false);
             }
             $revision = hash('sha256', json_encode([$evidence, self::VERSION, ChampionMonitor::SIMULATION_VERSION]));
-            $previous = $cache->get($this->key());
+            $previous = $cache->get($this->key()) ?? (new DerivedViewBackup)->read($this->key());
             if (($previous['revision'] ?? null) === $revision) {
+                if ((new DerivedViewBackup)->read($this->key()) === null) {
+                    (new DerivedViewBackup)->write($this->key(), $previous);
+                }
+                $cache->put($this->key(), $previous, SimulationCache::RECENT_TTL);
+                $cache->put($this->key().':state', ['status' => 'ready', 'checked_at' => now('UTC')->toIso8601String()], SimulationCache::RECENT_TTL);
+
                 return 'unchanged';
             }
-            $data = app(SharedCapitalResearch::class)->prepare(now('UTC')->toIso8601String());
+            $cache->put($this->key().':state', ['status' => 'building', 'started_at' => now('UTC')->toIso8601String()], SimulationCache::RECENT_TTL);
+            $data = app(SharedCapitalResearch::class)->prepare(now('UTC')->toIso8601String(),
+                function ($phase, $done, $total) use ($cache, $progress): void {
+                    $cache->put($this->key().':state', ['status' => 'building', 'phase' => $phase,
+                        'done' => $done, 'total' => $total, 'updated_at' => now('UTC')->toIso8601String()], SimulationCache::RECENT_TTL);
+                    $progress && $progress($phase, $done, $total);
+                });
             if (! $lock->isOwnedByCurrentProcess()) {
                 return 'lease_lost';
             }
-            $cache->put($this->key(), [...$data, 'revision' => $revision], SimulationCache::RECENT_TTL);
+            $data = [...$data, 'revision' => $revision];
+            (new DerivedViewBackup)->write($this->key(), $data);
+            $cache->put($this->key(), $data, SimulationCache::RECENT_TTL);
+            $cache->put($this->key().':state', ['status' => 'ready', 'completed_at' => now('UTC')->toIso8601String()], SimulationCache::RECENT_TTL);
 
             return 'prepared';
+        } catch (Throwable $exception) {
+            $cache->put($this->key().':state', ['status' => 'failed', 'failed_at' => now('UTC')->toIso8601String()], SimulationCache::RECENT_TTL);
+            throw $exception;
         } finally {
             SnapshotLease::release();
         }
