@@ -1,3 +1,5 @@
+import { ChartReadout } from "./ChartReadout";
+import { ChartValueOverlay } from "./ChartValueOverlay";
 import { useState } from "react";
 import { naira } from "./api";
 import { ChartNavigation } from "./ChartNavigation";
@@ -223,6 +225,21 @@ export function ResearchChart({
                   </title>
                 </rect>
               ))}
+            <ChartValueOverlay
+              value={
+                mode === "Candles" ? (candle?.close ?? 0) : (point?.value ?? 0)
+              }
+              y={y(
+                mode === "Candles" ? (candle?.close ?? 0) : (point?.value ?? 0),
+              )}
+              label={
+                mode === "Candles" && candle
+                  ? `${candle.day} · O ${naira(candle.open)} · H ${naira(candle.high)} · L ${naira(candle.low)} · C ${naira(candle.close)}`
+                  : point
+                    ? `${eventLabel(point.run.event_at!)} WAT · ${naira(point.value)}`
+                    : ""
+              }
+            />
             <line
               x1={x(active, count)}
               x2={x(active, count)}
@@ -243,37 +260,12 @@ export function ResearchChart({
               ),
             )}
           </svg>
-          <div className="chart-readout" aria-live="polite">
-            {mode === "Candles" && candle ? (
-              <>
-                <strong>
-                  {candle.day} · {candle.count} runs
-                </strong>
-                <span>
-                  O {naira(candle.open)} · H {naira(candle.high)} · L{" "}
-                  {naira(candle.low)} · C {naira(candle.close)}
-                </span>
-              </>
-            ) : point ? (
-              <>
-                <strong>
-                  {point.run.team} · season {point.run.season_id}
-                </strong>
-                <span>
-                  {eventLabel(point.run.event_at!)} WAT · run net{" "}
-                  {naira(point.run.net_minor!)} ·{" "}
-                  {shared ? "balance" : "reference"} {naira(point.value)}
-                </span>
-                {shared && (
-                  <small>
-                    {point.run.status.replaceAll("_", " ")} · staked{" "}
-                    {naira(point.run.total_staked_minor)} · payout{" "}
-                    {naira(point.run.gross_payout_minor)}
-                  </small>
-                )}
-              </>
-            ) : null}
-          </div>
+          <ChartReadout
+            mode={mode}
+            candle={candle}
+            point={point}
+            shared={shared}
+          />
           <input
             className="chart-scrubber"
             type="range"

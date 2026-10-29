@@ -2,6 +2,7 @@
 
 use App\Domain\Paper\PaperLedger;
 use App\Infrastructure\Paper\MongoPaperStore;
+use App\Infrastructure\Provider\CalendarCoverage;
 use App\Infrastructure\Provider\ChampionMonitoring;
 use App\Infrastructure\Provider\DashboardSnapshot;
 use App\Infrastructure\Provider\FixtureBaselineStore;
@@ -133,6 +134,10 @@ try {
     $assert($baseline->refresh('virtual-football')['updated_seasons'] === 0, 'Unchanged seasons were folded again.');
     $minimum = $db->fixture_odds_minima->findOne(['competition' => 'virtual-football']);
     $assert(($minimum['minima']['H']['odds_scaled'] ?? null) === 15000, 'MongoDB minima reduction changed the floor.');
+    $coverage = app(CalendarCoverage::class)->view();
+    $assert($coverage['status'] === 'available' && count($coverage['leagues']) > 0, 'Calendar coverage aggregation failed.');
+    $footballCoverage = array_values(array_filter($coverage['leagues'], fn ($row) => $row['competition'] === 'virtual-football'))[0];
+    $assert(count($footballCoverage['dates']) > 0 && $footballCoverage['first_at'] !== null, 'Stored fixture timing did not reach calendar coverage.');
     echo "Event simulation passed: recovered result, historical pagination, real Redis TTLs, source invalidation, summary and immutable journal.\n";
 } finally {
     CarbonImmutable::setTestNow();

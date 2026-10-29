@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Domain\Strategies\StrategyCatalog;
 use App\Infrastructure\Paper\PaperStatus;
 use App\Infrastructure\Paper\PaperWorkerHealth;
+use App\Infrastructure\Provider\CalendarCoverage;
 use App\Infrastructure\Provider\ChampionMonitoring;
 use App\Infrastructure\Provider\DashboardSnapshot;
 use App\Infrastructure\Provider\FeedStatus;
@@ -36,6 +37,7 @@ final class OverviewController extends Controller
             'currency' => config('kiotrad.currency'),
             'display_timezone' => config('kiotrad.display_timezone'),
             'generated_at' => now('UTC')->toIso8601String(),
+            'calendar_coverage' => app(CalendarCoverage::class)->view(),
             'competitions' => $feeds->all(),
             'strategies' => array_map(fn ($strategy) => [...$strategy, 'bankroll_enabled' => $paperView['bankroll']['status'] === 'paper'], $strategies->all()),
             'strategy_monitoring' => $monitoring->all(),

@@ -1,3 +1,4 @@
+import { CalendarCoverage } from "./CalendarCoverage";
 import { sharedRunMap } from "./runMapData";
 import { PaperCapital } from "./PaperCapital";
 import { PaperActivity } from "./PaperActivity";
@@ -38,6 +39,7 @@ export function Overview({
   );
   return (
     <>
+      <CalendarCoverage data={data} league={league} />
       {data.shared_simulation ? (
         <SharedCapitalPerformance data={data.shared_simulation} />
       ) : data.research_simulation ? (

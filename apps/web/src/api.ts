@@ -54,6 +54,17 @@ export interface RunCalculation {
   })[];
 }
 export interface Overview {
+  calendar_coverage?: {
+    status: string;
+    leagues: {
+      competition: string;
+      dates: string[];
+      first_at: string | null;
+      last_at: string | null;
+      settled_fixtures: number;
+      unknown_timing_fixtures: number;
+    }[];
+  };
   local_sync?: { completed_at: string; captures: number; mode: string } | null;
   dashboard_cache?: {
     status: "warming" | "ready" | "stale" | "unavailable";
