@@ -80,6 +80,19 @@ class LocalSyncTests(unittest.TestCase):
                 sync.activate_snapshot("kiotrad", "now")
             compose.assert_not_called()
 
+    def test_activation_keeps_prewarmed_redis_and_recreates_the_web_upstream(self):
+        with tempfile.TemporaryDirectory() as folder:
+            env = Path(folder) / '.env.local'
+            env.write_text('APP_KEY=private\nLOCAL_DATABASE=kiotrad_local_20261027T000000Z\n')
+            with patch.object(sync, 'ENV', env), patch.object(sync, 'compose') as compose:
+                sync.activate_snapshot('kiotrad_local_20261029T000000Z', 'now')
+            calls = [call.args for call in compose.call_args_list]
+            recreations = [call for call in calls if '--force-recreate' in call]
+            self.assertEqual(len(recreations), 1)
+            self.assertNotIn('redis', recreations[0])
+            self.assertIn('web', recreations[0])
+            self.assertIn('dashboard-worker', recreations[0])
+
     def test_environment_switch_is_local_and_preserves_other_settings(self):
         with tempfile.TemporaryDirectory() as folder:
             env = Path(folder) / ".env.local"

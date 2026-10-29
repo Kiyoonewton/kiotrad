@@ -4,6 +4,7 @@ use App\Domain\Paper\PaperLedger;
 use App\Infrastructure\Paper\MongoPaperStore;
 use App\Infrastructure\Provider\ChampionMonitoring;
 use App\Infrastructure\Provider\DashboardSnapshot;
+use App\Infrastructure\Provider\FixtureBaselineStore;
 use App\Infrastructure\Provider\MongoCollectionStore;
 use App\Infrastructure\Provider\MongoCollectorState;
 use App\Infrastructure\Provider\PreparedResearch;
@@ -120,6 +121,18 @@ try {
     $assert($stricter['runs'] === [] && $stricter['allowance_multiplier'] === 2, 'Scenario settings leaked or qualification was ignored.');
     $assert($db->provider_captures->countDocuments() === $countBefore && $portfolio->read() === $before,
         'Scenario calculation modified provider evidence or paper journal.');
+    // Cache eviction must not blank an already prepared dashboard or Simulator.
+    $dashboardKey = (new ReflectionMethod(DashboardSnapshot::class, 'key'))->invoke($snapshot);
+    $preparedKey = (new ReflectionMethod(PreparedResearch::class, 'key'))->invoke($prepared);
+    Cache::store('redis')->forget($dashboardKey);
+    Cache::store('redis')->forget($preparedKey);
+    $assert($snapshot->read()['dashboard_cache']['source'] === 'last_good_backup', 'Dashboard backup unavailable after Redis eviction.');
+    $assert($prepared->scenario($settings)['status'] === 'available', 'Simulator backup unavailable after Redis eviction.');
+    $assert($prepared->refresh() === 'unchanged', 'Prepared backup could not restore Redis without replay.');
+    $baseline = app(FixtureBaselineStore::class);
+    $assert($baseline->refresh('virtual-football')['updated_seasons'] === 0, 'Unchanged seasons were folded again.');
+    $minimum = $db->fixture_odds_minima->findOne(['competition' => 'virtual-football']);
+    $assert(($minimum['minima']['H']['odds_scaled'] ?? null) === 15000, 'MongoDB minima reduction changed the floor.');
     echo "Event simulation passed: recovered result, historical pagination, real Redis TTLs, source invalidation, summary and immutable journal.\n";
 } finally {
     CarbonImmutable::setTestNow();

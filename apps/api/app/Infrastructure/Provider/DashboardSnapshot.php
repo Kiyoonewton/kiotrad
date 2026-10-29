@@ -21,18 +21,24 @@ class DashboardSnapshot
 
     public function read(): array
     {
+        $backup = false;
         try {
             $data = Cache::store('redis')->get($this->key());
-            if (is_array($data) && isset($data['generated_at'])) {
-                $age = CarbonImmutable::parse($data['generated_at'])->diffInSeconds(now('UTC'), false);
-
-                return [...$data, 'dashboard_cache' => ['status' => $age > 90 ? 'stale' : 'ready', 'generated_at' => $data['generated_at']]];
-            }
-
-            return $this->empty('warming');
         } catch (Throwable) {
-            return $this->empty('unavailable');
+            $data = null;
         }
+        if (! is_array($data)) {
+            $data = (new DerivedViewBackup)->read($this->key());
+            $backup = true;
+        }
+        if (is_array($data) && isset($data['generated_at'])) {
+            $age = CarbonImmutable::parse($data['generated_at'])->diffInSeconds(now('UTC'), false);
+
+            return [...$data, 'dashboard_cache' => ['status' => $backup || $age > 90 ? 'stale' : 'ready',
+                'generated_at' => $data['generated_at'], 'source' => $backup ? 'last_good_backup' : 'redis']];
+        }
+
+        return $this->empty('warming');
     }
 
     public function refresh(): string
@@ -53,6 +59,7 @@ class DashboardSnapshot
             if (! $lock->isOwnedByCurrentProcess()) {
                 return 'lease_lost';
             }
+            (new DerivedViewBackup)->write($this->key(), $data);
             Cache::store('redis')->put($this->key(), $data, SimulationCache::RECENT_TTL);
 
             return 'refreshed';

@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Infrastructure\Provider\PreparedResearch;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
 use ReflectionMethod;
 use Tests\TestCase;
 
@@ -15,6 +16,7 @@ class ResearchScenarioHttpTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
+        Storage::fake('local');
         config(['cache.stores.redis' => ['driver' => 'array']]);
     }
 

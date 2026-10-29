@@ -16,23 +16,28 @@ class WatchDashboard extends Command
     public function handle(DashboardSnapshot $snapshot): int
     {
         do {
+            $this->line(now('UTC')->toIso8601String().' dashboard: refreshing');
             try {
                 $status = $snapshot->refresh();
-            } catch (Throwable) {
+            } catch (Throwable $exception) {
+                report($exception);
                 $status = 'refresh_failed';
             }
             $this->line(now('UTC')->toIso8601String().' dashboard: '.$status);
-            if ($status === 'refreshed') {
-                try {
-                    $this->line(now('UTC')->toIso8601String().' workbench: checking reusable evidence');
-                    $this->line(now('UTC')->toIso8601String().' workbench: '.app(PreparedResearch::class)->refresh());
-                } catch (Throwable $exception) {
-                    report($exception);
-                    $this->line(now('UTC')->toIso8601String().' workbench: preparation_failed');
-                }
+            try {
+                $this->line(now('UTC')->toIso8601String().' workbench: checking reusable evidence');
+                $prepared = app(PreparedResearch::class)->refresh(function ($phase, $done, $total): void {
+                    $this->line(now('UTC')->toIso8601String().' workbench: '.$phase.' '.$done.'/'.$total);
+                });
+                $this->line(now('UTC')->toIso8601String().' workbench: '.$prepared);
+            } catch (Throwable $exception) {
+                report($exception);
+                $prepared = 'preparation_failed';
+                $this->line(now('UTC')->toIso8601String().' workbench: '.$prepared);
             }
             if ($this->option('once')) {
-                return $status === 'refreshed' ? self::SUCCESS : self::FAILURE;
+                return $status === 'refreshed' && in_array($prepared, ['prepared', 'unchanged'], true)
+                    ? self::SUCCESS : self::FAILURE;
             }
             sleep(30);
         } while (true);

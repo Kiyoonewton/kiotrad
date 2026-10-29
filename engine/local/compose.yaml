@@ -14,6 +14,8 @@ x-app: &app
     SIMULATION_CACHE_ENABLED: "true"
     REDIS_HOST: redis
     SLACK_NOTIFICATIONS_ENABLED: "false"
+  volumes:
+    - dashboard_views:/app/storage/app/private/dashboard-views
   restart: unless-stopped
 
 services:
@@ -56,5 +58,7 @@ services:
     restart: unless-stopped
 
 volumes:
+  dashboard_views:
+    name: kiotrad_local_dashboard_views
   local_mongo_data:
     name: kiotrad_local_mongo_data

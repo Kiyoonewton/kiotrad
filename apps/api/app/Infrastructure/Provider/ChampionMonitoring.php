@@ -37,17 +37,17 @@ class ChampionMonitoring
         return $this->league($competition, true, $season, $ttl);
     }
 
-    public function preparedRows(array $seasons): array
+    public function preparedRows(array $seasons, ?callable $progress = null): array
     {
         $this->preparing = true;
         try {
-            return $this->forSeasons($seasons);
+            return $this->forSeasons($seasons, $progress);
         } finally {
             $this->preparing = false;
         }
     }
 
-    public function forSeasons(array $seasons): array
+    public function forSeasons(array $seasons, ?callable $progress = null): array
     {
         $db = DB::connection('mongodb')->getDatabase();
         $options = ['typeMap' => ['root' => 'array', 'document' => 'array', 'array' => 'array']];
@@ -56,6 +56,8 @@ class ChampionMonitoring
             $groups[$season['competition']][] = $season;
         }
         $rows = [];
+        $done = 0;
+        $progress && $progress('season_monitoring', 0, count($seasons));
         try {
             foreach ($groups as $competition => $group) {
                 $state = $db->collector_states->findOne(['_id' => $competition], $options);
@@ -72,6 +74,10 @@ class ChampionMonitoring
                     $ttl = ($season['start_at'] ?? '') >= now('UTC')->subDays(7)->toIso8601String()
                         ? SimulationCache::RECENT_TTL : SimulationCache::HISTORICAL_TTL;
                     $rows = [...$rows, ...$this->forSeason($competition, (string) $season['season_id'], $ttl)];
+                    $done++;
+                    if ($progress && ($done % 10 === 0 || $done === count($seasons))) {
+                        $progress('season_monitoring', $done, count($seasons));
+                    }
                 }
                 $this->batch = null;
             }

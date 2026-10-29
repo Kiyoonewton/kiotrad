@@ -75,31 +75,52 @@ export function useScenario(settings: ScenarioSettings, league: string) {
         const data = await response.json();
         if (controller.signal.aborted) return;
         if (response.status === 202) {
-          setState({
+          const phases: Record<string, string> = {
+            fixture_baselines: "Preparing historical prices",
+            season_monitoring: "Checking seasons",
+            run_evidence: "Preparing simulation runs",
+          };
+          const progress = data.preparation;
+          const phase = phases[progress?.phase];
+          setState((previous) => ({
             key,
-            view: null,
-            message: data.message ?? "Preparing reusable evidence…",
-          });
+            view: previous.key === key ? previous.view : null,
+            message:
+              phase &&
+              Number.isInteger(progress.done) &&
+              Number.isInteger(progress.total)
+                ? `${phase} · ${progress.done}/${progress.total}`
+                : (data.message ?? "Preparing reusable evidence…"),
+          }));
           timer = setTimeout(refresh, 3000);
         } else if (!response.ok || data.status !== "available") {
-          setState({
+          setState((previous) => ({
             key,
-            view: null,
+            view: previous.key === key ? previous.view : null,
             message:
               data.message ?? "Scenario unavailable. Check the worker logs.",
-          });
+          }));
           timer = setTimeout(refresh, 10000);
         } else {
-          setState({ key, view: data, message: "" });
+          setState({
+            key,
+            view: data,
+            message:
+              data.preparation?.status === "building"
+                ? "Updating evidence; showing the previous prepared view."
+                : data.preparation?.status === "failed"
+                  ? "Evidence refresh failed; showing the previous prepared view. The worker will retry."
+                  : "",
+          });
           timer = setTimeout(refresh, 30000);
         }
       } catch {
         if (!controller.signal.aborted) {
-          setState({
+          setState((previous) => ({
             key,
-            view: null,
+            view: previous.key === key ? previous.view : null,
             message: "Scenario connection interrupted. Retrying…",
-          });
+          }));
           timer = setTimeout(refresh, 5000);
         }
       }

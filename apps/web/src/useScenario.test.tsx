@@ -118,3 +118,44 @@ it("rejects unsupported settings before a request and restores browser preferenc
   );
   expect(initialScenario(7000).allowance).toBe(2);
 });
+
+it("keeps the last matching scenario visible through a refresh failure", async () => {
+  const fetch = vi
+    .fn()
+    .mockResolvedValueOnce(response(5100000))
+    .mockResolvedValue({
+      ok: false,
+      status: 503,
+      json: async () => ({ status: "unavailable", message: "Worker retrying" }),
+    });
+  vi.stubGlobal("fetch", fetch);
+  const { result } = renderHook(() => useScenario(settings, "all"));
+  await act(async () => {
+    await vi.advanceTimersByTimeAsync(401);
+  });
+  await act(async () => {
+    await vi.advanceTimersByTimeAsync(30001);
+  });
+  expect(result.current.view?.balance_minor).toBe(5100000);
+  expect(result.current.message).toBe("Worker retrying");
+});
+
+it("shows actual preparation phase counts while cold", async () => {
+  vi.stubGlobal(
+    "fetch",
+    vi.fn().mockResolvedValue({
+      ok: true,
+      status: 202,
+      json: async () => ({
+        status: "warming",
+        preparation: { phase: "season_monitoring", done: 20, total: 300 },
+      }),
+    }),
+  );
+  const { result } = renderHook(() => useScenario(settings, "all"));
+  await act(async () => {
+    await vi.advanceTimersByTimeAsync(401);
+  });
+  expect(result.current.view).toBeNull();
+  expect(result.current.message).toBe("Checking seasons · 20/300");
+});
