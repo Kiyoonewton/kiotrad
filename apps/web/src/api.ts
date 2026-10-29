@@ -59,6 +59,7 @@ export interface Overview {
     leagues: {
       competition: string;
       dates: string[];
+      days?: { date: string; first_at: string; last_at: string }[];
       first_at: string | null;
       last_at: string | null;
       settled_fixtures: number;
