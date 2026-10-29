@@ -1,3 +1,4 @@
+import { CalendarCoverage } from "./CalendarCoverage";
 import { useState } from "react";
 import type { Overview } from "./api";
 import { SharedCapitalPerformance } from "./SharedCapitalPerformance";
@@ -30,6 +31,7 @@ export function Simulator({
   );
   return (
     <>
+      <CalendarCoverage data={data} league={league} />
       <section className="simulator-settings" aria-labelledby="simulator-title">
         <div className="section-heading">
           <div>

@@ -64,3 +64,18 @@ stores expiring derived backups only; production and local use separate volumes.
 Normal refresh requires the dashboard worker to be running. This change does
 not auto-deploy code, reconnect a stopped Docker daemon, repair unverified
 historical timing, or restore local-only history overlays after a full sync.
+
+## Calendar coverage and chart inspection
+
+The overview and Simulator show Lagos calendar dates containing stored settled
+fixtures, earliest/latest scheduled kickoff, elapsed 24-hour days, missing dates
+within that span, and fixtures without timing. A date with records does not imply
+complete coverage. Untimed legacy history is retained but excluded from the time
+span. Coverage runs in the background, deduplicates provider match IDs per season,
+and caches each season against its capture and odds-evidence revision.
+
+Overview polling retains the last successful view when a refresh returns warming
+or unavailable, with an Updating notice. A genuinely cold first visit still shows
+Preparing until a view exists. Line/bar chart inspection shows the selected balance
+and WAT time inside the chart; candles show open/high/low/close. The keyboard event
+scrubber also updates this readout.
