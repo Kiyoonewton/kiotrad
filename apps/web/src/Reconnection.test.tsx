@@ -52,15 +52,13 @@ it("retains the last dashboard through failed refreshes and clears the banner af
 it("shows a cold snapshot as preparing rather than empty financial results", async () => {
   vi.stubGlobal(
     "fetch",
-    vi
-      .fn()
-      .mockResolvedValue({
-        ok: true,
-        json: async () => ({
-          ...payload,
-          dashboard_cache: { status: "warming", generated_at: null },
-        }),
+    vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        ...payload,
+        dashboard_cache: { status: "warming", generated_at: null },
       }),
+    }),
   );
   render(<App />);
   expect(await screen.findByText("Preparing dashboard")).toBeInTheDocument();
@@ -70,18 +68,16 @@ it("shows a cold snapshot as preparing rather than empty financial results", asy
 it("marks an old server snapshot as stale even when the HTTP request succeeds", async () => {
   vi.stubGlobal(
     "fetch",
-    vi
-      .fn()
-      .mockResolvedValue({
-        ok: true,
-        json: async () => ({
-          ...payload,
-          dashboard_cache: {
-            status: "stale",
-            generated_at: "2026-10-24T10:00:00Z",
-          },
-        }),
+    vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        ...payload,
+        dashboard_cache: {
+          status: "stale",
+          generated_at: "2026-10-24T10:00:00Z",
+        },
       }),
+    }),
   );
   render(<App />);
   expect(await screen.findByText(/Showing saved dashboard/)).toHaveTextContent(
@@ -89,3 +85,33 @@ it("marks an old server snapshot as stale even when the HTTP request succeeds", 
   );
   expect(screen.getByText("Bankroll not configured")).toBeInTheDocument();
 });
+
+it.each(["warming", "unavailable"])(
+  "retains the displayed dashboard when polling returns %s",
+  async (status) => {
+    vi.useFakeTimers();
+    vi.stubGlobal(
+      "fetch",
+      vi
+        .fn()
+        .mockResolvedValueOnce({ ok: true, json: async () => payload })
+        .mockResolvedValueOnce({
+          ok: true,
+          json: async () => ({ ...payload, dashboard_cache: { status } }),
+        })
+        .mockResolvedValue({ ok: true, json: async () => payload }),
+    );
+    render(<App />);
+    await act(async () => {});
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(30000);
+    });
+    expect(screen.getByText(/Updating dashboard/)).toBeInTheDocument();
+    expect(screen.getByText("Bankroll not configured")).toBeInTheDocument();
+    expect(screen.queryByText("Preparing dashboard")).not.toBeInTheDocument();
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(30000);
+    });
+    expect(screen.queryByText(/Updating dashboard/)).not.toBeInTheDocument();
+  },
+);

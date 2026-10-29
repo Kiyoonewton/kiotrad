@@ -14,6 +14,7 @@ export default function App() {
   const [league, setLeague] = useState("all");
   const [data, setData] = useState<OverviewData | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [updating, setUpdating] = useState(false);
   const [request, setRequest] = useState(0);
   const [lastSuccess, setLastSuccess] = useState<Date | null>(null);
 
@@ -24,8 +25,20 @@ export default function App() {
       try {
         const overview = await getOverview(controller.signal);
         if (!controller.signal.aborted) {
-          setData(overview);
-          setLastSuccess(new Date());
+          const preparing = ["warming", "unavailable"].includes(
+            overview.dashboard_cache?.status ?? "",
+          );
+          setUpdating(preparing);
+          setData((previous) =>
+            preparing &&
+            previous &&
+            !["warming", "unavailable"].includes(
+              previous.dashboard_cache?.status ?? "",
+            )
+              ? previous
+              : overview,
+          );
+          if (!preparing) setLastSuccess(new Date());
           setError(null);
         }
       } catch (cause: unknown) {
@@ -116,6 +129,15 @@ export default function App() {
           </div>
         </header>
         <main id="main" tabIndex={-1}>
+          {updating &&
+            data &&
+            !["warming", "unavailable"].includes(
+              data.dashboard_cache?.status ?? "",
+            ) && (
+              <div className="reconnection-banner" role="status">
+                Updating dashboard · showing the last successful view
+              </div>
+            )}
           {error && data && (
             <div className="reconnection-banner" role="status">
               <span className="reconnection-dot" aria-hidden="true" />
