@@ -108,6 +108,9 @@ def perform(sync, server, full_rebuild=False):
         with (folder / 'market_blockages.archive.gz').open('rb') as source:
             sync.compose('exec', '-T', 'mongodb', 'mongorestore', '--archive', '--gzip',
                          '--nsFrom=kiotrad.*', '--nsTo=' + database + '.*', '--drop', '--stopOnError', stdin=source)
+    print('Validating staging metadata before preparing views...', flush=True)
+    sync.compose('exec', '-T', 'mongodb', 'mongosh', '--quiet', '--file', '/dev/stdin',
+                 phase='validate staging snapshot', input=sync.validation_script(database, started).encode())
     from prewarm import prepare
     prepare(sync, database, settings['capital_minor'])
     previous = sync.ENV.read_bytes()
