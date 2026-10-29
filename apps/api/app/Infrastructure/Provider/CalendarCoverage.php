@@ -52,6 +52,7 @@ class CalendarCoverage
         foreach ($rows as $row) {
             $days = [];
             $starts = [];
+            $ranges = [];
             foreach ($row['starts'] ?? [] as $value) {
                 if (! is_string($value)) {
                     continue;
@@ -65,12 +66,18 @@ class CalendarCoverage
                     continue;
                 }
                 $starts[] = $time->toIso8601String();
-                $days[$time->setTimezone('Africa/Lagos')->format('Y-m-d')] = true;
+                $day = $time->setTimezone('Africa/Lagos')->format('Y-m-d');
+                $days[$day] = true;
+                $utc = $time->toIso8601String();
+                $ranges[$day] ??= ['date' => $day, 'first_at' => $utc, 'last_at' => $utc];
+                $ranges[$day]['first_at'] = min($ranges[$day]['first_at'], $utc);
+                $ranges[$day]['last_at'] = max($ranges[$day]['last_at'], $utc);
             }
             sort($starts);
             $dates = array_keys($days);
             sort($dates);
-            $leagues[] = ['competition' => $row['_id'], 'dates' => $dates,
+            ksort($ranges);
+            $leagues[] = ['competition' => $row['_id'], 'dates' => $dates, 'days' => array_values($ranges),
                 'first_at' => $starts[0] ?? null, 'last_at' => $starts ? end($starts) : null,
                 'settled_fixtures' => $row['fixtures'], 'unknown_timing_fixtures' => $row['unknown']];
         }

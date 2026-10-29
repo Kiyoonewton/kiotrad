@@ -1,11 +1,15 @@
+import { CalendarDailyTable } from "./CalendarDailyTable";
+import type { SharedSimulation } from "./sharedSimulation";
 import type { Overview } from "./api";
 
 export function CalendarCoverage({
   data,
   league,
+  simulation = data.shared_simulation,
 }: {
   data: Overview;
   league: string;
+  simulation?: SharedSimulation | null;
 }) {
   const coverage = data.calendar_coverage;
   if (!coverage) return null;
@@ -48,7 +52,12 @@ export function CalendarCoverage({
       </p>
       <details>
         <summary>Inspect recorded dates</summary>
-        <p>{dates.join(" · ") || "None"}</p>
+        <CalendarDailyTable
+          coverage={rows}
+          dates={dates}
+          simulation={simulation}
+          league={league}
+        />
       </details>
       <small>
         Counts use stored scheduled kickoff dates in Lagos, across all settled

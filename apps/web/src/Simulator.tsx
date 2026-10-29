@@ -31,7 +31,7 @@ export function Simulator({
   );
   return (
     <>
-      <CalendarCoverage data={data} league={league} />
+      <CalendarCoverage data={data} league={league} simulation={view} />
       <section className="simulator-settings" aria-labelledby="simulator-title">
         <div className="section-heading">
           <div>

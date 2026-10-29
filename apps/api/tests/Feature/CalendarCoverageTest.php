@@ -16,6 +16,8 @@ class CalendarCoverageTest extends TestCase
         ]);
         $this->assertSame(['2026-10-18', '2026-10-20'], $view['leagues'][0]['dates']);
         $this->assertSame('2026-10-17T23:30:00+00:00', $view['leagues'][0]['first_at']);
+        $this->assertSame('2026-10-18T01:00:00+00:00', $view['leagues'][0]['days'][0]['last_at']);
+        $this->assertSame('2026-10-17T23:30:00+00:00', $view['leagues'][0]['days'][0]['first_at']);
         $this->assertSame(8, $view['leagues'][0]['unknown_timing_fixtures']);
     }
 }
