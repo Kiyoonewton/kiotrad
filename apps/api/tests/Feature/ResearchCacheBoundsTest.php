@@ -4,7 +4,6 @@ namespace Tests\Feature;
 
 use App\Infrastructure\Provider\ResearchCachePayload;
 use App\Infrastructure\Provider\ScenarioResultCache;
-use Illuminate\Support\Facades\Cache;
 use ReflectionMethod;
 use Tests\TestCase;
 
