@@ -3,7 +3,6 @@
 namespace App\Infrastructure\Provider;
 
 use Carbon\CarbonImmutable;
-use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Throwable;
 
@@ -18,8 +17,9 @@ class CalendarCoverage
             foreach ($checkpoints as $checkpoint) {
                 $identity = explode(':', $checkpoint['_id'], 2);
                 $competition = $identity[0];
-                $key = 'calendar-coverage:v2:'.hash('sha256', json_encode([config('database.connections.mongodb.database'), config('database.connections.mongodb.dsn'), $checkpoint]));
-                $rows = Cache::store('redis')->remember($key, SimulationCache::RECENT_TTL, function () use ($db, $checkpoint, $competition) {
+                $key = 'calendar-coverage:v3:'.hash('sha256', json_encode([config('database.connections.mongodb.database'), config('database.connections.mongodb.dsn'), $checkpoint['_id']]));
+                $revision = hash('sha256', json_encode($checkpoint));
+                $rows = (new SimulationCache)->remember($key, $revision, SimulationCache::RECENT_TTL, function () use ($db, $checkpoint, $competition) {
                     return $db->provider_captures->aggregate([
                         ['$match' => ['competition' => $competition, 'season_id' => (string) $checkpoint['season_id']]],
                         ['$unwind' => '$matches'],

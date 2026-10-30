@@ -174,6 +174,16 @@ return [
             'backoff_cap' => env('REDIS_BACKOFF_CAP', 1000),
         ],
 
+        // Separate server: cache eviction must never remove ownership leases.
+        'locks' => [
+            'host' => env('REDIS_LOCK_HOST', env('REDIS_HOST', '127.0.0.1')),
+            'port' => env('REDIS_LOCK_PORT', '6379'),
+            'password' => env('REDIS_LOCK_PASSWORD'),
+            'database' => env('REDIS_LOCK_DB', '0'),
+            'timeout' => 2.0,
+            'read_timeout' => 2.0,
+        ],
+
         'cache' => [
             'timeout' => 1.0,
             'read_timeout' => 1.0,

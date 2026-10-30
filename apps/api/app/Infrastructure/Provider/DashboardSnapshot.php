@@ -23,7 +23,7 @@ class DashboardSnapshot
     {
         $backup = false;
         try {
-            $data = Cache::store('redis')->get($this->key());
+            $data = ResearchCachePayload::decode(Cache::store('redis')->get($this->key()));
         } catch (Throwable) {
             $data = null;
         }
@@ -60,7 +60,7 @@ class DashboardSnapshot
                 return 'lease_lost';
             }
             (new DerivedViewBackup)->write($this->key(), $data);
-            Cache::store('redis')->put($this->key(), $data, SimulationCache::RECENT_TTL);
+            Cache::store('redis')->put($this->key(), ResearchCachePayload::encode($data), SimulationCache::RECENT_TTL);
 
             return 'refreshed';
         } finally {

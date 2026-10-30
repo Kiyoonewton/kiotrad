@@ -11,7 +11,7 @@ class PrewarmTests(unittest.TestCase):
         compose = Mock()
         prepare(SimpleNamespace(compose=compose), 'kiotrad_local_20261029T000000Z', 5000000)
         calls = [c.args for c in compose.call_args_list]
-        self.assertEqual(calls[0], ('up', '-d', 'redis'))
+        self.assertEqual(calls[0], ('up', '-d', '--wait', 'redis', 'redis-locks'))
         self.assertIn('MONGODB_DATABASE=kiotrad_local_20261029T000000Z', calls[1])
         self.assertIn('SIMULATION_CAPITAL_NAIRA=50000', calls[1])
         self.assertEqual(calls[1][-3:], ('artisan', 'dashboard:watch', '--once'))

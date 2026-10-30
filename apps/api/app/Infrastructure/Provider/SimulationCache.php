@@ -18,7 +18,7 @@ class SimulationCache
         }
         $key = 'simulation:'.hash('sha256', config('database.connections.mongodb.database').':'.$key.':'.$ttl);
         try {
-            $cached = Cache::store('redis')->get($key);
+            $cached = ResearchCachePayload::decode(Cache::store('redis')->get($key));
             if (is_array($cached) && ($cached['revision'] ?? null) === $revision && is_array($cached['data'] ?? null)) {
                 return $cached['data'];
             }
@@ -27,7 +27,7 @@ class SimulationCache
         }
         $data = $compute();
         try {
-            Cache::store('redis')->put($key, ['revision' => $revision, 'data' => $data], $ttl);
+            Cache::store('redis')->put($key, ResearchCachePayload::encode(['revision' => $revision, 'data' => $data]), $ttl);
         } catch (Throwable) {
             // Never turn a cache write failure into a collection/simulation failure.
         }

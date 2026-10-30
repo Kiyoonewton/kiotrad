@@ -82,6 +82,10 @@ jobs:
         run: |
           docker compose --env-file engine/.env -f engine/compose.yaml exec -T -e APP_ENV=testing api php < engine/event-simulation-smoke.php | tee /tmp/event-smoke.log
           grep -q '^Event simulation passed:' /tmp/event-smoke.log
+      - name: Verify worker locks survive real cache eviction
+        run: |
+          docker compose --env-file engine/.env -f engine/compose.yaml exec -T -e APP_ENV=testing api php < engine/cache-pressure-smoke.php | tee /tmp/cache-pressure.log
+          grep -q '^Cache pressure smoke passed:' /tmp/cache-pressure.log
       - name: Verify local sync archive tools with isolated synthetic databases
         run: python3 engine/local/archive_smoke.py
       - name: Verify replay memory bounds and fatal worker lease cleanup

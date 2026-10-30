@@ -25,7 +25,7 @@ class PreparedResearch
     {
         try {
             try {
-                $prepared = Cache::store('redis')->get($this->key());
+                $prepared = ResearchCachePayload::decode(Cache::store('redis')->get($this->key()));
             } catch (Throwable) {
                 $prepared = null;
             }
@@ -42,9 +42,9 @@ class PreparedResearch
             }
             $revision = hash('sha256', json_encode([$prepared['revision'], $settings, ResearchScenario::VERSION,
                 SharedCapitalReplay::VERSION, RunBudgetEstimate::VERSION]));
-            $key = $this->key().':scenario:'.$revision;
+            $scenarioCache = new ScenarioResultCache;
             try {
-                $cached = Cache::store('redis')->get($key);
+                $cached = $scenarioCache->get($this->key(), $revision);
             } catch (Throwable) {
                 $cached = null;
             }
@@ -53,7 +53,7 @@ class PreparedResearch
             }
             $result = [...(new ResearchScenario)->calculate($prepared, $settings), 'data_revision' => $prepared['revision']];
             try {
-                Cache::store('redis')->put($key, $result, SimulationCache::HISTORICAL_TTL);
+                $scenarioCache->put($this->key(), $revision, $result);
             } catch (Throwable $exception) {
                 report($exception);
             }
@@ -94,12 +94,12 @@ class PreparedResearch
                 ]), false);
             }
             $revision = hash('sha256', json_encode([$evidence, self::VERSION, ChampionMonitor::SIMULATION_VERSION]));
-            $previous = $cache->get($this->key()) ?? (new DerivedViewBackup)->read($this->key());
+            $previous = ResearchCachePayload::decode($cache->get($this->key())) ?? (new DerivedViewBackup)->read($this->key());
             if (($previous['revision'] ?? null) === $revision) {
                 if ((new DerivedViewBackup)->read($this->key()) === null) {
                     (new DerivedViewBackup)->write($this->key(), $previous);
                 }
-                $cache->put($this->key(), $previous, SimulationCache::RECENT_TTL);
+                $cache->put($this->key(), ResearchCachePayload::encode($previous), SimulationCache::RECENT_TTL);
                 $cache->put($this->key().':state', ['status' => 'ready', 'checked_at' => now('UTC')->toIso8601String()], SimulationCache::RECENT_TTL);
 
                 return 'unchanged';
@@ -116,7 +116,7 @@ class PreparedResearch
             }
             $data = [...$data, 'revision' => $revision];
             (new DerivedViewBackup)->write($this->key(), $data);
-            $cache->put($this->key(), $data, SimulationCache::RECENT_TTL);
+            $cache->put($this->key(), ResearchCachePayload::encode($data), SimulationCache::RECENT_TTL);
             $cache->put($this->key().':state', ['status' => 'ready', 'completed_at' => now('UTC')->toIso8601String()], SimulationCache::RECENT_TTL);
 
             return 'prepared';
