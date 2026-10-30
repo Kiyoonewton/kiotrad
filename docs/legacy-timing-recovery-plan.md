@@ -62,3 +62,48 @@ uncertainty is not presented as a measured confidence interval.
 Next: review unresolved seasons/anchor segments from the real Mac reports.
 Only then choose which continuity evidence supports a separately versioned
 estimated-timing research path. Preserve the incomplete-season champion guard.
+
+## Reconcile sparse discovery lists
+
+Version 1.1 adds diagnostic reconciliation against every nonconflicting recorded
+day-one anchor in the same league. Timestamp order, not season-ID arithmetic,
+identifies known seasons omitted from a discovery list. Original listed steps,
+raw gap and error remain available beside `omitted_recorded_seasons`,
+`reconciled_steps`, `remaining_gap_seconds` and `reconciliation_status`.
+
+For example, a list jumping from 3147261 to 3147317 can be reconciled when the
+supplied recorded anchors include 3147289 between their kickoff times. The
+13,440-second interval then covers two normal 6,720-second steps. The script
+does not invent an omitted season merely because a gap is a multiple of cadence.
+
+A list jumping from 3147661 to 3147738 can similarly show omitted 3147710 while
+retaining the 10,860-second unexplained difference. Both this combined interval
+and a direct 3147661→3147710 interval refer to the same unusual recorded boundary.
+`recorded_boundaries.csv` and the JSON `recorded_boundaries` array deduplicate
+these boundaries across all candidates and retain all supporting source hashes.
+The boundary column `normal_cadence_difference_seconds` measures departure from
+normal cadence; it is not a measured market-closure duration.
+
+`remaining_gap_seconds = 0` only explains the aggregate interval under the cadence
+hypothesis. Always inspect recorded boundaries too: normal aggregate timing can
+hide a nonstandard subinterval, and listed untimed seasons remain unresolved.
+Equal recorded starts produce `ambiguous_recorded_order`; the tool does not sort
+ties by numeric season ID to manufacture chronology. Anchors from another league
+never fill a gap. Recorded chronological neighbors are not certified consecutive
+provider seasons, because other unrecorded seasons may still exist.
+
+To reprocess the already completed Mac reports, without any raw scan:
+
+```bash
+cd "$HOME/Developer/kiotrad"
+git pull --ff-only --no-rebase origin main &&
+python3 -u engine/recovery/timing_recovery_plan.py \
+  --timing-report recovery/timing-review-20261030T065120/timing-audit.json \
+  --discovery-report recovery/timing-review-20261030T065120/resumed-20261030T070300/discovery/report.json \
+  --destination "recovery/timing-reconciled-$(date +%Y%m%dT%H%M%S)"
+```
+
+This reconciliation does not alter the older-season hypothesis logic, fill the
+93 unanchored older seasons, infer champions, or enable financial replay. Review
+the new summary and boundary table before deciding the separate extrapolation
+policy. Existing reports remain intact.

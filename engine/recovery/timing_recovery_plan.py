@@ -9,8 +9,9 @@ from pathlib import Path
 from zoneinfo import ZoneInfo
 
 from discovery_order import assess_order
+from season_gap_reconciliation import reconcile, unique_boundaries
 
-VERSION = 'legacy-timing-recovery-plan-1.0.0'
+VERSION = 'legacy-timing-recovery-plan-1.1.0'
 SEASON_SECONDS = 6720
 
 
@@ -77,6 +78,7 @@ def build(timing, discovery):
             status = segment_status(item['error_seconds'])
             segments.append({'competition': league, 'source_sha256': source_hash, **item,
                              'status': status, 'cause': 'not_established',
+                             **reconcile(item, league, ordered, anchors),
                              'from_day1_wat': iso(left[2], 'Africa/Lagos'), 'to_day1_wat': iso(right[2], 'Africa/Lagos')})
             for index in range(left[0] + 1, right[0]):
                 key = (league, ordered[index])
@@ -126,7 +128,9 @@ def build(timing, discovery):
     seasons = [rows[key] for key in sorted(rows, key=lambda k: (k[0], int(k[1])))]
     return {'version': VERSION, 'policy': {'matchday_seconds': 220, 'normal_season_seconds': SEASON_SECONDS,
             'applied': False, 'financial_replay_enabled': False},
-            'seasons': seasons, 'segments': segments, 'rejected_candidates': rejected,
+            'seasons': seasons, 'segments': segments, 'recorded_boundaries': unique_boundaries(segments),
+            'rejected_candidates': rejected,
+            'reconciliation_status_counts': dict(Counter(s['reconciliation_status'] for s in segments)),
             'timing_status_counts': dict(Counter(r['timing_status'] for r in seasons)),
             'segment_status_counts': dict(Counter(s['status'] for s in segments)),
             'limits': ['Recorded fields are scheduled kickoff, not actual start or settlement.',
@@ -147,7 +151,7 @@ def write_plan(timing_path, discovery_path, destination):
     destination = Path(destination)
     destination.mkdir(parents=True, exist_ok=False)
     (destination / 'report.json').write_text(json.dumps(report, indent=2) + '\n')
-    for name in ('seasons', 'segments'):
+    for name in ('seasons', 'segments', 'recorded_boundaries'):
         data = report[name]
         if not data:
             continue
@@ -171,5 +175,7 @@ if __name__ == '__main__':
         parser.exit(1, 'Timing plan stopped: ' + str(error) + '\n')
     print('Season timing:', report['timing_status_counts'])
     print('Anchored segments:', report['segment_status_counts'])
-    print('Review tables:', str(Path(args.destination) / 'seasons.csv'), str(Path(args.destination) / 'segments.csv'))
+    print('Reconciled segments:', report['reconciliation_status_counts'])
+    print('Unusual recorded boundaries:', len(report['recorded_boundaries']))
+    print('Review tables:', str(Path(args.destination) / 'seasons.csv'), str(Path(args.destination) / 'segments.csv'), str(Path(args.destination) / 'recorded_boundaries.csv'))
     print('Review only. No database changes or financial eligibility added.')
