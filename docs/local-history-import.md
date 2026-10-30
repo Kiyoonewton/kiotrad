@@ -60,7 +60,31 @@ work. Check the completion summary, not the transient health of a CLI container.
 New historical seasons will be stored, but may still show missing linked history
 or timing until separate continuity and interpolation policies are implemented.
 Their raw import does not establish a champion tie-break or certify a financial
-replay. A full local resync/rebuild can discard derived imports; retain the host
-archive/package and rerun this command against the new database if necessary.
-Automatic local-overlay replay and production deployment are not part of this
-milestone. Incremental seeds may retain imports, but should be verified after sync.
+replay. Register a retained package for automatic raw sync replay:
+
+```bash
+python3 -u engine/local/sync.py --ssh root@169.58.227.92 \
+  --history-package recovery/legacy-history-batch-1
+```
+
+The first successful staging import pins the package path and manifest hash in
+ignored `recovery/history-overlays.json`. Future normal syncs automatically replay
+registered packages into the staging database before validation, warming and
+activation. This also applies to `--full-rebuild`. Register multiple packages with
+repeated `--history-package` arguments. No package data is copied into snapshot
+backup folders; existing source packages and `recovery/local-history-evidence`
+remain outside snapshot retention. Keep both folders.
+
+A missing or changed registered package stops sync before activation. The importer
+checks every source hash, preserves originals, refuses conflicts, and resumes its
+completed ledgers. Missing derived captures/checkpoints can be restored from their
+pinned completed plans without replacing an existing verified checkpoint. An
+unchanged completed import does not add captures or bump evidence revisions.
+
+Registration remains enabled if later view preparation/activation fails, so a
+normal retry keeps the same evidence. To relocate an unchanged package, pass its
+new path with `--history-package`; its identical manifest identifies the existing
+registration. Changed evidence must be packaged in a new directory. Registered
+overlays require the normal raw sync path: `--activate` and `--legacy-normalized`
+are rejected rather than silently activating a database without the overlay.
+This remains local-only; it does not add production import or estimated timing.

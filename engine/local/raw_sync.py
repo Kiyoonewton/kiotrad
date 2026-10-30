@@ -50,7 +50,9 @@ echo json_encode(app(App\\Domain\\Strategies\\SimulationDefinitionSnapshot::clas
 '''
 
 
-def perform(sync, server, full_rebuild=False):
+def perform(sync, server, full_rebuild=False, history_packages=()):
+    from history_overlay import packages, replay
+    overlays = packages(sync.ROOT, history_packages)
     os.umask(0o077)
     if not sync.ENV.exists():
         sync.write_environment('kiotrad_local')
@@ -108,6 +110,7 @@ def perform(sync, server, full_rebuild=False):
         with (folder / 'market_blockages.archive.gz').open('rb') as source:
             sync.compose('exec', '-T', 'mongodb', 'mongorestore', '--archive', '--gzip',
                          '--nsFrom=kiotrad.*', '--nsTo=' + database + '.*', '--drop', '--stopOnError', stdin=source)
+    replay(sync, database, overlays)
     print('Validating staging metadata before preparing views...', flush=True)
     sync.compose('exec', '-T', 'mongodb', 'mongosh', '--quiet', '--file', '/dev/stdin',
                  phase='validate staging snapshot', input=sync.validation_script(database, started).encode())

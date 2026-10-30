@@ -188,7 +188,10 @@ def main():
     source.add_argument("--activate", help="Validate and activate an already restored local snapshot without downloading")
     parser.add_argument("--full-rebuild", action="store_true", help="Reconstruct all local provider views from raw evidence")
     parser.add_argument("--legacy-normalized", action="store_true", help="Explicit fallback: copy old normalized snapshots")
+    parser.add_argument("--history-package", action="append", default=[], help="Register a retained legacy history package for this and future raw syncs; repeat for multiple packages")
     args = parser.parse_args()
+    if (args.activate or args.legacy_normalized) and (args.history_package or (ROOT / 'recovery/history-overlays.json').exists()):
+        raise RuntimeError("Registered history overlays require normal raw sync; omit --activate and --legacy-normalized.")
     guard_local()
     with local_lock():
         if args.activate:
@@ -201,13 +204,13 @@ def main():
             if args.legacy_normalized:
                 perform_legacy_sync(args.ssh)
             else:
-                perform_sync(args.ssh, args.full_rebuild)
+                perform_sync(args.ssh, args.full_rebuild, args.history_package)
 
 
-def perform_sync(server, full_rebuild=False):
+def perform_sync(server, full_rebuild=False, history_packages=()):
     import raw_sync
     from types import SimpleNamespace
-    raw_sync.perform(SimpleNamespace(**globals()), server, full_rebuild)
+    raw_sync.perform(SimpleNamespace(**globals()), server, full_rebuild, history_packages)
 
 
 def perform_legacy_sync(server):

@@ -68,6 +68,15 @@ try {
     $db->local_history_imports->updateMany([], ['$set' => ['status' => 'prepared']]);
     $assert(Artisan::call('provider:import-legacy-history', $args) === 0 && $db->provider_captures->countDocuments() === 3, 'Crash retry failed or duplicated captures.');
     $assert($db->local_history_imports->countDocuments(['status' => 'complete']) === 2, 'Crash retry did not complete.');
+    // Seeded ledgers can survive raw reconstruction that removed a pointer.
+    $db->season_checkpoints->deleteOne(['_id' => 'virtual-euro:11']);
+    $db->provider_captures->deleteOne(['_id' => $new['_id']]);
+    $assert(Artisan::call('provider:import-legacy-history', $args) === 0, 'Overlay did not restore missing materialization.');
+    $assert($db->provider_captures->countDocuments() === 3, 'Overlay repair duplicated or lost captures.');
+    $restored = $db->provider_captures->findOne(['_id' => $new['_id']], $options);
+    $assert($restored === $new, 'Overlay repair changed the pinned original plan.');
+    $assert($db->season_checkpoints->findOne(['_id' => 'virtual-euro:11'])['capture_id'] === $new['_id'], 'Missing history checkpoint not restored.');
+    $assert($db->season_checkpoints->findOne(['_id' => 'virtual-euro:10'])['capture_id'] === 'original', 'Overlay repair replaced verified checkpoint.');
     $assert($db->paper_journal->countDocuments() === 0, 'Import changed paper trading journal.');
     echo 'History import passed: raw-first preservation, partial evidence, verified fields, idempotency and crash recovery.'.PHP_EOL;
 } finally {

@@ -4,6 +4,34 @@ namespace App\Infrastructure\Provider;
 
 final class LegacyHistoryWriter
 {
+    public function restoreCompleted($db, string $key, array $plan): array
+    {
+        $result = ['status' => 'already_imported', 'new_matches' => 0, 'new_prices' => 0];
+        if (($plan['new_matches'] ?? 0) + ($plan['new_prices'] ?? 0) === 0) {
+            return $result;
+        }
+        $capture = $plan['capture'];
+        $id = hash('sha256', $key);
+        $checkpoint = $capture['competition'].':'.$capture['season_id'];
+        $restored = false;
+        if ($db->provider_captures->findOne(['_id' => $id], ['projection' => ['_id' => 1]]) === null) {
+            $restored = $db->provider_captures->updateOne(['_id' => $id], ['$setOnInsert' => $capture], ['upsert' => true])->getUpsertedCount() > 0;
+        }
+        $pointer = $db->season_checkpoints->findOne(['_id' => $checkpoint], ['projection' => ['_id' => 1]]);
+        if ($pointer === null) {
+            // A raw rebuild may remove a season checkpoint while its legacy
+            // ledger survives in the local seed. Restore only a missing pointer.
+            $db->season_checkpoints->updateOne(['_id' => $checkpoint], ['$setOnInsert' => [
+                'capture_id' => $id, 'observed_at' => $capture['observed_at'],
+                'season_id' => $capture['season_id'], 'odds_evidence_revision' => 1,
+            ]], ['upsert' => true]);
+        } elseif ($restored) {
+            $db->season_checkpoints->updateOne(['_id' => $checkpoint], ['$inc' => ['odds_evidence_revision' => 1]]);
+        }
+
+        return [...$result, 'restored_materialization' => $restored || $pointer === null];
+    }
+
     public function apply($db, string $key, array $plan): array
     {
         $options = ['typeMap' => ['root' => 'array', 'document' => 'array', 'array' => 'array']];
