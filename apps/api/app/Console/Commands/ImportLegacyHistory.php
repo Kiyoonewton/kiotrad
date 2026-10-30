@@ -84,9 +84,9 @@ final class ImportLegacyHistory extends Command
                 $at = now('UTC')->toIso8601String();
                 // Durable originals precede the ledger and normalized database writes.
                 $archive->preserve($root, $files, $at);
-                $record = $db->local_history_imports->findOne(['_id' => $key]);
+                $record = $db->local_history_imports->findOne(['_id' => $key], ['typeMap' => ['root' => 'array', 'document' => 'array', 'array' => 'array']]);
                 if (($record['status'] ?? '') === 'complete') {
-                    $result = ['status' => 'already_imported'];
+                    $result = $writer->restoreCompleted($db, $key, $record['plan']);
                 } else {
                     $captures = $db->provider_captures->find(['$or' => [
                         ['competition' => $sources[0]['competition'], 'season_id' => $sources[0]['season_id']],
