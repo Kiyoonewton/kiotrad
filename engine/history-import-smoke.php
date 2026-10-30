@@ -77,6 +77,12 @@ try {
     $assert($restored === $new, 'Overlay repair changed the pinned original plan.');
     $assert($db->season_checkpoints->findOne(['_id' => 'virtual-euro:11'])['capture_id'] === $new['_id'], 'Missing history checkpoint not restored.');
     $assert($db->season_checkpoints->findOne(['_id' => 'virtual-euro:10'])['capture_id'] === 'original', 'Overlay repair replaced verified checkpoint.');
+    $assert(Artisan::call('provider:verify-legacy-history') === 0, 'Restored history failed integrity verification.');
+    // Equal record counts must not conceal changed prices or provenance.
+    $db->provider_captures->updateOne(['_id' => $priced['_id']], ['$set' => ['odds_snapshots.0.prices.H' => '9.99']]);
+    $assert(Artisan::call('provider:verify-legacy-history') !== 0, 'Changed odds passed integrity verification.');
+    $db->provider_captures->updateOne(['_id' => $priced['_id']], ['$set' => ['odds_snapshots' => $priced['odds_snapshots']]]);
+    $assert(Artisan::call('provider:verify-legacy-history') === 0, 'Original price restoration failed verification.');
     $assert($db->paper_journal->countDocuments() === 0, 'Import changed paper trading journal.');
     echo 'History import passed: raw-first preservation, partial evidence, verified fields, idempotency and crash recovery.'.PHP_EOL;
 } finally {

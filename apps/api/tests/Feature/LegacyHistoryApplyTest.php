@@ -53,6 +53,23 @@ class LegacyHistoryApplyTest extends TestCase
         $this->assertNull($plan['capture']['odds_snapshots'][0]['provenance']['original_received_at']);
     }
 
+    public function test_mixed_new_and_existing_fixtures_preserve_the_existing_fixture_lookup(): void
+    {
+        $source = $this->source('a', ['H' => '2', 'D' => '3', 'A' => '4']);
+        $match = $source['matches'][0];
+        unset($match['prices'], $match['market_status']);
+        $match['scheduled_start_at'] = '2026-10-20T10:00:00Z';
+        $new = $source['matches'][0];
+        $new['provider_match_id'] = 'vf:match:100';
+        $source['matches'] = [$new, $source['matches'][0]];
+        $plan = $this->plan([$source], [['competition' => 'virtual-euro', 'matches' => [$match]]], ['vf:match:99' => $match]);
+        $this->assertSame(1, $plan['new_matches']);
+        $this->assertSame(2, $plan['new_prices']);
+        $matches = array_column($plan['capture']['matches'], null, 'provider_match_id');
+        $this->assertSame($match, $matches['vf:match:99']);
+        $this->assertNull($matches['vf:match:100']['scheduled_start_at']);
+    }
+
     public function test_matching_existing_price_produces_no_new_records(): void
     {
         $source = $this->source('a', ['H' => '2', 'D' => '3', 'A' => '4']);

@@ -25,8 +25,8 @@ final class LegacyHistoryPlan
                 $id = $match['provider_match_id'];
                 $row = $lookup[$source['source_sha256'].':'.$id];
                 if ($row['fixture_status'] === 'new_fixture') {
-                    $existing = $matches[$id] ?? null;
-                    if ($existing === null || ($existing['result'] === null && $match['result'] !== null)) {
+                    $priorMatch = $matches[$id] ?? null;
+                    if ($priorMatch === null || ($priorMatch['result'] === null && $match['result'] !== null)) {
                         $matches[$id] = array_diff_key($match, array_flip(['prices', 'price_status', 'market_status']));
                     }
                 }

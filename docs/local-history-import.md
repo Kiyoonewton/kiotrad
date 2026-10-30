@@ -88,3 +88,35 @@ registration. Changed evidence must be packaged in a new directory. Registered
 overlays require the normal raw sync path: `--activate` and `--legacy-normalized`
 are rejected rather than silently activating a database without the overlay.
 This remains local-only; it does not add production import or estimated timing.
+
+## Verify retained history after sync
+
+Normal registered-package sync now runs `provider:verify-legacy-history` after
+imports and before warming or activation. It compares each materialized capture
+with its pinned ledger plan, including fixture identities, results, timing,
+quotes and provenance. Matching counts alone are insufficient. Missing captures,
+changed evidence, incomplete ledgers or absent season checkpoints stop activation.
+An existing verified checkpoint may point to a different provider capture.
+
+The JSON-lines report is retained outside snapshot cleanup at
+`recovery/history-verification/<staging-database>.jsonl`. Each ledger has a season,
+source hashes, expected/actual evidence hashes, fixture/quote/untimed counts and
+issues. `verified` means the normalized capture matches its pinned plan;
+`raw_preserved_only` means the completed plan required no new normalized evidence.
+The final `history_verification` summary must have `passed: true`. This is not
+verification of unknown event timing, champions, archive availability or profit.
+Source files are separately hash-checked by the importer before verification.
+
+To inspect the active local snapshot without a new sync:
+
+```bash
+docker compose --env-file engine/local/.env.local \
+  -f engine/local/compose.yaml exec -T api \
+  php artisan provider:verify-legacy-history
+```
+
+For the normal-sync retention check in issue #68, retain the before/after reports
+and compare ledger IDs and expected hashes. Newly collected provider evidence may
+change what a fresh import needs, so review differences by season rather than
+requiring fixed aggregate counts. The real Mac dataset still requires this
+operator check; automated fixture tests cannot certify that external snapshot.

@@ -31,6 +31,8 @@ class HistoryOverlayTests(unittest.TestCase):
                 calls.append('import')
                 if fail_import:
                     raise RuntimeError('history import failed')
+            if 'provider:verify-legacy-history' in args:
+                calls.append('verify')
             return SimpleNamespace(stdout=b'')
 
         return SimpleNamespace(ROOT=root, ENV=env, compose=Mock(side_effect=compose),
@@ -46,7 +48,7 @@ class HistoryOverlayTests(unittest.TestCase):
             overlay.replay(sync, 'kiotrad_local_20261030T000000Z', records)
             self.assertEqual(overlay.packages(root), records)
             self.assertEqual(sync.ENV.read_bytes(), original)
-            command = sync.compose.call_args.args
+            command = next(c.args for c in sync.compose.call_args_list if 'provider:import-legacy-history' in c.args)
             self.assertIn('MONGODB_DATABASE=kiotrad_local_20261030T000000Z', command)
             self.assertIn(str(folder) + ':/legacy-history:ro', command)
             self.assertIn(str(root / 'recovery/local-history-evidence') + ':/history-evidence', command)
@@ -128,10 +130,36 @@ class HistoryOverlayTests(unittest.TestCase):
                 folder = self.package(root)
                 calls = []
                 self.perform(root, calls, full=full, requested=[str(folder)])
-                self.assertEqual(calls, ['import', 'warm', 'activate', 'prune'])
+                self.assertEqual(calls, ['import', 'verify', 'warm', 'activate', 'prune'])
                 calls = []
                 self.perform(root, calls, full=full)
-                self.assertEqual(calls, ['import', 'warm', 'activate', 'prune'])
+                self.assertEqual(calls, ['import', 'verify', 'warm', 'activate', 'prune'])
+
+    def test_verification_failure_keeps_current_snapshot_active(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            folder = self.package(root)
+            calls = []
+            original_sync = self.sync
+
+            def failing_sync(*args, **kwargs):
+                sync = original_sync(*args, **kwargs)
+                original_compose = sync.compose.side_effect
+
+                def compose(*command, **options):
+                    if 'provider:verify-legacy-history' in command:
+                        calls.append('verification_failed')
+                        raise RuntimeError('Pinned evidence differs')
+                    return original_compose(*command, **options)
+
+                sync.compose.side_effect = compose
+                return sync
+
+            with patch.object(self, 'sync', side_effect=failing_sync):
+                with self.assertRaisesRegex(RuntimeError, 'Pinned evidence differs'):
+                    self.perform(root, calls, requested=[str(folder)])
+            self.assertEqual(calls, ['import', 'verification_failed'])
+            self.assertIn('LOCAL_DATABASE=kiotrad_local_20261029T000000Z', (root / 'env').read_text())
 
     def test_overlay_failure_stops_sync_before_warming_activation_or_retention(self):
         with tempfile.TemporaryDirectory() as temporary:
