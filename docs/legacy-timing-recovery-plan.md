@@ -1,0 +1,64 @@
+# Review older-season timing recovery
+
+Issue #69 needs a timing decision per season, rather than rejecting an entire
+league/list because of one interruption. This tool reuses the existing reports:
+no raw rescan, SSH, password, MongoDB or Redis access is needed.
+
+```bash
+cd "$HOME/Developer/kiotrad"
+git pull --ff-only --no-rebase origin main &&
+python3 -u engine/recovery/timing_recovery_plan.py \
+  --timing-report /tmp/kiotrad-timing-audit.json \
+  --discovery-report recovery/discovery-evidence-batch-1/report.json \
+  --destination "recovery/timing-plan-$(date +%Y%m%dT%H%M%S)"
+```
+
+Use the original timing report whose hash is pinned by the discovery report.
+If it was replaced, regenerate discovery against the new timing report using
+`docs/legacy-discovery-evidence.md`; do not edit the pinned hash to bypass the
+check. The tool refuses incomplete discovery input and existing output folders.
+
+Open `seasons.csv` in the new output folder to inspect each season, its legacy
+coverage/counts, recorded day-one kickoff in UTC/WAT, review-only hypothetical
+time where supported, evidence and remaining requirements. `segments.csv` shows
+anchor pairs, listed steps, actual versus expected gaps, and unexplained seconds.
+Repeated discovery files share one segment row with all their source hashes; they
+are not counted as separate interruptions. Different listed-step hypotheses stay
+separate for review.
+`report.json` preserves nested provenance and hashes of both input reports.
+Partial seasons remain in the same table with their coverage marked.
+
+| Status | Meaning / decision |
+| --- | --- |
+| recorded_day1 | Source audit has a nonconflicting day-one scheduled kickoff. |
+| bracketed_cadence_hypothesis | Two verified anchors agree with listed steps × 6,720 seconds. An interior time can be proposed for review; adjacency is still unverified. |
+| unanchored_extrapolation_required | Season lies before the first or after the last anchor. No time proposed; find an independent anchor or verify continuity and closure history. |
+| anchored_break_unresolved | Season lies inside a timing break. Do not distribute unexplained delay evenly across it. |
+| conflicting_cadence_hypotheses | Different candidate lists propose different times. No averaging or arbitrary choice. |
+| conflicting_recorded_timing | Contradictory recorded evidence must be resolved first. |
+| missing_day1_anchor | No usable bracket or one-sided discovery evidence was established. |
+
+Each pair of verified anchors is evaluated independently. A later interruption
+does not discard earlier bracketed agreement. The script recomputes direction
+and segments from the pinned timing report and season identities, ignoring stale
+cached calculations. Mixed leagues, duplicate IDs, nonmonotonic anchors and
+rejected source identities cannot produce hypotheses.
+
+The normal cadence is a hypothesis: 220 seconds between matchdays and 6,720
+seconds between season starts. A positive multiple of 6,720 unexplained seconds
+is marked `extra_whole_cadence_slots`: it could reflect omitted seasons or an
+interruption, so it does not prove either. Other longer/shorter gaps are also
+reported without inventing a cause. Known company-wide closures can occur at
+different matchdays across leagues. Collector errors and empty odds responses
+alone do not date those closures.
+
+All hypothetical fields are explicitly separate from recorded kickoff fields.
+This report changes no stored timestamps, provider links, odds, results,
+champions, qualified runs or balances. Financial eligibility remains false for
+this planning output: even recorded scheduled kickoff does not establish exact
+settlement, champion integrity or historical market availability. Unknown
+uncertainty is not presented as a measured confidence interval.
+
+Next: review unresolved seasons/anchor segments from the real Mac reports.
+Only then choose which continuity evidence supports a separately versioned
+estimated-timing research path. Preserve the incomplete-season champion guard.
