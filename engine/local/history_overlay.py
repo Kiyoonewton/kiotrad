@@ -109,6 +109,19 @@ def replay(sync, database, records):
                      '-v', str(archive.resolve()) + ':/history-evidence', 'api',
                      'php', 'artisan', 'provider:import-legacy-history', '/legacy-history',
                      '--apply', '--archive-root=/history-evidence')
+    print('Verifying retained fixture, price and provenance identities...', flush=True)
+    reports = sync.ROOT / 'recovery/history-verification'
+    reports.mkdir(parents=True, exist_ok=True)
+    report = reports / (database + '.jsonl')
+    try:
+        with report.open('wb') as output:
+            sync.compose('run', '--rm', '--no-deps', '-T',
+                         '-e', 'MONGODB_DATABASE=' + database,
+                         '-e', 'MONGODB_URI=mongodb://mongodb:27017/' + database,
+                         'api', 'php', 'artisan', 'provider:verify-legacy-history', stdout=output)
+    finally:
+        print(report.read_text(), end='', flush=True)
+        print('History integrity report: ' + str(report), flush=True)
     # Register only after all imports succeed. Keep registration even if later
     # warming/activation fails, so the next normal sync retries the same evidence.
     save(sync.ROOT, records)

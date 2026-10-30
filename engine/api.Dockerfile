@@ -28,6 +28,8 @@ RUN rm -f app/Console/Commands/RebuildRawEvidence.php \
     app/Infrastructure/Provider/RawOddsRecovery.php \
     app/Console/Commands/AuditLegacyHistory.php \
     app/Console/Commands/ImportLegacyHistory.php \
+    app/Console/Commands/VerifyLegacyHistory.php \
+    app/Infrastructure/Provider/LegacyHistoryVerification.php \
     app/Infrastructure/Provider/LegacyHistoryPlan.php \
     app/Infrastructure/Provider/LegacyHistoryArchive.php \
     app/Infrastructure/Provider/LegacyHistoryWriter.php \
