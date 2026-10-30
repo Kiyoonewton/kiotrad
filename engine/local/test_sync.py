@@ -90,6 +90,8 @@ class LocalSyncTests(unittest.TestCase):
             recreations = [call for call in calls if '--force-recreate' in call]
             self.assertEqual(len(recreations), 1)
             self.assertNotIn('redis', recreations[0])
+            self.assertNotIn('redis-locks', recreations[0])
+            self.assertTrue(any('redis-locks' in call for call in calls))
             self.assertIn('web', recreations[0])
             self.assertIn('dashboard-worker', recreations[0])
 

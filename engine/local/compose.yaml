@@ -13,6 +13,7 @@ x-app: &app
     DASHBOARD_ASYNC: "true"
     SIMULATION_CACHE_ENABLED: "true"
     REDIS_HOST: redis
+    REDIS_LOCK_HOST: redis-locks
     SLACK_NOTIFICATIONS_ENABLED: "false"
   volumes:
     - dashboard_views:/app/storage/app/private/dashboard-views
@@ -33,10 +34,24 @@ services:
     restart: unless-stopped
   redis:
     image: redis:7-alpine
-    command: [redis-server, --maxmemory, 256mb, --maxmemory-policy, allkeys-lru, --save, "", --appendonly, "no"]
+    mem_limit: 640m
+    command: [redis-server, --maxmemory, "${REDIS_CACHE_MAXMEMORY:-512mb}", --maxmemory-policy, allkeys-lru, --save, "", --appendonly, "no"]
+    restart: unless-stopped
+  redis-locks:
+    image: redis:7-alpine
+    command: [redis-server, --maxmemory, 64mb, --maxmemory-policy, noeviction, --save, "", --appendonly, "no"]
+    mem_limit: 96m
+    healthcheck:
+      test: [CMD, redis-cli, ping]
+      interval: 5s
+      timeout: 3s
+      retries: 10
     restart: unless-stopped
   api:
     <<: *app
+    depends_on:
+      redis-locks:
+        condition: service_healthy
     environment:
       <<: *environment
       PHP_CLI_SERVER_WORKERS: "4"
@@ -49,6 +64,9 @@ services:
       retries: 20
   dashboard-worker:
     <<: *app
+    depends_on:
+      redis-locks:
+        condition: service_healthy
     command: [php, artisan, 'dashboard:watch']
   web:
     build:

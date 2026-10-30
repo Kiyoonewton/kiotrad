@@ -255,7 +255,7 @@ def activate_snapshot(database, started):
     compose("stop", "api", "dashboard-worker")
     try:
         write_environment(database)
-        compose("up", "-d", "--no-deps", "redis")
+        compose("up", "-d", "--wait", "--no-deps", "redis", "redis-locks")
         compose("up", "-d", "--build", "--force-recreate", "--no-deps", "api", "web", "dashboard-worker")
     except BaseException:
         ENV.write_bytes(previous)

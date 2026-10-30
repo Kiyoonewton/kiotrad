@@ -6,6 +6,8 @@ x-collector: &collector
     context: ..
     dockerfile: engine/api.Dockerfile
   env_file: .env
+  environment:
+    REDIS_LOCK_HOST: redis-locks
   volumes:
     - provider_evidence:/app/storage/app/private/provider-evidence
   depends_on:
@@ -17,8 +19,19 @@ x-collector: &collector
 services:
   redis:
     image: redis:7-alpine
-    command: [redis-server, --maxmemory, 256mb, --maxmemory-policy, allkeys-lru, --save, "", --appendonly, "no"]
-    mem_limit: 320m
+    command: [redis-server, --maxmemory, "${REDIS_CACHE_MAXMEMORY:-512mb}", --maxmemory-policy, allkeys-lru, --save, "", --appendonly, "no"]
+    mem_limit: 640m
+    healthcheck:
+      test: [CMD, redis-cli, ping]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    restart: unless-stopped
+
+  redis-locks:
+    image: redis:7-alpine
+    command: [redis-server, --maxmemory, 64mb, --maxmemory-policy, noeviction, --save, "", --appendonly, "no"]
+    mem_limit: 96m
     healthcheck:
       test: [CMD, redis-cli, ping]
       interval: 5s
@@ -31,11 +44,15 @@ services:
       context: ..
       dockerfile: engine/api.Dockerfile
     env_file: .env
+    environment:
+      REDIS_LOCK_HOST: redis-locks
     volumes:
       - dashboard_views:/app/storage/app/private/dashboard-views
     command: [php, artisan, 'dashboard:watch']
     depends_on:
       redis:
+        condition: service_healthy
+      redis-locks:
         condition: service_healthy
     restart: unless-stopped
     stop_grace_period: 35s
@@ -81,6 +98,7 @@ services:
     env_file: .env
     environment:
       PHP_CLI_SERVER_WORKERS: "4"
+      REDIS_LOCK_HOST: redis-locks
     command: [php, artisan, serve, --host=0.0.0.0, --port=8000, --no-reload]
     volumes:
       - dashboard_views:/app/storage/app/private/dashboard-views
