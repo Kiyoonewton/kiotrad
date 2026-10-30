@@ -1,4 +1,10 @@
-import { render, screen, within, cleanup } from "@testing-library/react";
+import {
+  render,
+  screen,
+  within,
+  cleanup,
+  fireEvent,
+} from "@testing-library/react";
 import { afterEach, expect, it } from "vitest";
 import { CalendarDailyTable } from "./CalendarDailyTable";
 import type { SharedSimulation, SharedRun } from "./sharedSimulation";
@@ -94,4 +100,73 @@ it("filters financial totals by league and does not fabricate zero totals while 
   );
   expect(screen.getByRole("status")).toHaveTextContent("unavailable");
   expect(screen.queryByText("₦0.00")).not.toBeInTheDocument();
+});
+
+it("expands a day into a chronological run table and collapses without changing totals", () => {
+  const detailed = {
+    ...simulation,
+    settlement_model: { seconds: 201, version: "test", basis: "modeled" },
+    runs: [
+      {
+        ...run,
+        id: "later",
+        team: "Later team",
+        season_id: "2",
+        strategy_id: "champion-next-win",
+        released_at: "2026-10-19T01:00:00Z",
+      },
+      {
+        ...run,
+        id: "earlier",
+        team: "Earlier team",
+        season_id: "1",
+        strategy_id: "champion-next-season",
+      },
+      {
+        ...run,
+        id: "skipped",
+        team: "Excluded team",
+        status: "skipped_overlap",
+      },
+    ],
+  };
+  render(
+    <CalendarDailyTable
+      coverage={coverage}
+      dates={coverage[0].dates}
+      simulation={detailed}
+      league="all"
+    />,
+  );
+  const toggle = screen.getByRole("button", {
+    name: "Inspect runs for 2026-10-19",
+  });
+  expect(toggle).toHaveAttribute("aria-expanded", "false");
+  expect(
+    screen.queryByRole("table", { name: "Run details for 2026-10-19" }),
+  ).not.toBeInTheDocument();
+  expect(
+    screen.getByRole("button", { name: "Inspect runs for 2026-10-18" }),
+  ).toBeDisabled();
+  const total = screen.getByText("Total").closest("tr")!.textContent;
+  fireEvent.click(toggle);
+  expect(toggle).toHaveAttribute("aria-expanded", "true");
+  const table = screen.getByRole("table", {
+    name: "Run details for 2026-10-19",
+  });
+  const rows = within(table).getAllByRole("row").slice(1);
+  expect(rows[0]).toHaveTextContent("Earlier team");
+  expect(rows[1]).toHaveTextContent("Later team");
+  expect(rows[0]).toHaveTextContent("19/10/2026, 00:30:00");
+  expect(rows[0]).toHaveTextContent("18/10/2026, 22:00:00");
+  expect(rows[0]).toHaveTextContent("Euro · Next Season · season 1");
+  expect(within(table).queryByText("Excluded team")).not.toBeInTheDocument();
+  expect(
+    screen.getByText(/release times use the settlement model/),
+  ).toBeInTheDocument();
+  fireEvent.click(toggle);
+  expect(
+    screen.queryByRole("table", { name: "Run details for 2026-10-19" }),
+  ).not.toBeInTheDocument();
+  expect(screen.getByText("Total").closest("tr")!.textContent).toBe(total);
 });
