@@ -1,0 +1,63 @@
+.calendar-table-scroll {
+  max-width: 100%;
+  overflow-x: auto;
+  margin: 16px 0;
+}
+.calendar-daily-table {
+  width: 100%;
+  border-collapse: collapse;
+  border: 1px solid #3b5145;
+  font-size: 0.86rem;
+}
+.calendar-daily-table th,
+.calendar-daily-table td {
+  border: 1px solid #3b5145;
+  padding: 12px 14px;
+  text-align: left;
+  vertical-align: top;
+  white-space: nowrap;
+}
+.calendar-daily-table thead,
+.calendar-daily-table tfoot {
+  background: #1a2a21;
+  color: #e1ece5;
+  font-weight: 600;
+}
+.calendar-daily-table small {
+  display: block;
+  color: #a8b9ae;
+  margin-top: 5px;
+  font-weight: 400;
+}
+.calendar-day-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 0;
+  background: transparent;
+  border: 0;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+.calendar-day-toggle[aria-expanded="true"] {
+  color: #a6d7bb;
+}
+.calendar-day-toggle:disabled {
+  cursor: default;
+  opacity: 0.7;
+}
+.calendar-expanded-row > td {
+  background: #101e17;
+  padding: 16px;
+}
+.calendar-day-runs > p {
+  margin: 0 0 12px;
+  color: #b5c5ba;
+}
+.calendar-daily-table .calendar-profit {
+  color: #a6d7bb;
+}
+.calendar-daily-table .calendar-loss {
+  color: #ef9e96;
+}
