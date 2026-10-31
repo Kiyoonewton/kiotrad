@@ -19,7 +19,7 @@ try {
  if(!roles.length || roles.some(r=>r.role!=='read'||r.db!=='kiotrad'))throw Error('read_role_required');
  const infos=d.getCollectionInfos().filter(c=>!c.name.startsWith('system.'));
  if(!infos.length || infos.some(c=>c.type!=='collection'))throw Error('unsupported_collection_type');
- const collections=infos.map(c=>({name:c.name,estimated_count_at_start:Number(d.getCollection(c.name).estimatedDocumentCount()),
+ const collections=infos.map(c=>({name:c.name,options:EJSON.serialize(c.options??{},{relaxed:false}),estimated_count_at_start:Number(d.getCollection(c.name).estimatedDocumentCount()),
    indexes:EJSON.serialize(d.getCollection(c.name).getIndexes(),{relaxed:false})}));
  print(JSON.stringify({database:'kiotrad',read_only_role_verified:true,collections,observed_at:new Date().toISOString()}));
 }catch(_){print(JSON.stringify({error:'read_only_backup_metadata_failed'}));quit(1);}
@@ -62,7 +62,9 @@ print(JSON.stringify({database:name,verified:true,counts,capture_references_chec
 def cleanup_script(target):
     target_guard(target)
     return ('const name=' + json.dumps(target) + ''';
-print(JSON.stringify({database:name,result:db.getSiblingDB(name).dropDatabase()}));
+const result=db.getSiblingDB(name).dropDatabase();
+if(result.ok!==1 || db.getMongo().getDBNames().includes(name))throw Error('Disposable restore cleanup failed');
+print(JSON.stringify({database:name,result}));
 ''').encode()
 
 
