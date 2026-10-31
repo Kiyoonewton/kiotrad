@@ -20,7 +20,10 @@ FROM base AS local
 
 # Default target excludes local-only commands and import implementation.
 FROM base AS production
-RUN rm -f app/Console/Commands/ReplayEstimatedHistory.php \
+RUN rm -f app/Console/Commands/AuditRawDocuments.php \
+    app/Infrastructure/Diagnostics/RawDocumentAudit.php \
+    app/Infrastructure/Diagnostics/RawDocumentValidator.php \
+    app/Console/Commands/ReplayEstimatedHistory.php \
     app/Console/Commands/RebuildRawEvidence.php \
     app/Infrastructure/Provider/RawEvidenceRebuilder.php \
     app/Infrastructure/Provider/RawRebuildIndex.php \

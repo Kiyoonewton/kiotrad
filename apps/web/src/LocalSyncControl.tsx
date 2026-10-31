@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import "./local-sync.css";
 import { localSyncEnabled } from "./localSync";
+import { LocalSyncAge } from "./LocalSyncAge";
 
 type SyncState = {
   status: "idle" | "running" | "preparing" | "ready" | "failed";
@@ -15,11 +16,13 @@ type SyncState = {
 };
 const helper = "http://127.0.0.1:5176";
 
-export function LocalSyncControl({ onReady }: { onReady: () => void }) {
-  return localSyncEnabled() ? <LocalSyncPanel onReady={onReady} /> : null;
+type SyncProps = { onReady: () => void; lastSyncAt?: string | null };
+
+export function LocalSyncControl({ onReady, lastSyncAt }: SyncProps) {
+  return localSyncEnabled() ? <LocalSyncPanel onReady={onReady} lastSyncAt={lastSyncAt} /> : null;
 }
 
-export function LocalSyncPanel({ onReady }: { onReady: () => void }) {
+export function LocalSyncPanel({ onReady, lastSyncAt }: SyncProps) {
   const [state, setState] = useState<SyncState | null>(null);
   const [offline, setOffline] = useState(false);
   const [starting, setStarting] = useState(false);
@@ -69,6 +72,7 @@ export function LocalSyncPanel({ onReady }: { onReady: () => void }) {
   return <section className="local-sync-panel" aria-label="Local data sync">
     <div>
       <strong>Production → local data</strong>
+      <LocalSyncAge completedAt={lastSyncAt} />
       <p role="status">{offline ? "Local sync helper is offline." : state?.phase ?? "Connecting to local sync helper…"}
         {state?.job_id && <> · {state.elapsed_seconds ?? 0}s elapsed</>}
         {measured && <> · {state!.done}/{state!.total} ({Math.floor(100 * state!.done! / state!.total!)}%)</>}

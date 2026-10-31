@@ -87,3 +87,6 @@ python3 -u engine/local/sync.py --ssh root@169.58.227.92
 
 This implements the env credential and local progress/readiness path discussed
 in #67. It does not add a production-side sync button or change source evidence.
+
+
+The local sync panel also shows how long it has been since the active mirror's last successful production sync. It uses `local_sync.completed_at` from the dashboard's active snapshot, so terminal syncs count too and a failed attempt or an offline/restarted helper does not reset the date. The age refreshes every 30 seconds. Hover the timestamp for its exact Lagos date/time (WAT). A missing timestamp is shown as “not recorded”; it is never filled from browser load or a failed job's start time.
