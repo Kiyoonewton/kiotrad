@@ -109,9 +109,10 @@ class ProductionHistoryPlanTest(unittest.TestCase):
     def test_inventory_requires_header_every_season_and_completion_marker(self):
         targets = [{'league': 'virtual-euro', 'season': '100', 'ids': ['vf:match:1']}]
         digest = hashlib.sha256(json.dumps(targets, sort_keys=True).encode()).hexdigest()
-        messages = [{'type': 'start', 'database': 'kiotrad', 'read_only_role_verified': True, 'request_sha256': digest, 'seasons': 1},
-                    {'type': 'season', 'league': 'virtual-euro', 'season': '100', 'progress': 1, 'matches': {}},
-                    {'type': 'complete', 'applied': False, 'request_sha256': digest, 'seasons': 1}]
+        messages = [{'type': 'start', 'database': 'kiotrad', 'read_only_role_verified': True, 'request_sha256': digest, 'seasons': 1, 'target_fixtures': 1},
+                    {'type': 'phase_complete', 'phase': 'fixtures', 'records': 0},
+                    {'type': 'phase_complete', 'phase': 'prices', 'records': 0},
+                    {'type': 'complete', 'applied': False, 'request_sha256': digest, 'seasons': 1, 'fixtures': 0, 'prices': 0}]
         class Process:
             def __init__(self, messages):
                 self.stdin = io.BytesIO()
@@ -131,6 +132,7 @@ class ProductionHistoryPlanTest(unittest.TestCase):
             with patch('plan_production_history.subprocess.Popen', return_value=Process(messages[:-1])):
                 with self.assertRaisesRegex(RuntimeError, 'did not complete'):
                     inventory('root@example.test', 'hidden-password', targets, Path(tmp), seen.append)
+            self.assertEqual(len(seen), 1)
 
     def test_mongosh_program_performs_only_read_queries_and_rejects_write_roles(self):
         program = Path(__file__).with_name('production_history_inventory.js').read_text()
@@ -140,7 +142,7 @@ const lines=[];
 const print=value=>lines.push(JSON.parse(value));
 const quit=code=>{throw new Error('quit');};
 const fixture={competition:'virtual-euro',matches:[{provider_match_id:'vf:match:1',season_id:'100',matchday:1,home_team_uid:'1',away_team_uid:'2',result:'H'}],odds_snapshots:[{provider_match_id:'vf:match:1',prices:{H:'1.7500',D:'3.00',A:'4.00'}}]};
-function Mongo(){this.getDB=()=>({runCommand:()=>({authInfo:{authenticatedUserRoles:ROLES}}),provider_captures:{find:()=>({batchSize:()=>[fixture]})}});}
+function Mongo(){this.getDB=()=>({runCommand:()=>({authInfo:{authenticatedUserRoles:ROLES}}),provider_captures:{aggregate:pipeline=>{if(pipeline.some(s=>!['$match','$project','$unwind','$group'].includes(Object.keys(s)[0])))throw new Error('unexpected stage');return pipeline[1].$project.matches ? [{_id:'vf:match:1',variants:[{competition:'virtual-euro',season_id:'100',matchday:1,home_uid:'1',away_uid:'2',result:'H'}]}] : [{_id:'vf:match:1',variants:[{competition:'virtual-euro',prices:{H:'1.7500',D:'3.00',A:'4.00'}}]}];}}});}
 try { PROGRAM } catch (_) {}
 process.stdout.write(JSON.stringify(lines));
 '''
@@ -150,7 +152,7 @@ process.stdout.write(JSON.stringify(lines));
             messages = json.loads(result.stdout)
             self.assertEqual(messages[-1]['type'], expected)
             if role == 'read':
-                self.assertEqual(messages[1]['matches']['vf:match:1']['prices'][0]['prices']['H'], 17500)
+                self.assertEqual(next(r for r in messages if r['type'] == 'prices')['variants'][0]['prices']['H'], 17500)
 
 
 if __name__ == '__main__':

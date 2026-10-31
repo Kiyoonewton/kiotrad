@@ -83,7 +83,9 @@ def inventory(server, password, targets, destination, on_season):
     script = 'const REQUEST = ' + json.dumps(request) + ';\n' + Path(__file__).with_name('production_history_inventory.js').read_text()
     command = ssh(server, ['docker', 'exec', '-i', 'kiotrad-mongodb-1', 'mongosh', '--quiet', '--nodb', '--file', '/dev/stdin'])
     header = complete = None
-    seen = set()
+    wanted = {identity for target in targets for identity in target['ids']}
+    seen = {'fixtures': set(), 'prices': set()}
+    records, phase = {}, 'fixtures'
     process = subprocess.Popen(command, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL)
     try:
         # mongosh consumes the script from /dev/stdin before executing it.
@@ -99,20 +101,30 @@ def inventory(server, password, targets, destination, on_season):
                 if kind == 'error':
                     raise RuntimeError('Production read-only inventory failed; check SSH and saved read-only credentials.')
                 if kind == 'start':
-                    if header is not None or row.get('database') != 'kiotrad' or row.get('read_only_role_verified') is not True or row.get('request_sha256') != request_hash or row.get('seasons') != len(targets):
+                    if header is not None or row.get('database') != 'kiotrad' or row.get('read_only_role_verified') is not True or row.get('request_sha256') != request_hash or row.get('seasons') != len(targets) or row.get('target_fixtures') != len(wanted):
                         raise ValueError('Invalid production read-only inventory header.')
                     header = row
-                elif kind == 'season':
-                    key = row['league'], row['season']
-                    expected = targets[len(seen)] if len(seen) < len(targets) else None
-                    if header is None or complete is not None or key in seen or expected is None or key != (expected['league'], expected['season']) or row.get('progress') != len(seen) + 1:
-                        raise ValueError('Production season response is incomplete, duplicated or out of order.')
-                    if not set(row['matches']).issubset(expected['ids']):
-                        raise ValueError('Unexpected fixture IDs in production response.')
-                    seen.add(key)
-                    on_season(row)
+                    print('Read-only production role verified. Grouping fixture evidence at cutoff ' + row.get('cutoff', 'unknown'), flush=True)
+                elif kind in ('fixtures', 'prices'):
+                    identity = row['id']
+                    if header is None or complete is not None or phase != kind or identity not in wanted or identity in seen[kind]:
+                        raise ValueError('Unexpected, duplicate or out-of-order fixture evidence.')
+                    seen[kind].add(identity)
+                    stored = records.setdefault(identity, {'fixtures': [], 'prices': [], 'invalid_quotes': 0})
+                    stored[kind] = row['variants']
+                    if kind == 'prices':
+                        stored['invalid_quotes'] = row['invalid_quotes']
+                    if len(seen[kind]) % 1000 == 0:
+                        print(f"Production {kind}: {len(seen[kind])} groups read", flush=True)
+                elif kind == 'phase_complete':
+                    if header is None or phase not in seen or row.get('phase') != phase or row.get('records') != len(seen[phase]):
+                        raise ValueError('Incomplete production evidence phase.')
+                    print(f"Production {phase} phase complete: {len(seen[phase])} distinct fixture groups", flush=True)
+                    phase = 'prices' if phase == 'fixtures' else 'done'
+                    if phase == 'prices':
+                        print('Grouping production quote evidence...', flush=True)
                 elif kind == 'complete':
-                    if complete is not None or header is None or row.get('applied') is not False or row.get('seasons') != len(targets) or len(seen) != len(targets) or row.get('request_sha256') != request_hash:
+                    if complete is not None or header is None or phase != 'done' or row.get('applied') is not False or row.get('seasons') != len(targets) or row.get('request_sha256') != request_hash or any(row.get(k) != len(seen[k]) for k in seen):
                         raise ValueError('Invalid production inventory completion marker.')
                     complete = row
                 else:
@@ -121,6 +133,9 @@ def inventory(server, password, targets, destination, on_season):
                 output.flush()
         if process.wait() != 0 or header is None or complete is None:
             raise RuntimeError('Production inventory did not complete; no final plan was published.')
+        for position, target in enumerate(targets, 1):
+            on_season({'league': target['league'], 'season': target['season'], 'progress': position,
+                       'matches': {identity: records[identity] for identity in target['ids'] if identity in records}})
     finally:
         if process.poll() is None:
             process.kill()

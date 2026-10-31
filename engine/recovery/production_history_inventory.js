@@ -4,12 +4,11 @@ try {
   const source = new Mongo(REQUEST.uri).getDB('kiotrad');
   stage = 'roles';
   const roles = source.runCommand({connectionStatus: 1}).authInfo.authenticatedUserRoles;
-  if (!roles.length || roles.some(r => r.role !== 'read' || r.db !== 'kiotrad')) {
-    throw new Error('read_only_role_required');
-  }
+  if (!roles.length || roles.some(r => r.role !== 'read' || r.db !== 'kiotrad')) throw new Error('read_only_role_required');
   const cutoff = new Date().toISOString().slice(0, 19) + '+00:00';
+  const ids = REQUEST.targets.flatMap(t => t.ids);
   print(JSON.stringify({type: 'start', database: 'kiotrad', cutoff, read_only_role_verified: true,
-    request_sha256: REQUEST.sha256, seasons: REQUEST.targets.length}));
+    request_sha256: REQUEST.sha256, seasons: REQUEST.targets.length, target_fixtures: ids.length}));
   const scaled = value => {
     const text = String(value ?? '');
     if (!/^\d{1,4}(?:\.\d{1,4})?$/.test(text)) return null;
@@ -17,47 +16,49 @@ try {
     const result = Number(whole) * 10000 + Number(decimal.padEnd(4, '0'));
     return result > 10000 && result <= 10000000 ? result : null;
   };
-  let done = 0;
-  for (const target of REQUEST.targets) {
-    stage = 'inventory';
-    const wanted = new Set(target.ids);
-    const records = new Map();
-    const record = id => {
-      if (!records.has(id)) records.set(id, {fixtures: new Map(), prices: new Map(), invalid_quotes: 0});
-      return records.get(id);
-    };
-    const captures = source.provider_captures.find({observed_at: {$lte: cutoff}, $or: [
-      {competition: target.league, season_id: target.season},
-      {'matches.provider_match_id': {$in: target.ids}},
-      {'odds_snapshots.provider_match_id': {$in: target.ids}}
-    ]}, {competition: 1, matches: 1, odds_snapshots: 1}).batchSize(2);
-    for (const capture of captures) {
-      for (const match of capture.matches ?? []) {
-        const id = match.provider_match_id;
-        if (!wanted.has(id)) continue;
-        const fixture = {competition: capture.competition ?? null, season_id: String(match.season_id ?? ''),
-          matchday: match.matchday, home_uid: String(match.home_team_uid ?? ''), away_uid: String(match.away_team_uid ?? ''),
-          result: match.result ?? null, scheduled_start_at: match.scheduled_start_at ?? null};
-        record(id).fixtures.set(JSON.stringify(fixture), fixture);
-      }
-      for (const quote of capture.odds_snapshots ?? []) {
-        const id = quote.provider_match_id;
-        if (!wanted.has(id)) continue;
-        const price = Object.fromEntries(['H', 'D', 'A'].map(c => [c, scaled(quote.prices?.[c])]));
-        if (Object.keys(quote.prices ?? {}).length !== 3 || Object.values(price).some(v => v === null)) {
-          record(id).invalid_quotes++;
-        } else {
-          const item = {competition: capture.competition ?? null, prices: price};
-          record(id).prices.set(JSON.stringify(item), item);
-        }
+  let fixtures = 0, prices = 0;
+  stage = 'fixtures';
+  const fixtureCursor = source.provider_captures.aggregate([
+    {$match: {observed_at: {$lte: cutoff}, 'matches.provider_match_id': {$in: ids}}},
+    {$project: {competition: 1, matches: 1}}, {$unwind: '$matches'},
+    {$match: {'matches.provider_match_id': {$in: ids}}},
+    {$group: {_id: '$matches.provider_match_id', variants: {$addToSet: {
+      competition: '$competition', season_id: '$matches.season_id', matchday: '$matches.matchday',
+      home_uid: '$matches.home_team_uid', away_uid: '$matches.away_team_uid',
+      result: '$matches.result', scheduled_start_at: '$matches.scheduled_start_at'
+    }}}}
+  ], {allowDiskUse: true, cursor: {batchSize: 50}});
+  for (const group of fixtureCursor) {
+    const variants = group.variants.map(v => ({...v, season_id: String(v.season_id ?? ''),
+      home_uid: String(v.home_uid ?? ''), away_uid: String(v.away_uid ?? ''),
+      result: v.result ?? null, scheduled_start_at: v.scheduled_start_at ?? null}));
+    print(JSON.stringify({type: 'fixtures', id: group._id, variants}));
+    fixtures++;
+  }
+  print(JSON.stringify({type: 'phase_complete', phase: 'fixtures', records: fixtures}));
+  stage = 'prices';
+  const priceCursor = source.provider_captures.aggregate([
+    {$match: {observed_at: {$lte: cutoff}, 'odds_snapshots.provider_match_id': {$in: ids}}},
+    {$project: {competition: 1, odds_snapshots: 1}}, {$unwind: '$odds_snapshots'},
+    {$match: {'odds_snapshots.provider_match_id': {$in: ids}}},
+    {$group: {_id: '$odds_snapshots.provider_match_id', variants: {$addToSet: {competition: '$competition', prices: '$odds_snapshots.prices'}}}}
+  ], {allowDiskUse: true, cursor: {batchSize: 50}});
+  for (const group of priceCursor) {
+    const variants = new Map();
+    let invalid = 0;
+    for (const quote of group.variants) {
+      const price = Object.fromEntries(['H', 'D', 'A'].map(c => [c, scaled(quote.prices?.[c])]));
+      if (Object.keys(quote.prices ?? {}).length !== 3 || Object.values(price).some(v => v === null)) invalid++;
+      else {
+        const item = {competition: quote.competition ?? null, prices: price};
+        variants.set(JSON.stringify(item), item);
       }
     }
-    const matches = Object.fromEntries([...records].map(([id, value]) => [id,
-      {fixtures: [...value.fixtures.values()], prices: [...value.prices.values()], invalid_quotes: value.invalid_quotes}]));
-    print(JSON.stringify({type: 'season', league: target.league, season: target.season,
-      progress: ++done, matches}));
+    print(JSON.stringify({type: 'prices', id: group._id, variants: [...variants.values()], invalid_quotes: invalid}));
+    prices++;
   }
-  print(JSON.stringify({type: 'complete', seasons: done, request_sha256: REQUEST.sha256,
+  print(JSON.stringify({type: 'phase_complete', phase: 'prices', records: prices}));
+  print(JSON.stringify({type: 'complete', seasons: REQUEST.targets.length, fixtures, prices, request_sha256: REQUEST.sha256,
     completed_at: new Date().toISOString(), applied: false}));
 } catch (_) {
   print(JSON.stringify({type: 'error', stage, code: 'production_read_audit_failed'}));

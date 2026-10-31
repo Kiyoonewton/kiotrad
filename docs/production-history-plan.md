@@ -35,7 +35,7 @@ The two passed audit reports must refer to this exact comparison, and the source
 audit must refer to this exact package manifest. The command verifies every
 package season/file before the production comparison, including partial seasons.
 That full-package validation is broader than the earlier three-run source check.
-Progress identifies local source seasons, then production season counts. It does
+Progress identifies local source seasons, then production fixture/quote group counts and per-season plan counts. It does
 not claim a duration estimate.
 
 ## What is read
@@ -43,14 +43,18 @@ not claim a duration estimate.
 A settings-only PHP snapshot exports strategy definitions, replay version, code
 hashes and configured simulation capital. A separate mongosh script connects as
 `kiotrad_dev` and rejects any authenticated role other than `read` on `kiotrad`.
-Only `connectionStatus` and `provider_captures.find` are used against MongoDB.
-Queries include matching seasons and fixture/quote IDs across other seasons so
-identity collisions are visible. The cursor is streamed with a small batch size;
-only distinct fixture/price variants return to the Mac. No indexes are created.
+Only `connectionStatus` and two `provider_captures.aggregate` reads are used
+against MongoDB. They match package fixture/quote IDs across all seasons so
+identity collisions remain visible. Grouping removes repeated capture versions
+inside MongoDB and streams distinct evidence to the Mac. `allowDiskUse` permits
+MongoDB to spill aggregation working data to temporary disk rather than grow an
+unbounded in-memory map; no collections or indexes are written. Invalid quote
+counts describe distinct invalid variants, not repeated raw capture records.
 
-The script fixes an observation cutoff and returns a header, each requested
-season exactly once and a completion marker. Missing, duplicated or interrupted
-responses never publish a final `report.json`. Strategy/settings are read again
+The script fixes an observation cutoff and returns a header, distinct fixture/quote
+groups with phase-completion markers, followed by a final completion marker. The
+Mac then assesses every requested season exactly once. Missing, duplicated or
+interrupted responses never publish a final `report.json`. Strategy/settings are read again
 at the end; a change stops publication. This is not a transactionally consistent
 MongoDB snapshot: late backfills require another audit before a later import.
 
