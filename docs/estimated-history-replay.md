@@ -97,3 +97,7 @@ Review `season_diagnostics` and `estimated_history_exclusions` before interpreti
 profit. A later step can expose this comparison in the simulator, after the real
 output and boundary behavior are reviewed. The recorded dashboard benchmark and
 production transfer (#71) remain separate.
+
+After generating the comparison, run the independent integer ledger checks in
+[`history-comparison-audit.md`](history-comparison-audit.md) to inspect run,
+attempt, daily and issue tables before interpreting any change in profit.
