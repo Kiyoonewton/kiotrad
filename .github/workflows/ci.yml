@@ -52,6 +52,8 @@ jobs:
       - run: composer install --no-interaction --prefer-dist
       - run: composer lint
       - run: composer test
+      - name: Check backup view export PHP syntax
+        run: python3 -c 'import sys; sys.path.insert(0,"../../engine/recovery"); from production_backup_scripts import VIEWS_SCRIPT; sys.stdout.buffer.write(VIEWS_SCRIPT)' | php -l
 
   docker-smoke:
     runs-on: ubuntu-latest
@@ -104,11 +106,25 @@ jobs:
         run: |
           docker run --rm -i --network kiotrad_default --env-file engine/.env -e APP_ENV=testing kiotrad-raw-rebuild-check php < engine/history-import-smoke.php | tee /tmp/history-import.log
           grep -q '^History import passed:' /tmp/history-import.log
-      - name: Verify production backup archives in a disposable restore namespace
-        run: python3 engine/recovery/production_backup_smoke.py
       - name: Logs on failure
         if: failure()
         run: docker compose --env-file engine/.env -f engine/compose.yaml logs
       - name: Stop services
+        if: always()
+        run: docker compose --env-file engine/.env -f engine/compose.yaml down
+
+  backup-restore-safety:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: Initialize authenticated disposable MongoDB
+        run: sh engine/ci-mongo.sh
+      - name: Verify native backup and isolated restore
+        run: python3 engine/recovery/production_backup_smoke.py
+      - name: Logs on failure
+        if: failure()
+        run: docker compose --env-file engine/.env -f engine/compose.yaml logs mongodb
+      - name: Stop disposable MongoDB
         if: always()
         run: docker compose --env-file engine/.env -f engine/compose.yaml down

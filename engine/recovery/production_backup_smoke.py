@@ -8,7 +8,7 @@ import subprocess
 import tempfile
 
 from production_backup_io import restore_archives
-from production_backup_scripts import cleanup_script, metadata_script, VIEWS_SCRIPT
+from production_backup_scripts import cleanup_script, metadata_script
 
 if os.environ.get('CI') != 'true':
     raise SystemExit('Backup smoke is restricted to disposable CI.')
@@ -85,8 +85,6 @@ d.createUser({user:'backup_read_smoke',pwd:''' + json.dumps(PASSWORD) + ''',role
 const r=db.getSiblingDB(''' + json.dumps(TARGET) + ''').provider_captures.findOne({_id:'synthetic-backup-check'});
 if(!(r.bson_date instanceof Date)||r.bson_long.toString()!=='9223372036854775806')throw Error('BSON types changed');
 ''')
-    subprocess.run(['docker', 'compose', '--env-file', str(ROOT / 'engine/.env'), '-f', str(ROOT / 'engine/compose.yaml'),
-                    'exec', '-T', 'api', 'php', '-l'], input=VIEWS_SCRIPT, stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=True)
     print('Production backup native archive counts, empty collection, checkpoint references and BSON types passed.')
 finally:
     if created:
