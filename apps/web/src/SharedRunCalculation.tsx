@@ -56,6 +56,7 @@ export function SharedRunCalculation({ run }: { run?: SharedRun }) {
             {run.capital_at_entry_minor != null
               ? naira(run.capital_at_entry_minor)
               : "—"}
+            {run.sizing_capital_at_entry_minor != null && <> · sizing capital {naira(run.sizing_capital_at_entry_minor)}</>}
             . Target stays fixed during this run.
           </p>
           <div className="paper-table-scroll">

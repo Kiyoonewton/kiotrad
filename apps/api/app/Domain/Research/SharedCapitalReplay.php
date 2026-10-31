@@ -7,12 +7,15 @@ use DomainException;
 
 final class SharedCapitalReplay
 {
-    public const VERSION = 'single-active-parameterized-2.1.0';
+    public const VERSION = 'single-active-capital-modes-2.2.0';
 
-    public function calculate(array $candidates, int $capital, string $asOf, ?int $settlementSeconds = null, int $maxAttempts = 4, int $multiplier = 1): array
+    public function calculate(array $candidates, int $capital, string $asOf, ?int $settlementSeconds = null, int $maxAttempts = 4, int $multiplier = 1, string $capitalMode = 'compound', int $profitStop = 0): array
     {
         if ($maxAttempts < 1 || $maxAttempts > 10 || ! in_array($multiplier, [1, 2], true)) {
             throw new DomainException('invalid_scenario_settings');
+        }
+        if (! in_array($capitalMode, ['compound', 'fixed'], true) || $profitStop < 0 || $profitStop > 1000000000) {
+            throw new DomainException('invalid_capital_mode_or_profit_stop');
         }
         if ($capital < 1 || $capital > 1000000000) {
             throw new DomainException('invalid_capital');
@@ -60,6 +63,9 @@ final class SharedCapitalReplay
                 $this->settle($active, $balance, $recoveryTarget, $equity);
                 $active = null;
             }
+            if ($profitStop > 0 && $balance - $capital >= $profitStop) {
+                break; // Only settled net profit can stop future entries.
+            }
             if ($active !== null) {
                 foreach ($group as $candidate) {
                     $rows[] = [...$candidate, 'entry_at' => $at, 'status' => 'skipped_overlap',
@@ -70,7 +76,8 @@ final class SharedCapitalReplay
             }
             $eligible = [];
             foreach ($group as $candidate) {
-                if ($balance > 1000000000) {
+                $sizingCapital = $capitalMode === 'fixed' ? $capital : $balance;
+                if ($sizingCapital > 1000000000) {
                     $rows[] = [...$candidate, 'entry_at' => $at, 'status' => 'skipped_budget',
                         'skip_reason' => 'calculation_range_limit', 'capital_at_entry_minor' => $balance];
 
@@ -84,15 +91,15 @@ final class SharedCapitalReplay
 
                     continue;
                 }
-                $estimate = (new RunBudgetEstimate)->calculate($odds, $balance, $multiplier);
-                if ($estimate['status'] !== 'estimated') {
+                $estimate = (new RunBudgetEstimate)->calculate($odds, $sizingCapital, $multiplier);
+                if ($estimate['status'] !== 'estimated' || $estimate['allowance_minor'] > $balance) {
                     $rows[] = [...$candidate, 'entry_at' => $at, 'status' => 'skipped_budget',
                         'skip_reason' => 'insufficient_allowance', 'capital_at_entry_minor' => $balance,
                         'budget_diagnostic' => $estimate];
 
                     continue;
                 }
-                $eligible[] = [...$candidate, 'estimate' => $estimate];
+                $eligible[] = [...$candidate, 'estimate' => $estimate, 'sizing_capital_at_entry_minor' => $sizingCapital];
             }
             usort($eligible, fn ($a, $b) => ($b['estimate']['plan']['total_minor'] <=> $a['estimate']['plan']['total_minor'])
                 ?: strcmp($a['id'], $b['id']));
@@ -123,6 +130,10 @@ final class SharedCapitalReplay
 
         return ['policy_version' => self::VERSION, 'mode' => 'shared_capital_simulation', 'as_of' => $asOf,
             'timing_basis' => $settlementSeconds === null ? 'recorded_result_confirmation_conservative' : 'modeled_scheduled_kickoff_offset', 'starting_capital_minor' => $capital,
+            'capital_mode' => $capitalMode, 'sizing_capital_minor' => $capitalMode === 'fixed' ? $capital : $balance,
+            'profit_stop_minor' => $profitStop,
+            'stop_reason' => $profitStop > 0 && $balance - $capital >= $profitStop ? 'profit_target_reached' : null,
+            'stopped_at' => $profitStop > 0 && $balance - $capital >= $profitStop ? ($equity[array_key_last($equity)]['at'] ?? null) : null,
             'balance_minor' => $balance, 'recovery_target_minor' => $recoveryTarget,
             'allowance_multiplier' => $multiplier, 'max_attempts' => $maxAttempts, 'reserved_allowance_minor' => $active['allowance_minor'] ?? 0,
             'unreserved_capital_minor' => $balance - ($active['allowance_minor'] ?? 0),

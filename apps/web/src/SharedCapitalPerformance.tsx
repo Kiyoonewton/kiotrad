@@ -49,6 +49,7 @@ export function SharedCapitalPerformance({ data, scopeLabel }: { data: SharedSim
     attempts: r.attempts?.length,
   }));
   const provisional = data.timing_quality === "provisional_capture_timing";
+  const fixedCapital = data.capital_mode === "fixed";
   const net = data.balance_minor - data.starting_capital_minor;
   return (
     <>
@@ -62,10 +63,11 @@ export function SharedCapitalPerformance({ data, scopeLabel }: { data: SharedSim
           </p>
         </div>
         <div className="balance-value">
-          <p>Current capital{data.settlement_model ? " · modeled" : provisional ? " · provisional" : ""}</p>
+          <p>{fixedCapital ? "Total funds" : "Current capital"}{data.settlement_model ? " · modeled" : provisional ? " · provisional" : ""}</p>
           <strong>{naira(data.balance_minor)}</strong>
           <span>
-            Started with {naira(data.starting_capital_minor)} · next doubling
+            Started with {naira(data.starting_capital_minor)}
+            {fixedCapital ? <> · fixed sizing capital {naira(data.starting_capital_minor)}</> : <> · next doubling
             milestone{" "}
             {naira(
               data.starting_capital_minor *
@@ -82,13 +84,18 @@ export function SharedCapitalPerformance({ data, scopeLabel }: { data: SharedSim
                     ),
                   ) *
                 2,
-            )}
+            )}</>}
           </span>
           <span className={net < 0 ? "negative" : "positive"}>
             Net {naira(net)}
           </span>
         </div>
       </section>
+      {(data.profit_stop_minor ?? 0) > 0 && <p className="recovery-banner" role="status" aria-label="Profit target status">
+        Net profit target: {naira(data.profit_stop_minor!)} · {data.stop_reason === "profit_target_reached"
+          ? "Reached — no further runs entered." : "Not yet reached."}
+        {data.stopped_at && <> · stopped {new Date(data.stopped_at).toLocaleString("en-GB", { timeZone: "Africa/Lagos" })} WAT</>}
+      </p>}
       <TimingSensitivityPanel data={data} />
       {provisional && <p className="recovery-banner" role="status">
         Timing correction pending. Late archive confirmations affect allocation

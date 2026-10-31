@@ -41,6 +41,9 @@ class ResearchScenarioHttpTest extends TestCase
         $this->getJson($this->url())->assertOk()->assertJsonPath('scenario_cache', 'hit');
         $this->getJson($this->url(['capital' => 100000, 'allowance' => 2]))->assertOk()
             ->assertJsonPath('scenario_cache', 'miss')->assertJsonPath('allowance_multiplier', 2)->assertJsonPath('starting_capital_minor', 10000000);
+        $this->getJson($this->url(['capital_mode' => 'fixed', 'profit_stop' => 20000]))->assertOk()
+            ->assertJsonPath('scenario_cache', 'miss')->assertJsonPath('capital_mode', 'fixed')->assertJsonPath('profit_stop_minor', 2000000);
+        $this->getJson($this->url(['capital_mode' => 'fixed', 'profit_stop' => 20000]))->assertOk()->assertJsonPath('scenario_cache', 'hit');
         Cache::store('redis')->put($key, [...$source, 'revision' => 'repaired'], 100);
         $this->getJson($this->url())->assertOk()->assertJsonPath('scenario_cache', 'miss')->assertJsonPath('data_revision', 'repaired');
         $this->assertSame(700000, config('kiotrad.simulation_capital_minor'));
@@ -52,7 +55,7 @@ class ResearchScenarioHttpTest extends TestCase
     {
         $this->mock(PreparedResearch::class)->shouldReceive('scenario')->never();
         foreach ([['capital' => 99], ['capital' => 10000001], ['qualification' => 31], ['attempts' => 0],
-            ['attempts' => 11], ['allowance' => 3], ['qualification' => 4.5], ['strategy' => 'unknown'], ['league' => 'unknown']] as $bad) {
+            ['capital_mode' => 'unknown'], ['profit_stop' => -1], ['profit_stop' => 10000001], ['attempts' => 11], ['allowance' => 3], ['qualification' => 4.5], ['strategy' => 'unknown'], ['league' => 'unknown']] as $bad) {
             $this->getJson($this->url($bad))->assertStatus(422);
         }
     }

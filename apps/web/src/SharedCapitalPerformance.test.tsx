@@ -151,3 +151,13 @@ it("keeps an unfunded missing-price entry unresolved without counting it as an a
   expect(screen.getByText(/missing actual odds/)).toBeInTheDocument();
   expect(screen.getByText(/0 completed · 1 unresolved · 0 overlap exclusions/)).toBeInTheDocument();
 });
+
+it("shows fixed sizing separately from total funds and confirms a reached profit stop", () => {
+  render(<SharedCapitalPerformance data={{ ...data, capital_mode: "fixed", profit_stop_minor: 90000,
+    stop_reason: "profit_target_reached", stopped_at: "2026-10-20T10:02:00Z" }} />);
+  expect(screen.getByText("Total funds")).toBeInTheDocument();
+  expect(screen.getByText(/fixed sizing capital/)).toHaveTextContent("₦50,000.00");
+  expect(screen.queryByText(/next doubling milestone/)).not.toBeInTheDocument();
+  expect(screen.getByRole("status", { name: "Profit target status" })).toHaveTextContent("Reached — no further runs entered.");
+  expect(screen.getByRole("status", { name: "Profit target status" })).toHaveTextContent("20/10/2026");
+});

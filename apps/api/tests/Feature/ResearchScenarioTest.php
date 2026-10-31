@@ -58,6 +58,26 @@ class ResearchScenarioTest extends TestCase
         $this->assertCount(1, $engine->calculate($source, $this->settings(['qualification' => 4]))['runs']);
     }
 
+    public function test_capital_mode_and_stop_are_applied_to_all_timing_scenarios(): void
+    {
+        $source = $this->prepared(1);
+        $candidate = $source['candidates'][0];
+        $candidate['fixtures'] = [$candidate['fixtures'][0]];
+        $second = [...$candidate, 'id' => 'second', 'fixtures' => [[...$candidate['fixtures'][0],
+            'scheduled_start_at' => '2026-10-20T10:05:00Z', 'result_confirmed_at' => '2026-10-20T10:08:00Z']]];
+        $third = [...$second, 'id' => 'third', 'fixtures' => [[...$second['fixtures'][0],
+            'scheduled_start_at' => '2026-10-20T10:10:00Z', 'result_confirmed_at' => '2026-10-20T10:13:00Z']]];
+        $source['candidates'] = [$candidate, $second, $third];
+        $view = (new ResearchScenario)->calculate($source, $this->settings(['attempts' => 1, 'capital_mode' => 'fixed', 'profit_stop' => 70000]));
+        $this->assertSame('fixed', $view['capital_mode']);
+        $this->assertSame('profit_target_reached', $view['stop_reason']);
+        $this->assertCount(2, $view['runs']);
+        foreach ($view['timing_sensitivity'] as $scenario) {
+            $this->assertSame(15000000, $scenario['balance_minor']);
+            $this->assertSame(2, $scenario['completed_runs']);
+        }
+    }
+
     public function test_missing_later_fixtures_do_not_discard_a_shorter_complete_window(): void
     {
         $source = $this->prepared(1);

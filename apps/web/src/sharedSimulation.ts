@@ -31,6 +31,7 @@ export type SharedRun = {
   total_staked_minor?: number;
   gross_payout_minor?: number;
   capital_at_entry_minor?: number;
+  sizing_capital_at_entry_minor?: number;
   estimate?: {
     allowance_minor: number;
     allowance_multiplier?: number;
@@ -51,6 +52,11 @@ export type SharedRun = {
 export type SharedSimulation = {
   status: string;
   starting_capital_minor: number;
+  capital_mode?: "compound" | "fixed";
+  sizing_capital_minor?: number;
+  profit_stop_minor?: number;
+  stop_reason?: string | null;
+  stopped_at?: string | null;
   balance_minor: number;
   reserved_allowance_minor: number;
   active_staked_minor: number;
