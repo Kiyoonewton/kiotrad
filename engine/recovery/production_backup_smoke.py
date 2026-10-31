@@ -47,7 +47,11 @@ class Fixture:
         kwargs.setdefault('stderr', subprocess.PIPE)
         if args[3] == 'mongosh':
             kwargs['input'] = ('db=new Mongo(' + json.dumps(ADMIN) + ').getDB("test");\n').encode() + kwargs['input']
-            return subprocess.run(COMMAND + ['mongosh', '--nodb', *args[4:]], check=True, **kwargs)
+            result = subprocess.run(COMMAND + ['mongosh', '--nodb', *args[4:]], **kwargs)
+            if result.returncode:
+                detail = result.stderr.decode(errors='replace').replace(ADMIN, '<ci-admin-uri>').replace(URI, '<ci-read-uri>').replace(PASSWORD, '<fixture-password>')
+                raise RuntimeError('CI restore validation failed: ' + detail)
+            return result
         return subprocess.run(COMMAND + [args[3], '--uri=' + ADMIN, *args[4:]], check=True, **kwargs)
 
 
