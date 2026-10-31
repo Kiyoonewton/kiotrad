@@ -2,6 +2,7 @@ import base64
 import hashlib
 import gzip
 import json
+import subprocess
 from pathlib import Path
 import tempfile
 import unittest
@@ -63,6 +64,22 @@ class ProductionBackupTest(unittest.TestCase):
         self.assertIn(b'Restored checkpoint capture missing', script)
         self.assertIn(b'secondary_indexes_restored:false', script)
         self.assertNotIn(b'createIndex', script)
+
+    def test_restore_validation_handles_non_iterable_mongosh_find_cursors(self):
+        for capture_id, success in [('known', True), ('missing', False)]:
+            prefix = """
+const rows=[{capture_id:CAPTURE}];
+const d={getCollectionNames:()=>['provider_captures','provider_checkpoints'],
+ getCollection:()=>({countDocuments:()=>1,find:()=>({forEach:callback=>rows.forEach(callback)})}),
+ provider_captures:{findOne:query=>query._id==='known'?{_id:'known'}:null}};
+const db={getSiblingDB:()=>d};
+const print=value=>process.stdout.write(value);
+""".replace('CAPTURE', json.dumps(capture_id))
+            code = prefix + validation_script(TARGET, {'provider_captures': 1, 'provider_checkpoints': 1}).decode()
+            result = subprocess.run(['node', '-e', code], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+            self.assertEqual(result.returncode == 0, success)
+            if success:
+                self.assertEqual(json.loads(result.stdout)['capture_references_checked'], 1)
 
     def test_last_good_views_preserve_exact_bytes_and_reject_bad_checksums(self):
         with tempfile.TemporaryDirectory() as tmp:

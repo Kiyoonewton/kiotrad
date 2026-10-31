@@ -49,10 +49,10 @@ for(const [name,count] of Object.entries(expected)){
 let references=0;
 for(const name of ['season_checkpoints','provider_checkpoints']){
  if(!actual.includes(name))continue;
- for(const row of d.getCollection(name).find({capture_id:{$exists:true}})){
+ d.getCollection(name).find({capture_id:{$exists:true}}).forEach(row=>{
   if(!d.provider_captures.findOne({_id:row.capture_id},{_id:1}))throw Error('Restored checkpoint capture missing');
   references++;
- }
+ });
 }
 print(JSON.stringify({database:name,verified:true,counts,capture_references_checked:references,
  secondary_indexes_restored:false}));
