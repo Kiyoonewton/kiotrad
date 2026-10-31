@@ -104,6 +104,8 @@ jobs:
         run: |
           docker run --rm -i --network kiotrad_default --env-file engine/.env -e APP_ENV=testing kiotrad-raw-rebuild-check php < engine/history-import-smoke.php | tee /tmp/history-import.log
           grep -q '^History import passed:' /tmp/history-import.log
+      - name: Verify production backup archives in a disposable restore namespace
+        run: python3 engine/recovery/production_backup_smoke.py
       - name: Logs on failure
         if: failure()
         run: docker compose --env-file engine/.env -f engine/compose.yaml logs

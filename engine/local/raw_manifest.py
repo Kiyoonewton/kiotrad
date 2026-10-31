@@ -7,13 +7,15 @@ from pathlib import Path
 PATTERN = re.compile(r'provider-evidence/raw/\d{4}/\d{2}/\d{2}/[a-f0-9]{64}\.json\.gz\Z')
 
 
-def manifest_script():
+def manifest_script(safety_lag=60):
+    if type(safety_lag) is not int or not 0 <= safety_lag <= 60:
+        raise ValueError("Invalid raw manifest safety lag.")
     # No database connection, credentials or source mutation. A short safety lag
     # excludes files that an older collector may still be writing directly.
-    return b'''<?php
+    script = b'''<?php
 $root = '/app/storage/app/private';
 $base = $root.'/provider-evidence/raw';
-$cutoff = time() - 60;
+$cutoff = time() - RAW_MANIFEST_SAFETY_LAG;
 $files = [];
 $iterator = new RecursiveIteratorIterator(new RecursiveDirectoryIterator($base, FilesystemIterator::SKIP_DOTS));
 foreach ($iterator as $file) {
@@ -27,6 +29,7 @@ foreach ($iterator as $file) {
 usort($files, fn ($a, $b) => strcmp($a['path'], $b['path']));
 echo json_encode(['cutoff_unix' => $cutoff, 'files' => $files], JSON_THROW_ON_ERROR);
 '''
+    return script.replace(b'RAW_MANIFEST_SAFETY_LAG', str(safety_lag).encode())
 
 
 def parse_manifest(payload):
