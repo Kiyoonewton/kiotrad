@@ -2,6 +2,7 @@
 
 namespace App\Console\Commands;
 
+use App\Infrastructure\Diagnostics\RawAuditSelection;
 use App\Infrastructure\Diagnostics\RawDocumentAudit;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\DB;
@@ -10,11 +11,11 @@ use Throwable;
 
 final class AuditRawDocuments extends Command
 {
-    protected $signature = 'provider:audit-raw-documents {folder} {--report=}';
+    protected $signature = 'provider:audit-raw-documents {folder} {--report=} {--rejections-from=}';
 
     protected $description = 'Local read-only revalidation of indexed raw documents; never rebuilds or activates views';
 
-    public function handle(RawDocumentAudit $audit): int
+    public function handle(RawDocumentAudit $audit, RawAuditSelection $selection): int
     {
         $database = (string) config('database.connections.mongodb.database');
         if (! config('kiotrad.local_data_mirror') || ! preg_match('/^kiotrad_local_[0-9TZ]+$/D', $database)) {
@@ -34,10 +35,12 @@ final class AuditRawDocuments extends Command
                     throw new RuntimeException('Audit report write failed.');
                 }
             };
-            $emit(['type' => 'start', 'database' => $database, 'audited_at' => now('UTC')->toIso8601String(),
+            $previous = $this->option('rejections-from');
+            $selected = $previous === null ? null : $selection->load($previous, $database);
+            $emit(['type' => 'start', 'previous_report_sha256' => $previous === null ? null : hash_file('sha256', $previous), 'database' => $database, 'audited_at' => now('UTC')->toIso8601String(),
                 'validator_sha256' => hash_file('sha256', app_path('Infrastructure/Diagnostics/RawDocumentValidator.php'))]);
             $summary = $audit->run(DB::connection('mongodb')->getDatabase(), $this->argument('folder'), $emit,
-                fn ($done, $total) => $this->line("Raw document audit: {$done}/{$total}"));
+                fn ($done, $total) => $this->line("Raw document audit: {$done}/{$total}"), $selected);
             $emit(['type' => 'summary', 'database' => $database, ...$summary]);
             $this->line(json_encode($summary, JSON_THROW_ON_ERROR));
 

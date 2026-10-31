@@ -5,6 +5,7 @@ namespace App\Infrastructure\Diagnostics;
 use App\Infrastructure\Provider\FeedObservation;
 use App\Infrastructure\Provider\FixtureNormalizer;
 use App\Infrastructure\Provider\OddsNormalizer;
+use App\Infrastructure\Provider\RawFixtureContext;
 use App\Infrastructure\Provider\StandingsNormalizer;
 use RuntimeException;
 
@@ -12,9 +13,9 @@ use RuntimeException;
 final class RawDocumentValidator
 {
     public function __construct(private FixtureNormalizer $fixtures, private OddsNormalizer $odds,
-        private StandingsNormalizer $standings) {}
+        private StandingsNormalizer $standings, private RawFixtureContext $context, private RawQuoteCoverage $coverage) {}
 
-    public function validate($db, FeedObservation $feed, string $phase): string
+    public function validate($db, FeedObservation $feed, string $phase, ?callable $details = null): string
     {
         $data = $feed->document['data'];
         if ($phase === 'catalogs') {
@@ -41,14 +42,13 @@ final class RawDocumentValidator
             return 'unknown_league';
         }
         $query = ['competition' => $league, 'season_id' => $season, 'scope' => 'raw_rebuild'];
-        $options = ['typeMap' => ['root' => 'array', 'document' => 'array', 'array' => 'array']];
-        $capture = $db->provider_captures->findOne([...$query, 'observed_at' => ['$lte' => $feed->receivedAt->toIso8601String()]],
-            [...$options, 'sort' => ['observed_at' => -1]]);
-        $earlier = $capture !== null;
-        $capture ??= $db->provider_captures->findOne($query, [...$options, 'sort' => ['observed_at' => 1]]);
-        if ($capture === null) {
+        $selected = $this->context->find($db->provider_captures, $query, $feed->receivedAt->toIso8601String(),
+            $phase === 'odds' ? $this->context->ids($feed) : null);
+        if ($selected === null) {
             return 'missing_fixture_context';
         }
+        $capture = $selected['capture'];
+        $earlier = $selected['earlier'];
         $fixtures = $capture['matches'];
         foreach ($fixtures as &$fixture) {
             if (! $earlier || ($fixture['scheduled_start_at'] ?? '') >= $feed->receivedAt->toIso8601String()) {
@@ -58,7 +58,15 @@ final class RawDocumentValidator
         }
         unset($fixture);
         if ($phase === 'odds') {
-            $this->odds->normalize($feed, $fixtures, $tournament, (int) $match[2]);
+            $prices = $this->odds->normalize($feed, $fixtures, $tournament, (int) $match[2]);
+            if ($details !== null) {
+                $details(['competition' => $league, 'season_id' => $season, 'matchday' => (int) $match[2],
+                    'fixture_capture_id' => $capture['_id'] ?? null, 'fixture_capture_observed_at' => $capture['observed_at'] ?? null,
+                    'fixture_context_before_odds' => $earlier, 'joined_fixtures' => count($this->context->ids($feed)),
+                    'source_price_coverage' => $this->coverage->inspect($db, $league, $season, $prices),
+                    'raw_legacy_acceptance_limited' => ($feed->provenance['origin'] ?? '') === 'legacy_file',
+                    'notice' => 'Price coverage only; no repair authorized, market availability or financial eligibility certified.']);
+            }
         } else {
             $this->standings->normalize($feed, $season, $tournament, $fixtures);
         }

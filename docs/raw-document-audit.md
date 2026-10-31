@@ -17,3 +17,18 @@ Progress appears every 500 indexed files. `report.jsonl` contains source-relativ
 This is **current revalidation**, using the current normalizers and stored `raw_rebuild` fixture context. It is not replay of the historical processing event. Its rejection count may differ from 57. A missing fixture join context is distinguished from a rejected document, non-200 responses and missing response data. Empty normalized odds may validate without producing usable prices, as in the rebuild; validated does not mean complete price coverage or financial eligibility. It does not certify champions, kickoff times, daily arithmetic or profits.
 
 Use the reported phase/season/reason to identify affected evidence, then check whether another stored response supplies valid coverage. Do not delete or replace rejected originals merely to make the count zero. Imported partial seasons and historical market closures remain evidence for separate analysis.
+
+## Recheck only the earlier rejections
+
+After the covering-fixture lookup fix, use the completed original report:
+
+```sh
+python3 -u engine/local/audit_raw_documents.py \
+  --rejections-from recovery/raw-document-audit/20261031T190617134347Z/report.jsonl
+```
+
+This selects only the rejected files, verifies their original compressed hashes against the same active database's index, and records the covering fixture capture and quote coverage in `join-context.csv`. It validates all events in each response, not only the first previously failing match. Quote totals count response occurrences, not unique matches. Matching prices already present need no duplicate import; different existing prices are preserved for review. Legacy raw acceptance restrictions remain in place; a passing join is not authorization to add prices or backdate their availability. No database writes occur.
+
+The lookup now prefers the latest capture at or before the odds observation that covers every requested match ID. If only a later covering capture exists, result fields are cleared and its prices cannot become verified pre-match from that later context. Team/league/round validation remains strict. It does not merge incomplete captures or manufacture missing fixtures, matchdays, standings or champions.
+
+This subset audit does not rebuild or activate anything. The parser correction changes the version of derived raw reconstruction; the next normal sync will perform one automatic full staging rebuild to apply corrected joins consistently. Downloaded raw files can still be reused. Do not edit the processing-version marker to avoid that rebuild.

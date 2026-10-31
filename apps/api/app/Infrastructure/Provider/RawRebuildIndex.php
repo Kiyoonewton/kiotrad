@@ -10,7 +10,7 @@ final class RawRebuildIndex
     public function version(): string
     {
         $paths = [__FILE__, app_path('Infrastructure/Provider/RawEvidenceRebuilder.php')];
-        foreach (['ArchivedFeed', 'FixtureNormalizer', 'OddsNormalizer', 'StandingsNormalizer', 'MongoCollectionStore', 'SeasonCompleteness'] as $name) {
+        foreach (['RawFixtureContext', 'ArchivedFeed', 'FixtureNormalizer', 'OddsNormalizer', 'StandingsNormalizer', 'MongoCollectionStore', 'SeasonCompleteness'] as $name) {
             $paths[] = app_path('Infrastructure/Provider/'.$name.'.php');
         }
         $paths[] = app_path('Domain/Strategies/SimulationSeasonLinks.php');

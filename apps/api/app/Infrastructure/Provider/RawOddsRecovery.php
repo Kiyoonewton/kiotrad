@@ -11,7 +11,7 @@ final class RawOddsRecovery
     private array $options = ['typeMap' => ['root' => 'array', 'document' => 'array', 'array' => 'array']];
 
     public function __construct(private ArchivedFeed $archive, private OddsNormalizer $normalizer,
-        private MongoCollectionStore $store) {}
+        private MongoCollectionStore $store, private RawFixtureContext $context) {}
 
     public function recover(string $folder, bool $apply, callable $progress): array
     {
@@ -79,13 +79,12 @@ final class RawOddsRecovery
         $db = DB::connection('mongodb')->getDatabase();
         $at = $feed->receivedAt->toIso8601String();
         $query = ['competition' => $league, 'season_id' => $season];
-        $capture = $db->provider_captures->findOne([...$query, 'observed_at' => ['$lte' => $at]],
-            [...$this->options, 'sort' => ['observed_at' => -1]]);
-        $earlier = $capture !== null;
-        $capture ??= $db->provider_captures->findOne($query, [...$this->options, 'sort' => ['observed_at' => 1]]);
-        if ($capture === null) {
+        $selected = $this->context->find($db->provider_captures, $query, $at, $this->context->ids($feed));
+        if ($selected === null) {
             return ['status' => 'missing_fixture_files', 'competition' => $league];
         }
+        $capture = $selected['capture'];
+        $earlier = $selected['earlier'];
         $matches = $capture['matches'] ?? [];
         foreach ($matches as &$match) {
             if (! $earlier || ($match['scheduled_start_at'] ?? '') >= $at) {
@@ -95,6 +94,12 @@ final class RawOddsRecovery
         }
         unset($match);
         $prices = $this->normalizer->normalize($feed, $matches, $tournament, $day);
+        if (! $earlier) {
+            foreach ($prices as &$price) {
+                $price['pre_match_verified'] = false;
+            }
+            unset($price);
+        }
         if (($feed->provenance['origin'] ?? '') === 'legacy_file') {
             $prices = array_values(array_filter($prices, fn ($p) => in_array($p['provider_match_id'], $feed->provenance['accepted_match_ids'] ?? [], true)));
         }

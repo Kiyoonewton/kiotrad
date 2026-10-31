@@ -36,7 +36,7 @@ class RawOddsRecoveryTest extends TestCase
         config(['provider.competitions' => ['test' => ['tournament_uid' => 31867]]]);
         $collection = Mockery::mock();
         $collection->shouldReceive('findOne')->once()->with(Mockery::on(fn ($q) => isset($q['observed_at'])), Mockery::any())->andReturn(null);
-        $collection->shouldReceive('findOne')->once()->with(['competition' => 'test', 'season_id' => '200'], Mockery::any())
+        $collection->shouldReceive('findOne')->once()->with(Mockery::on(fn ($q) => ! isset($q['observed_at']) && isset($q['matches.provider_match_id'])), Mockery::any())
             ->andReturn(['matches' => $this->savedFixtures()]);
         $collection->shouldReceive('findOne')->once()->with(Mockery::on(fn ($q) => isset($q['odds_snapshots'])), Mockery::any())->andReturn(null);
         DB::shouldReceive('connection->getDatabase')->andReturn((object) ['provider_captures' => $collection]);
@@ -46,16 +46,19 @@ class RawOddsRecoveryTest extends TestCase
     public function test_apply_does_not_backdate_results_and_invalidates_old_evidence_views(): void
     {
         config(['provider.competitions' => ['test' => ['tournament_uid' => 31867]]]);
+        $later = $this->savedFixtures();
+        $later[0]['scheduled_start_at'] = '2026-10-25T00:00:00Z';
         $collection = Mockery::mock();
         $collection->shouldReceive('findOne')->with(Mockery::on(fn ($q) => isset($q['observed_at'])), Mockery::any())->andReturn(null);
-        $collection->shouldReceive('findOne')->with(['competition' => 'test', 'season_id' => '200'], Mockery::any())
-            ->andReturn(['matches' => $this->savedFixtures()]);
+        $collection->shouldReceive('findOne')->with(Mockery::on(fn ($q) => ! isset($q['observed_at']) && isset($q['matches.provider_match_id'])), Mockery::any())
+            ->andReturn(['matches' => $later]);
         $collection->shouldReceive('findOne')->with(Mockery::on(fn ($q) => isset($q['odds_snapshots'])), Mockery::any())->andReturn(null);
         $collection->shouldReceive('updateOne')->once()->with(Mockery::any(), Mockery::on(function ($update) {
             $saved = $update['$setOnInsert'];
 
             return $saved['observed_at'] === '2026-10-24T00:00:01+00:00'
                 && $saved['matches'][0]['result'] === null
+                && $saved['odds_snapshots'][0]['pre_match_verified'] === false
                 && $saved['odds_snapshots'][0]['prices']['H'] === '2.50';
         }), ['upsert' => true]);
         $checkpoint = Mockery::mock();
