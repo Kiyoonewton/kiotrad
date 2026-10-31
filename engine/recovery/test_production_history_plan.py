@@ -142,7 +142,7 @@ const lines=[];
 const print=value=>lines.push(JSON.parse(value));
 const quit=code=>{throw new Error('quit');};
 const fixture={competition:'virtual-euro',matches:[{provider_match_id:'vf:match:1',season_id:'100',matchday:1,home_team_uid:'1',away_team_uid:'2',result:'H'}],odds_snapshots:[{provider_match_id:'vf:match:1',prices:{H:'1.7500',D:'3.00',A:'4.00'}}]};
-function Mongo(){this.getDB=()=>({runCommand:()=>({authInfo:{authenticatedUserRoles:ROLES}}),provider_captures:{aggregate:pipeline=>{if(pipeline.some(s=>!['$match','$project','$unwind','$group'].includes(Object.keys(s)[0])))throw new Error('unexpected stage');return pipeline[1].$project.matches ? [{_id:'vf:match:1',variants:[{competition:'virtual-euro',season_id:'100',matchday:1,home_uid:'1',away_uid:'2',result:'H'}]}] : [{_id:'vf:match:1',variants:[{competition:'virtual-euro',prices:{H:'1.7500',D:'3.00',A:'4.00'}}]}];}}});}
+function Mongo(){this.getDB=()=>({runCommand:()=>({authInfo:{authenticatedUserRoles:ROLES}}),provider_captures:{aggregate:(pipeline,options)=>{if(options.allowDiskUse!==true)throw new Error('unbounded group');if(pipeline.some(s=>!['$match','$project','$unwind','$group'].includes(Object.keys(s)[0])))throw new Error('unexpected stage');return pipeline[1].$project.matches ? [{_id:'vf:match:1',variants:[{competition:'virtual-euro',season_id:'100',matchday:1,home_uid:'1',away_uid:'2',result:'H'}]}] : [{_id:'vf:match:1',variants:[{competition:'virtual-euro',prices:{H:'1.7500',D:'3.00',A:'4.00'}}]}];}}});}
 try { PROGRAM } catch (_) {}
 process.stdout.write(JSON.stringify(lines));
 '''
@@ -153,6 +153,24 @@ process.stdout.write(JSON.stringify(lines));
             self.assertEqual(messages[-1]['type'], expected)
             if role == 'read':
                 self.assertEqual(next(r for r in messages if r['type'] == 'prices')['variants'][0]['prices']['H'], 17500)
+                targets = [{'league': 'virtual-euro', 'season': '100', 'ids': ['vf:match:1']}]
+                digest = hashlib.sha256(json.dumps(targets, sort_keys=True).encode()).hexdigest()
+                for row in messages:
+                    if row['type'] in ('start', 'complete'):
+                        row['request_sha256'] = digest
+                class Process:
+                    stdin = io.BytesIO()
+                    stdout = io.BytesIO(b''.join((json.dumps(m) + '\n').encode() for m in messages))
+                    def wait(self):
+                        return 0
+                    def poll(self):
+                        return 0
+                with tempfile.TemporaryDirectory() as tmp, patch('plan_production_history.subprocess.Popen', return_value=Process()):
+                    seen = []
+                    inventory('root@example.test', 'hidden-password', targets, Path(tmp), seen.append)
+                    actual = seen[0]['matches']['vf:match:1']
+                    self.assertEqual(actual['fixtures'][0]['result'], 'H')
+                    self.assertEqual(actual['prices'][0]['prices']['H'], 17500)
 
 
 if __name__ == '__main__':
