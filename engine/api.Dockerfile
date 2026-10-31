@@ -31,10 +31,5 @@ RUN rm -f app/Console/Commands/ReplayEstimatedHistory.php \
     app/Console/Commands/ImportLegacyHistory.php \
     app/Console/Commands/VerifyLegacyHistory.php \
     app/Infrastructure/Provider/LegacyHistoryVerification.php \
-    app/Infrastructure/Provider/LegacyHistoryPlan.php \
-    app/Infrastructure/Provider/LegacyHistoryArchive.php \
     app/Infrastructure/Provider/LegacyHistoryWriter.php \
-    app/Infrastructure/Provider/LegacyHistoryPackage.php \
-    app/Infrastructure/Provider/LegacyHistoryParser.php \
-    app/Infrastructure/Provider/LegacyHistoryComparison.php \
     && composer dump-autoload --optimize --no-dev --no-interaction

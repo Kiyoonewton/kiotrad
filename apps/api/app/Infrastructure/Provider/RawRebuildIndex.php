@@ -47,6 +47,13 @@ final class RawRebuildIndex
                 $record = $archive->read($path);
                 $row = ['_id' => $name, 'hash' => $hash, 'at' => $record['feed']->receivedAt->toIso8601String(),
                     ...$this->identify($record['feed']->url)];
+                $row['history_source_sha256'] = $record['body_sha256'];
+                $provenance = $record['feed']->provenance;
+                if (($provenance['origin'] ?? '') === 'production_history_package') {
+                    $row['history_package_sha256'] = $provenance['package_manifest_sha256'];
+                } elseif (($provenance['origin'] ?? '') === 'legacy_file') {
+                    $row['history_source_sha256'] = $provenance['source_sha256'];
+                }
                 $changed[$name] = true;
             }
             $rows[$name] = [...$row, 'path' => $path];

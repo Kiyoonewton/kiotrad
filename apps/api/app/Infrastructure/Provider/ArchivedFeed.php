@@ -27,7 +27,7 @@ final class ArchivedFeed
         $payload = json_decode($body, true);
         $document = $payload['doc'][0] ?? [];
 
-        return ['status' => $legacy ? 200 : $record['http_status'], 'feed' => new FeedObservation($record['url'], $requested, $received,
-            is_array($document) ? $document : [], is_array($payload) ? $payload : [], $legacy ? $record['provenance'] : [])];
+        return ['body_sha256' => hash('sha256', $body), 'status' => $legacy ? 200 : $record['http_status'], 'feed' => new FeedObservation($record['url'], $requested, $received,
+            is_array($document) ? $document : [], is_array($payload) ? $payload : [], in_array($record['provenance']['origin'] ?? '', ['legacy_file', 'production_history_package'], true) ? $record['provenance'] : [])];
     }
 }
