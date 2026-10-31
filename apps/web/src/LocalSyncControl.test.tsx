@@ -51,3 +51,13 @@ it("shows one-time setup when the host helper is offline", async () => {
   expect(screen.getByRole("button", { name: "Sync prod → local" })).toBeDisabled();
   expect(screen.getByText("python3 engine/local/sync_agent.py --setup")).toBeInTheDocument();
 });
+
+it("keeps the last successful snapshot age when the helper reports a failed attempt", async () => {
+  vi.useFakeTimers();
+  vi.setSystemTime(new Date("2026-10-31T18:30:00Z"));
+  vi.stubGlobal("fetch", vi.fn().mockImplementation(() => response({ ...idle, status: "failed", phase: "Sync failed", job_id: "failed-job" })));
+  render(<LocalSyncPanel onReady={vi.fn()} lastSyncAt="2026-10-31T18:00:00Z" />);
+  await settle();
+  expect(screen.getByTitle("31/10/2026, 19:00:00 WAT")).toHaveTextContent("30m ago");
+  expect(screen.getByRole("status")).toHaveTextContent("Sync failed");
+});

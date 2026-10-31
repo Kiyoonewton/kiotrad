@@ -130,7 +130,7 @@ export default function App() {
           </div>
         </header>
         <main id="main" tabIndex={-1}>
-          <LocalSyncControl onReady={() => setRequest((n) => n + 1)} />
+          <LocalSyncControl onReady={() => setRequest((n) => n + 1)} lastSyncAt={data?.local_sync?.completed_at} />
           {updating &&
             data &&
             !["warming", "unavailable"].includes(

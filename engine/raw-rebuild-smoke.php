@@ -4,6 +4,7 @@ use App\Infrastructure\Provider\ArchivedFeed;
 use App\Infrastructure\Provider\LegacyOddsSource;
 use App\Infrastructure\Provider\RawEvidenceRebuilder;
 use Illuminate\Contracts\Console\Kernel;
+use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\DB;
 
 require '/app/vendor/autoload.php';
@@ -105,6 +106,31 @@ try {
         || $quotes[0]['provenance']['origin'] !== 'legacy_file'
         || $quotes[0]['captured_at'] !== '2026-10-26T10:00:00+00:00') {
         throw new RuntimeException('Legacy raw reconstruction lost provenance or reintroduced rejected prices.');
+    }
+    // Revalidate saved rejections without changing captures, checkpoints or index state.
+    $write('uniquetournament_seasons/999', ['seasons' => [['_id' => 200, '_utid' => 31867, 'current' => false]]], '2026-10-31T00:00:00Z');
+    $rejected = app(RawEvidenceRebuilder::class)->rebuild($folder);
+    if ($rejected['invalid_documents'] !== 1) {
+        throw new RuntimeException('Synthetic catalog rejection was not counted.');
+    }
+    $databaseDigest = function () use ($db): string {
+        $rows = [];
+        foreach ($db->listCollectionNames() as $name) {
+            $rows[$name] = iterator_to_array($db->selectCollection($name)->find([], ['sort' => ['_id' => 1]]), false);
+        }
+        ksort($rows);
+
+        return hash('sha256', json_encode($rows, JSON_THROW_ON_ERROR));
+    };
+    $beforeAudit = $databaseDigest();
+    if (Artisan::call('provider:audit-raw-documents', ['folder' => $folder, '--report' => $folder.'/audit.jsonl']) !== 0) {
+        throw new RuntimeException('Read-only raw audit failed: '.Artisan::output());
+    }
+    $audit = array_map(fn ($line) => json_decode($line, true), file($folder.'/audit.jsonl', FILE_IGNORE_NEW_LINES));
+    $summary = end($audit);
+    if (($summary['counts']['rejected_now'] ?? 0) !== 1 || $summary['database_writes'] !== false
+        || $databaseDigest() !== $beforeAudit || $summary['historical_rejection_count_reconstructed'] !== false) {
+        throw new RuntimeException('Raw audit lost rejection context or changed the source database.');
     }
     echo "Raw rebuild passed: source-only reconstruction preserves timing, prices and links.\n";
 } finally {
