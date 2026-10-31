@@ -84,7 +84,9 @@ final class EstimatedSeasonEvidence
             foreach (['H' => 'home', 'A' => 'away'] as $code => $side) {
                 $quote = (new HistoricalQuote)->make($captures, $match, $match[$side.'_team_uid'], 0, 1, 1000000000, $asOf);
                 if (isset($quote['odds_scaled'])) {
-                    $prices[$id][$code] = $quote;
+                    $prices[$id][$code] = array_intersect_key($quote, array_flip([
+                        'odds_scaled', 'price_capture_id', 'price_provenance', 'price_observed_at', 'price_timing_verified',
+                    ]));
                 }
             }
         }

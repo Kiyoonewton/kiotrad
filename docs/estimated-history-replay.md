@@ -59,13 +59,14 @@ git pull --ff-only --no-rebase origin main &&
 docker compose --env-file engine/local/.env.local -f engine/local/compose.yaml build api &&
 docker compose --env-file engine/local/.env.local -f engine/local/compose.yaml \
   run --rm --no-deps -T -v "$PWD/recovery:/research:ro" api \
-  php artisan strategy:replay-estimated-history \
+  php -d memory_limit=512M artisan strategy:replay-estimated-history \
   /research/older-timing-review-20261031T092952/report.json \
   --capital=50000 --qualification=5 --attempts=4 --allowance=1 \
   --capital-mode=compound --profit-stop=0 \
   > recovery/estimated-history-comparison.json
 ```
 
+The one-off process has a 512 MiB PHP memory ceiling for the longer history.
 Progress prints to the terminal separately from the JSON result. Standard source
 preparation may refresh ordinary derived baselines/caches; no hypothetical
 source material is stored. Keep the same database throughout the comparison.
