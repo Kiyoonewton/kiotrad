@@ -4,6 +4,7 @@ import { Overview } from "./Overview";
 import { SimulationHistory } from "./SimulationHistory";
 import { StrategyList } from "./StrategyList";
 import { Simulator } from "./Simulator";
+import { LocalSyncControl } from "./LocalSyncControl";
 import { Logo } from "./Logo";
 
 const pages = ["Overview", "Strategies", "History", "Simulator"] as const;
@@ -129,6 +130,7 @@ export default function App() {
           </div>
         </header>
         <main id="main" tabIndex={-1}>
+          <LocalSyncControl onReady={() => setRequest((n) => n + 1)} />
           {updating &&
             data &&
             !["warming", "unavailable"].includes(

@@ -16,6 +16,6 @@ class LocalMirrorStatus
         }
         $row = DB::connection('mongodb')->getDatabase()->local_sync_status->findOne(['_id' => 'source']);
 
-        return $row ? ['completed_at' => $row['completed_at'], 'captures' => $row['captures'], 'mode' => $row['mode']] : null;
+        return $row ? ['database' => config('database.connections.mongodb.database'), 'completed_at' => $row['completed_at'], 'captures' => $row['captures'], 'mode' => $row['mode']] : null;
     }
 }

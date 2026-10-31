@@ -4,7 +4,7 @@ import argparse
 from contextlib import contextmanager
 import fcntl
 from datetime import datetime, timezone
-from getpass import getpass
+from getpass import getpass as terminal_getpass
 import json
 import os
 from pathlib import Path
@@ -25,6 +25,16 @@ COLLECTIONS = (
     "collector_states", "provider_season_transitions", "provider_catalog_links",
     "market_blockages", "season_checkpoints", "provider_checkpoints", "provider_captures",
 )
+
+
+def getpass(prompt):
+    from sync_credentials import settings
+    password = settings(ROOT).get('KIOTRAD_SYNC_PASSWORD')
+    if password:
+        return password
+    if os.environ.get('KIOTRAD_SYNC_NONINTERACTIVE') == '1':
+        raise RuntimeError('Host sync password is missing. Run sync_agent.py --setup.')
+    return terminal_getpass(prompt)
 
 
 def run(args, phase="command", **kwargs):
@@ -102,7 +112,8 @@ def write_environment(database):
 def ssh_command(server, remote):
     if not re.fullmatch(r"[A-Za-z0-9_.@-]+", server) or server.startswith("-"):
         raise RuntimeError("Use an SSH alias or user@hostname, without extra arguments.")
-    return ["ssh", "-T", "-o", "ConnectTimeout=15", "-o", "ServerAliveInterval=15",
+    batch = ["-o", "BatchMode=yes"] if os.environ.get("KIOTRAD_SYNC_NONINTERACTIVE") == "1" else []
+    return ["ssh", "-T", *batch, "-o", "ConnectTimeout=15", "-o", "ServerAliveInterval=15",
             "-o", "ServerAliveCountMax=3", server, shlex.join(remote)]
 
 
