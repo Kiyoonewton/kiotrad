@@ -107,3 +107,7 @@ This reconciliation does not alter the older-season hypothesis logic, fill the
 93 unanchored older seasons, infer champions, or enable financial replay. Review
 the new summary and boundary table before deciding the separate extrapolation
 policy. Existing reports remain intact.
+
+For review-only one-sided older dates, continue with
+[`older-timing-proposals.md`](older-timing-proposals.md). Those proposals remain
+separate from recorded kickoff fields and do not enable financial replay.
