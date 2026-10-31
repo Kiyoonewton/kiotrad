@@ -4,7 +4,7 @@ namespace App\Domain\Research;
 
 final class ResearchScenario
 {
-    public const VERSION = 'prepared-parameter-replay-1.0.0';
+    public const VERSION = 'prepared-parameter-replay-1.1.0-capital-modes';
 
     public function calculate(array $prepared, array $settings): array
     {
@@ -31,7 +31,8 @@ final class ResearchScenario
             $candidates[] = $candidate;
         }
         $view = (new TimingSensitivityReplay)->calculate($candidates, $settings['capital'] * 100,
-            $prepared['as_of'], $settings['attempts'], $settings['allowance']);
+            $prepared['as_of'], $settings['attempts'], $settings['allowance'],
+            $settings['capital_mode'] ?? 'compound', ($settings['profit_stop'] ?? 0) * 100);
 
         return ['status' => 'available', ...$view, 'excluded' => $excluded,
             'seasons_assessed' => $prepared['seasons_assessed'], 'settings' => $settings,

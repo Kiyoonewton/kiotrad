@@ -49,6 +49,11 @@ it("offers capital, qualification, attempts, allowance and strategy without a su
   };
   render(<Simulator data={data} league="all" />);
   expect(screen.getByLabelText("Initial capital")).toHaveValue(50000);
+  expect(screen.getByLabelText("Capital mode")).toHaveValue("compound");
+  fireEvent.change(screen.getByLabelText("Capital mode"), { target: { value: "fixed" } });
+  fireEvent.change(screen.getByLabelText("Stop at net profit"), { target: { value: "20000" } });
+  expect(screen.getByLabelText("Capital mode")).toHaveValue("fixed");
+  expect(screen.getByLabelText("Stop at net profit")).toHaveValue(20000);
   fireEvent.change(screen.getByLabelText("Qualification day"), {
     target: { value: "6" },
   });

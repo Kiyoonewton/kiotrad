@@ -159,3 +159,12 @@ it("shows actual preparation phase counts while cold", async () => {
   expect(result.current.view).toBeNull();
   expect(result.current.message).toBe("Checking seasons · 20/300");
 });
+
+it("restores old settings as compounding and validates new mode and stop settings", () => {
+  localStorage.setItem("kiotrad:simulator:v1", JSON.stringify(settings));
+  expect(initialScenario(7000).capital_mode).toBe("compound");
+  expect(initialScenario(7000).profit_stop).toBe(0);
+  expect(validScenario({ ...settings, capital_mode: "fixed", profit_stop: 1000 })).toBe(true);
+  expect(validScenario({ ...settings, profit_stop: -1 })).toBe(false);
+  expect(validScenario({ ...settings, profit_stop: 1.5 })).toBe(false);
+});

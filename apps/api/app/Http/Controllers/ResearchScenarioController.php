@@ -14,13 +14,16 @@ final class ResearchScenarioController extends Controller
     {
         $settings = $request->validate([
             'capital' => ['required', 'integer', 'min:100', 'max:10000000'],
+            'capital_mode' => ['sometimes', 'required', Rule::in(['compound', 'fixed'])],
+            'profit_stop' => ['sometimes', 'required', 'integer', 'min:0', 'max:10000000'],
             'qualification' => ['required', 'integer', 'min:1', 'max:30'],
             'attempts' => ['required', 'integer', 'min:1', 'max:10'],
             'allowance' => ['required', 'integer', Rule::in([1, 2])],
             'strategy' => ['required', Rule::in(['all', ...array_column((new StrategyCatalog)->all(), 'id')])],
             'league' => ['required', Rule::in(['all', ...array_column(config('kiotrad.competitions'), 'id')])],
         ]);
-        foreach (['capital', 'qualification', 'attempts', 'allowance'] as $name) {
+        $settings += ['capital_mode' => 'compound', 'profit_stop' => 0];
+        foreach (['profit_stop', 'capital', 'qualification', 'attempts', 'allowance'] as $name) {
             $settings[$name] = (int) $settings[$name];
         }
         $data = $research->scenario($settings);

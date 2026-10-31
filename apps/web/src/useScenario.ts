@@ -3,6 +3,8 @@ import type { SharedSimulation } from "./sharedSimulation";
 
 export type ScenarioSettings = {
   capital: number;
+  capital_mode?: "compound" | "fixed";
+  profit_stop?: number;
   qualification: number;
   attempts: number;
   allowance: number;
@@ -25,11 +27,16 @@ export function validScenario(s: ScenarioSettings) {
     Number.isInteger(s.attempts) &&
     s.attempts >= 1 &&
     s.attempts <= 10 &&
-    [1, 2].includes(s.allowance)
+    [1, 2].includes(s.allowance) &&
+    ["compound", "fixed"].includes(s.capital_mode ?? "compound") &&
+    Number.isInteger(s.profit_stop ?? 0) &&
+    (s.profit_stop ?? 0) >= 0 && (s.profit_stop ?? 0) <= 10000000
   );
 }
 export function initialScenario(capital: number): ScenarioSettings {
-  const fallback = {
+  const fallback: ScenarioSettings = {
+    capital_mode: "compound",
+    profit_stop: 0,
     capital,
     qualification: 5,
     attempts: 4,
@@ -41,7 +48,7 @@ export function initialScenario(capital: number): ScenarioSettings {
       localStorage.getItem("kiotrad:simulator:v1") ?? "null",
     );
     return saved && validScenario(saved) && typeof saved.strategy === "string"
-      ? saved
+      ? { ...fallback, ...saved }
       : fallback;
   } catch {
     return fallback;

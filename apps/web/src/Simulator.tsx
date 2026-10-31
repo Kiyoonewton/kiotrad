@@ -58,6 +58,20 @@ export function Simulator({
             />
           </label>
           <label>
+            Capital mode
+            <select aria-label="Capital mode" value={settings.capital_mode ?? "compound"}
+              onChange={(e) => change("capital_mode", e.target.value)}>
+              <option value="compound">Compound capital + gains</option>
+              <option value="fixed">Fixed entered capital</option>
+            </select>
+          </label>
+          <label>
+            Stop at net profit · ₦
+            <input aria-label="Stop at net profit" type="number" min="0" max="10000000" step="1"
+              value={settings.profit_stop ?? 0}
+              onChange={(e) => change("profit_stop", Number(e.target.value))} />
+          </label>
+          <label>
             First win day ≥
             <input
               aria-label="Qualification day"
@@ -110,7 +124,11 @@ export function Simulator({
         </div>
         <p className="subtle">
           Qualification is the first-win day threshold; attempts are the
-          subsequent trading window. All monetary values are NGN.
+          subsequent trading window. Fixed mode sizes from entered capital; compound
+          mode sizes from total funds. Gains remain in the displayed balance.
+          A run is skipped if available funds cannot cover its allowance. Profit stop
+          uses settled net profit; 0 means no target. A completed run may exceed the target.
+          All monetary values are NGN.
         </p>
         {view && (
           <small>

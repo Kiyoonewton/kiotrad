@@ -10,7 +10,7 @@
 }
 .simulator-controls {
   display: grid;
-  grid-template-columns: 1.2fr 1fr 1fr 1.2fr 1.8fr;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 180px), 1fr));
   gap: 16px;
   margin: 24px 0 16px;
 }
