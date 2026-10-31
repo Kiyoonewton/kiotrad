@@ -24,7 +24,7 @@ final class RawDocumentAudit
 
     public function __construct(private ArchivedFeed $archive, private RawDocumentValidator $validator) {}
 
-    public function run($db, string $folder, callable $emit, callable $progress): array
+    public function run($db, string $folder, callable $emit, callable $progress, ?array $selected = null): array
     {
         $root = realpath($folder);
         if ($root === false || ! is_dir($root) || is_link($folder)) {
@@ -36,8 +36,15 @@ final class RawDocumentAudit
         }
         $counts = $reasons = $phases = [];
         $done = 0;
-        $total = $db->local_raw_files->countDocuments();
-        foreach ($db->local_raw_files->find([], ['typeMap' => ['root' => 'array', 'document' => 'array', 'array' => 'array'], 'sort' => ['_id' => 1]]) as $row) {
+        $filter = $selected === null ? [] : ['_id' => ['$in' => array_keys($selected)]];
+        $total = $db->local_raw_files->countDocuments($filter);
+        if ($selected !== null && $total !== count($selected)) {
+            throw new RuntimeException('A selected raw file is absent from the active processing index.');
+        }
+        foreach ($db->local_raw_files->find($filter, ['typeMap' => ['root' => 'array', 'document' => 'array', 'array' => 'array'], 'sort' => ['_id' => 1]]) as $row) {
+            if ($selected !== null && $selected[$row['_id']] !== $row['hash']) {
+                throw new RuntimeException('Selected raw identity differs from the original audited file.');
+            }
             $context = ['file' => $row['_id'], 'compressed_sha256' => $row['hash'], 'phase' => $row['phase'],
                 'season_id' => $row['season'], 'indexed_observed_at' => $row['at']];
             $status = 'ignored_route';
@@ -51,7 +58,8 @@ final class RawDocumentAudit
                     $record = $this->archive->read($path);
                     $status = $record['status'] !== 200 ? 'non_200_response' :
                         (! is_array($record['feed']->document['data'] ?? null) ? 'missing_data' :
-                            $this->validator->validate($db, $record['feed'], $row['phase']));
+                            $this->validator->validate($db, $record['feed'], $row['phase'], $selected === null ? null :
+                                fn ($details) => $emit(['type' => 'validated_odds', ...$context, ...$details])));
                 }
             } catch (Throwable $exception) {
                 if ($exception instanceof Exception) {
@@ -76,6 +84,7 @@ final class RawDocumentAudit
         return ['mode' => 'raw_document_revalidation', 'complete' => true, 'database_writes' => false,
             'rebuild_index_version' => $state['version'] ?? null,
             'validator_hashes' => $this->hashes(), 'phases' => $phases,
+            'audit_scope' => $selected === null ? 'full_index' : 'previous_rejections',
             'indexed_files' => $total, 'checked_files' => $done, 'counts' => $counts, 'reasons' => $reasons,
             'historical_rejection_count_reconstructed' => false,
             'notice' => 'Current validation against stored raw_rebuild fixtures, not recovery of the original 57 rejection events. No financial certification.'];
@@ -83,8 +92,8 @@ final class RawDocumentAudit
 
     private function hashes(): array
     {
-        $paths = [__FILE__, app_path('Infrastructure/Diagnostics/RawDocumentValidator.php')];
-        foreach (['ArchivedFeed', 'FixtureNormalizer', 'OddsNormalizer', 'StandingsNormalizer'] as $class) {
+        $paths = [__FILE__, app_path('Infrastructure/Diagnostics/RawQuoteCoverage.php'), app_path('Infrastructure/Diagnostics/RawDocumentValidator.php')];
+        foreach (['RawFixtureContext', 'ArchivedFeed', 'FixtureNormalizer', 'OddsNormalizer', 'StandingsNormalizer'] as $class) {
             $paths[] = app_path('Infrastructure/Provider/'.$class.'.php');
         }
 

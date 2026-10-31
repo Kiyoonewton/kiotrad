@@ -132,6 +132,41 @@ try {
         || $databaseDigest() !== $beforeAudit || $summary['historical_rejection_count_reconstructed'] !== false) {
         throw new RuntimeException('Raw audit lost rejection context or changed the source database.');
     }
+    // A newer partial capture must not hide a match retained in an older capture.
+    $append = function ($route, $data, $at, $name) use ($write, $folder): void {
+        $original = $folder.'/'.hash('sha256', $route).'.json.gz';
+        $before = is_file($original) ? file_get_contents($original) : null;
+        $write($route, $data, $at);
+        rename($original, $folder.'/'.$name.'.json.gz');
+        if ($before !== null) {
+            file_put_contents($original, $before);
+        }
+    };
+    $append('stats_season_fixtures2/200', ['_id' => '200', '_utid' => 31867, 'matches' => [[
+        '_id' => 100, '_seasonid' => 200, '_utid' => 31867, 'round' => 2, 'time' => ['uts' => 1700010220],
+        'teams' => ['home' => ['uid' => 1, 'name' => 'Synthetic home'], 'away' => ['uid' => 2, 'name' => 'Synthetic away']],
+        'periods' => ['ft' => ['home' => 1, 'away' => 0]],
+    ]]], '2026-10-27T00:00:00Z', 'partial-fixtures');
+    $newOdds = $legacyPayload['doc'][0]['data'];
+    $newOdds['odds'][0]['market'][0]['outcome'][0]['odds'] = '2.70';
+    $append('vfc_stats_round_odds2/vf:season:200/1', $newOdds, '2026-10-31T00:00:00Z', 'late-odds');
+    $covered = app(RawEvidenceRebuilder::class)->rebuild($folder);
+    $joined = $db->provider_captures->findOne(['scope' => 'raw_rebuild_odds', 'observed_at' => '2026-10-31T00:00:00+00:00']);
+    if ($covered['invalid_documents'] !== 0 || $joined === null || $joined['odds_snapshots'][0]['prices']['H'] !== '2.70'
+        || $joined['matches'][0]['provider_match_id'] !== 'vf:match:99') {
+        throw new RuntimeException('Newer partial fixture capture hid an older verified match.');
+    }
+    $beforeSubset = $databaseDigest();
+    if (Artisan::call('provider:audit-raw-documents', ['folder' => $folder,
+        '--report' => $folder.'/subset.jsonl', '--rejections-from' => $folder.'/audit.jsonl']) !== 0) {
+        throw new RuntimeException('Selected rejection audit failed: '.Artisan::output());
+    }
+    $subset = array_map(fn ($line) => json_decode($line, true), file($folder.'/subset.jsonl', FILE_IGNORE_NEW_LINES));
+    $subsetSummary = end($subset);
+    if ($subsetSummary['checked_files'] !== 1 || $subsetSummary['audit_scope'] !== 'previous_rejections'
+        || $databaseDigest() !== $beforeSubset) {
+        throw new RuntimeException('Targeted revalidation changed the database or scanned unrelated files.');
+    }
     echo "Raw rebuild passed: source-only reconstruction preserves timing, prices and links.\n";
 } finally {
     $db->drop();

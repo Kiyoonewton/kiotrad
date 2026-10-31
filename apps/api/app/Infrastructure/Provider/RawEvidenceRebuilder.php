@@ -11,7 +11,8 @@ final class RawEvidenceRebuilder
     private array $options = ['typeMap' => ['root' => 'array', 'document' => 'array', 'array' => 'array']];
 
     public function __construct(private ArchivedFeed $archive, private FixtureNormalizer $fixtures,
-        private OddsNormalizer $odds, private StandingsNormalizer $standings, private MongoCollectionStore $store) {}
+        private OddsNormalizer $odds, private StandingsNormalizer $standings, private MongoCollectionStore $store,
+        private RawFixtureContext $context) {}
 
     public function rebuild(string $folder, ?callable $progress = null): array
     {
@@ -165,15 +166,14 @@ final class RawEvidenceRebuilder
         if ($league === null) {
             return 0;
         }
-        $capture = $db->provider_captures->findOne(['competition' => $league, 'season_id' => $season,
-            'scope' => 'raw_rebuild', 'observed_at' => ['$lte' => $feed->receivedAt->toIso8601String()]],
-            [...$this->options, 'sort' => ['observed_at' => -1]]);
-        $earlier = $capture !== null;
-        $capture ??= $db->provider_captures->findOne(['competition' => $league, 'season_id' => $season,
-            'scope' => 'raw_rebuild'], [...$this->options, 'sort' => ['observed_at' => 1]]);
-        if (! $capture) {
+        $selected = $this->context->find($db->provider_captures,
+            ['competition' => $league, 'season_id' => $season, 'scope' => 'raw_rebuild'],
+            $feed->receivedAt->toIso8601String(), $phase === 'odds' ? $this->context->ids($feed) : null);
+        if ($selected === null) {
             return 0;
         }
+        $capture = $selected['capture'];
+        $earlier = $selected['earlier'];
         $matches = $capture['matches'];
         // A later fixture snapshot cannot backdate a result into an earlier odds observation.
         foreach ($matches as &$match) {
@@ -187,6 +187,12 @@ final class RawEvidenceRebuilder
         $report['scope'] = 'raw_rebuild_'.$phase;
         if ($phase === 'odds') {
             $report['odds_snapshots'] = $this->odds->normalize($feed, $matches, $tournament, $day);
+            if (! $earlier) {
+                foreach ($report['odds_snapshots'] as &$price) {
+                    $price['pre_match_verified'] = false;
+                }
+                unset($price);
+            }
             if (($feed->provenance['origin'] ?? '') === 'legacy_file') {
                 $report['odds_snapshots'] = array_values(array_filter($report['odds_snapshots'],
                     fn ($p) => in_array($p['provider_match_id'], $feed->provenance['accepted_match_ids'] ?? [], true)));
