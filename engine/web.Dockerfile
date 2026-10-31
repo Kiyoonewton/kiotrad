@@ -3,6 +3,8 @@ WORKDIR /app
 COPY apps/web/package.json apps/web/package-lock.json ./
 RUN npm ci
 COPY apps/web/ ./
+ARG VITE_LOCAL_SYNC=false
+ENV VITE_LOCAL_SYNC=$VITE_LOCAL_SYNC
 RUN npm run build
 
 FROM nginx:1.28-alpine

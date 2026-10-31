@@ -66,7 +66,7 @@ export interface Overview {
       unknown_timing_fixtures: number;
     }[];
   };
-  local_sync?: { completed_at: string; captures: number; mode: string } | null;
+  local_sync?: { database?: string; completed_at: string; captures: number; mode: string } | null;
   dashboard_cache?: {
     status: "warming" | "ready" | "stale" | "unavailable";
     generated_at: string | null;
