@@ -21,9 +21,16 @@ URI = 'mongodb://backup_read_smoke:' + PASSWORD + '@127.0.0.1:27017/kiotrad?auth
 
 
 def shell(script, auth=True):
-    args = ['mongosh', '--quiet', '--uri=' + ADMIN] if auth else ['mongosh', '--quiet', '--nodb']
-    return subprocess.run(COMMAND + args + ['--file', '/dev/stdin'], input=script if isinstance(script, bytes) else script.encode(),
-                          stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=True).stdout
+    payload = script if isinstance(script, bytes) else script.encode()
+    if auth:
+        payload = ('db=new Mongo(' + json.dumps(ADMIN) + ').getDB("test");\n').encode() + payload
+    result = subprocess.run(COMMAND + ['mongosh', '--quiet', '--nodb', '--file', '/dev/stdin'],
+                            input=payload, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    if result.returncode:
+        detail = result.stderr.decode(errors='replace').replace(ADMIN, '<ci-admin-uri>').replace(URI, '<ci-read-uri>').replace(PASSWORD, '<fixture-password>')
+        raise RuntimeError('CI backup shell failed: ' + detail)
+    return result.stdout
+
 
 
 class Fixture:
@@ -38,6 +45,9 @@ class Fixture:
         if args[:3] != ('exec', '-T', 'mongodb') or args[3] not in ('mongosh', 'mongorestore'):
             raise RuntimeError('Unexpected CI restore command.')
         kwargs.setdefault('stderr', subprocess.PIPE)
+        if args[3] == 'mongosh':
+            kwargs['input'] = ('db=new Mongo(' + json.dumps(ADMIN) + ').getDB("test");\n').encode() + kwargs['input']
+            return subprocess.run(COMMAND + ['mongosh', '--nodb', *args[4:]], check=True, **kwargs)
         return subprocess.run(COMMAND + [args[3], '--uri=' + ADMIN, *args[4:]], check=True, **kwargs)
 
 
