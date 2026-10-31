@@ -27,6 +27,8 @@ class HistoryOverlayTests(unittest.TestCase):
         env.write_text('LOCAL_DATABASE=kiotrad_local_20261029T000000Z\nAPP_KEY=private\n')
 
         def compose(*args, **kwargs):
+            if '-r' in args:
+                return SimpleNamespace(stdout=b'a' * 64)
             if 'provider:import-legacy-history' in args:
                 calls.append('import')
                 if fail_import:

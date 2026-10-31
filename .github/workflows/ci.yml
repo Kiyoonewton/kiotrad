@@ -106,6 +106,10 @@ jobs:
         run: |
           docker run --rm -i --network kiotrad_default --env-file engine/.env -e APP_ENV=testing kiotrad-raw-rebuild-check php < engine/history-import-smoke.php | tee /tmp/history-import.log
           grep -q '^History import passed:' /tmp/history-import.log
+      - name: Verify reviewed production history against isolated MongoDB
+        run: |
+          docker compose --env-file engine/.env -f engine/compose.yaml exec -T -e APP_ENV=testing api php -d memory_limit=512M < engine/reviewed-history-smoke.php | tee /tmp/reviewed-history.log
+          grep -q '^Reviewed production history passed:' /tmp/reviewed-history.log
       - name: Logs on failure
         if: failure()
         run: docker compose --env-file engine/.env -f engine/compose.yaml logs
@@ -128,3 +132,37 @@ jobs:
       - name: Stop disposable MongoDB
         if: always()
         run: docker compose --env-file engine/.env -f engine/compose.yaml down
+
+  reviewed-history-safety:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    services:
+      mongodb:
+        image: mongo:7
+        ports: ['27017:27017']
+        options: >-
+          --health-cmd "mongosh --quiet --eval 'db.adminCommand({ping:1}).ok'"
+          --health-interval 5s --health-timeout 5s --health-retries 20
+      redis:
+        image: redis:7-alpine
+        ports: ['6379:6379']
+    env:
+      APP_ENV: testing
+      MONGODB_URI: mongodb://127.0.0.1:27017
+      MONGODB_DATABASE: kiotrad
+      REDIS_HOST: 127.0.0.1
+      REDIS_LOCK_HOST: 127.0.0.1
+    steps:
+      - uses: actions/checkout@v4
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          extensions: mongodb-2.5.5, redis, mbstring, dom, curl
+          coverage: none
+      - run: composer install --no-interaction --prefer-dist
+        working-directory: apps/api
+      - name: Verify reviewed import with native isolated MongoDB and Redis
+        run: |
+          sudo ln -s "$PWD/apps/api" /app
+          php -d memory_limit=512M < engine/reviewed-history-smoke.php | tee /tmp/reviewed-history.log
+          grep -q '^Reviewed production history passed:' /tmp/reviewed-history.log

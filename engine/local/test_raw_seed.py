@@ -55,3 +55,17 @@ class RawSeedTests(unittest.TestCase):
                 return SimpleNamespace(stdout=b'null')
             seed.seed_snapshot(SimpleNamespace(ENV=env, compose=compose), 'kiotrad_local_20261027T000000Z', folder)
             self.assertEqual(len(calls), 1)
+
+
+    def test_parser_change_skips_seed_automatically(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            folder = Path(temporary)
+            env = folder / 'env'
+            env.write_text('LOCAL_DATABASE=kiotrad_local_20261026T000000Z\n')
+            calls = []
+            def compose(*args, **kwargs):
+                calls.append(args)
+                return SimpleNamespace(stdout=b'{"complete":true,"version":"old"}')
+            seed.seed_snapshot(SimpleNamespace(ENV=env, compose=compose),
+                               'kiotrad_local_20261027T000000Z', folder, parser_version='new')
+            self.assertEqual(len(calls), 1)

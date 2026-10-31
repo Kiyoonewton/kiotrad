@@ -92,8 +92,15 @@ def perform(sync, server, full_rebuild=False, history_packages=()):
     verify_files(manifest, folder, count)
     print(f'Validated {count} raw responses. Rebuilding local derived views...', flush=True)
     from raw_seed import seed_snapshot
-    seed_snapshot(sync, database, folder, full_rebuild)
     sync.compose('build', 'api')
+    parser_version = sync.compose('run', '--rm', '--no-deps', '-T', 'api', 'php', '-r',
+        'require "/app/vendor/autoload.php"; $app = require "/app/bootstrap/app.php"; '
+        '$app->make(Illuminate\\Contracts\\Console\\Kernel::class)->bootstrap(); '
+        'echo app(App\\Infrastructure\\Provider\\RawRebuildIndex::class)->version();',
+        stdout=subprocess.PIPE).stdout.decode().strip()
+    if len(parser_version) != 64 or any(c not in '0123456789abcdef' for c in parser_version):
+        raise RuntimeError('Cannot verify current raw parser version.')
+    seed_snapshot(sync, database, folder, full_rebuild, parser_version=parser_version)
     sync.compose('run', '--rm', '--no-deps', '-e', 'MONGODB_DATABASE=' + database,
                  '-e', 'MONGODB_URI=mongodb://mongodb:27017/' + database,
                  '-v', str(folder.resolve()) + ':/raw-evidence:ro', 'api',
@@ -110,6 +117,9 @@ def perform(sync, server, full_rebuild=False, history_packages=()):
         with (folder / 'market_blockages.archive.gz').open('rb') as source:
             sync.compose('exec', '-T', 'mongodb', 'mongorestore', '--archive', '--gzip',
                          '--nsFrom=kiotrad.*', '--nsTo=' + database + '.*', '--drop', '--stopOnError', stdin=source)
+    from production_history_mirror import recover
+    recovered = recover(sync, database, folder, overlays)
+    overlays = packages(sync.ROOT, [*history_packages, *recovered])
     replay(sync, database, overlays)
     print('Validating staging metadata before preparing views...', flush=True)
     sync.compose('exec', '-T', 'mongodb', 'mongosh', '--quiet', '--file', '/dev/stdin',

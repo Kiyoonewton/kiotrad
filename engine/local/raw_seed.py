@@ -7,7 +7,7 @@ import subprocess
 DATABASE = re.compile(r'kiotrad_local_[0-9TZ]+')
 
 
-def seed_snapshot(sync, destination, folder, full=False):
+def seed_snapshot(sync, destination, folder, full=False, parser_version=None):
     if full:
         print('Explicit full rebuild requested.', flush=True)
         return
@@ -21,6 +21,9 @@ def seed_snapshot(sync, destination, folder, full=False):
                                    stdout=subprocess.PIPE).stdout)
     if not state or state.get('complete') is not True:
         print('Previous snapshot has no completed processing index; one full rebuild is required.', flush=True)
+        return
+    if parser_version is not None and state.get('version') != parser_version:
+        print('Raw parser changed; rebuilding the isolated staging index automatically.', flush=True)
         return
     print('Copying completed local views into an isolated staging database...', flush=True)
     archive = folder / 'local-seed.archive'
