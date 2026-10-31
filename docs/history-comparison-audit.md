@@ -55,3 +55,7 @@ still part of #70. The audit treats modeled windows as conditional; unknown
 older-timing uncertainty is not resolved by a clean overlap check. Later recorded
 runs can also have changed stakes through compounding. Keep this result separate
 from any claim of live profitability or permission to import to production.
+
+After a passing ledger audit, continue with
+[`run-source-audit.md`](run-source-audit.md) to independently check the newly
+completed runs against selected original raw package files.
