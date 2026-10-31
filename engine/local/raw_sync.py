@@ -104,7 +104,7 @@ def perform(sync, server, full_rebuild=False, history_packages=()):
     sync.compose('run', '--rm', '--no-deps', '-e', 'MONGODB_DATABASE=' + database,
                  '-e', 'MONGODB_URI=mongodb://mongodb:27017/' + database,
                  '-v', str(folder.resolve()) + ':/raw-evidence:ro', 'api',
-                 'php', 'artisan', 'provider:rebuild-raw', '/raw-evidence')
+                 'php', '-d', 'memory_limit=512M', 'artisan', 'provider:rebuild-raw', '/raw-evidence')
     # Blockage classifications are permanent operator evidence, not simulations.
     password = sync.getpass('Production kiotrad_dev password (read-only, blockage records): ')
     if not password:

@@ -131,7 +131,10 @@ class HistoryOverlayTests(unittest.TestCase):
                 root = Path(temporary)
                 folder = self.package(root)
                 calls = []
-                self.perform(root, calls, full=full, requested=[str(folder)])
+                sync = self.perform(root, calls, full=full, requested=[str(folder)])
+                rebuild = next(c.args for c in sync.compose.call_args_list if 'provider:rebuild-raw' in c.args)
+                self.assertEqual(rebuild[rebuild.index('php'):],
+                                 ('php', '-d', 'memory_limit=512M', 'artisan', 'provider:rebuild-raw', '/raw-evidence'))
                 self.assertEqual(calls, ['import', 'verify', 'warm', 'activate', 'prune'])
                 calls = []
                 self.perform(root, calls, full=full)
