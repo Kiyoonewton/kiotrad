@@ -69,10 +69,10 @@ class ProductionBackupTest(unittest.TestCase):
         for capture_id, success in [('known', True), ('missing', False)]:
             prefix = """
 const rows=[{capture_id:CAPTURE}];
-const d={getCollectionNames:()=>['provider_captures','provider_checkpoints'],
+const fixture={getCollectionNames:()=>['provider_captures','provider_checkpoints'],
  getCollection:()=>({countDocuments:()=>1,find:()=>({forEach:callback=>rows.forEach(callback)})}),
  provider_captures:{findOne:query=>query._id==='known'?{_id:'known'}:null}};
-const db={getSiblingDB:()=>d};
+const db={getSiblingDB:()=>fixture};
 const print=value=>process.stdout.write(value);
 """.replace('CAPTURE', json.dumps(capture_id))
             code = prefix + validation_script(TARGET, {'provider_captures': 1, 'provider_checkpoints': 1}).decode()
