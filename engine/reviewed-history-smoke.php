@@ -14,8 +14,8 @@ if (! $app->environment('testing')) {
 }
 // Exercise the production guard against an isolated native database, never kiotrad.
 $target = 'kiotrad_reviewed_smoke_'.bin2hex(random_bytes(6));
-DB::extend('reviewed_smoke', fn ($config) => new Connection([...$config, 'database' => $target]));
-config(['kiotrad.local_data_mirror' => false, 'database.connections.mongodb.driver' => 'reviewed_smoke',
+DB::extend('mongodb', fn ($config) => new Connection([...$config, 'database' => $target]));
+config(['kiotrad.local_data_mirror' => false,
     'database.connections.mongodb.database' => 'kiotrad']);
 DB::purge('mongodb');
 $db = DB::connection('mongodb')->getDatabase();

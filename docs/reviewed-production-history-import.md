@@ -22,7 +22,7 @@ Use a fresh staging directory if files already exist there. The importer validat
 cd /root/kiyoo/kiotrad
 set -o pipefail
 docker compose --env-file engine/.env -f engine/compose.yaml \
-  run --rm --no-deps -T \
+  run --rm --no-deps -T -e MONGODB_SOCKET_TIMEOUT_MS=120000 \
   -v "$PWD/recovery/reviewed-history:/reviewed:ro" api \
   php -d memory_limit=512M artisan provider:import-reviewed-history \
   /reviewed/package /reviewed/production-plan.json /reviewed/backup-report.json \
