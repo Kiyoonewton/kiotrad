@@ -74,7 +74,7 @@ final class ProductionHistoryStore
             return;
         }
         $this->verifyCapture($db, $key, $plan);
-        $pointer = $db->season_checkpoints->findOne(['_id' => $plan['capture']['competition'].':'.$plan['capture']['season_id']]);
+        $pointer = $db->season_checkpoints->findOne(['_id' => $plan['capture']['competition'].':'.$plan['capture']['season_id']], ['typeMap' => ['root' => 'array', 'document' => 'array', 'array' => 'array']]);
         if ($pointer === null || ! in_array($key, (array) ($pointer['production_history_keys'] ?? []), true)) {
             throw new RuntimeException('Completed import checkpoint is missing; review required.');
         }

@@ -102,7 +102,7 @@ final class ImportReviewedHistory extends Command
                 throw new RuntimeException('Permanent raw archive is unavailable.');
             }
             // Apply-only supporting index: no full capture scan for every live season recheck.
-            $db->provider_captures->createIndex(['competition' => 1, 'season_id' => 1], ['name' => 'history_competition_season']);
+            (new ProductionEvidenceIndex)->ensureLookupIndex($db);
             foreach ($sources['groups'] as $season => $files) {
                 $this->lease($lock);
                 $key = $packageKey.':'.$season;

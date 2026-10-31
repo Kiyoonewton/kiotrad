@@ -46,6 +46,16 @@ final class ProductionEvidenceIndex
         }
     }
 
+    public function ensureLookupIndex($db): void
+    {
+        foreach ($db->provider_captures->listIndexes() as $index) {
+            if (array_slice($index->getKey(), 0, 2, true) === ['competition' => 1, 'season_id' => 1]) {
+                return;
+            }
+        }
+        $db->provider_captures->createIndex(['competition' => 1, 'season_id' => 1], ['name' => 'history_competition_season']);
+    }
+
     public function live($db, string $competition, string $season): iterable
     {
         return $db->provider_captures->find(['competition' => $competition, 'season_id' => $season], [
