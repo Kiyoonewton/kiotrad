@@ -52,6 +52,12 @@ try {
     $db->provider_checkpoints->insertOne(['_id' => 'virtual-euro', 'capture_id' => 'original']);
     $args = ['folder' => $root.'/package', '--apply' => true, '--archive-root' => $root.'/archive'];
     $assert(Artisan::call('provider:import-legacy-history', $args) === 0, 'Initial local import failed: '.Artisan::output());
+    $summary = function () {
+        $lines = array_filter(explode("\n", trim(Artisan::output())));
+
+        return json_decode(end($lines), true, 512, JSON_THROW_ON_ERROR);
+    };
+    $assert($summary()['source_parses'] === 4, 'Fresh import did not normalize both sources fully.');
     $options = ['typeMap' => ['root' => 'array', 'document' => 'array', 'array' => 'array']];
     $original = $db->provider_captures->findOne(['_id' => 'original'], $options);
     $assert($original['matches'][0] === $match, 'Original verified fixture was changed.');
@@ -64,15 +70,18 @@ try {
     $assert($db->provider_checkpoints->findOne(['_id' => 'virtual-euro'])['capture_id'] === 'original', 'Current provider pointer changed.');
     $assert(count(glob($root.'/archive/*.gz')) === 2, 'Raw responses were not archived.');
     $assert(Artisan::call('provider:import-legacy-history', $args) === 0 && $db->provider_captures->countDocuments() === 3, 'Retry duplicated captures.');
+    $assert($summary()['source_parses'] === 2, 'Completed import repeated the per-season normalization pass.');
     // Simulate interruption after capture insert but before completion ledger update.
     $db->local_history_imports->updateMany([], ['$set' => ['status' => 'prepared']]);
     $assert(Artisan::call('provider:import-legacy-history', $args) === 0 && $db->provider_captures->countDocuments() === 3, 'Crash retry failed or duplicated captures.');
     $assert($db->local_history_imports->countDocuments(['status' => 'complete']) === 2, 'Crash retry did not complete.');
+    $assert($summary()['source_parses'] === 4, 'Prepared retries must fully normalize source seasons.');
     // Seeded ledgers can survive raw reconstruction that removed a pointer.
     $db->season_checkpoints->deleteOne(['_id' => 'virtual-euro:11']);
     $db->provider_captures->deleteOne(['_id' => $new['_id']]);
     $assert(Artisan::call('provider:import-legacy-history', $args) === 0, 'Overlay did not restore missing materialization.');
     $assert($db->provider_captures->countDocuments() === 3, 'Overlay repair duplicated or lost captures.');
+    $assert($summary()['source_parses'] === 2, 'Completed overlay restoration repeated season normalization.');
     $restored = $db->provider_captures->findOne(['_id' => $new['_id']], $options);
     $assert($restored === $new, 'Overlay repair changed the pinned original plan.');
     $assert($db->season_checkpoints->findOne(['_id' => 'virtual-euro:11'])['capture_id'] === $new['_id'], 'Missing history checkpoint not restored.');
@@ -84,6 +93,31 @@ try {
     $db->provider_captures->updateOne(['_id' => $priced['_id']], ['$set' => ['odds_snapshots' => $priced['odds_snapshots']]]);
     $assert(Artisan::call('provider:verify-legacy-history') === 0, 'Original price restoration failed verification.');
     $assert($db->paper_journal->countDocuments() === 0, 'Import changed paper trading journal.');
+    $sourcePath = $root.'/package/files/'.$entries[0]['file'];
+    $sourceBody = file_get_contents($sourcePath);
+    file_put_contents($sourcePath, 'tampered');
+    $assert(Artisan::call('provider:import-legacy-history', $args) !== 0, 'Completed import accepted changed raw source bytes.');
+    file_put_contents($sourcePath, $sourceBody);
+    $assert($db->provider_captures->countDocuments() === 3, 'Rejected retry changed capture count.');
+    $manifestPath = $root.'/package/manifest.json';
+    $manifestBody = file_get_contents($manifestPath);
+    $manifest = json_decode($manifestBody, true, 512, JSON_THROW_ON_ERROR);
+    $conflicting = json_decode($sourceBody, true, 512, JSON_THROW_ON_ERROR);
+    $conflicting['doc'][0]['data']['odds'][0]['id'] = 'vf:match:11';
+    $changedBody = json_encode($conflicting, JSON_THROW_ON_ERROR);
+    $changedHash = hash('sha256', $changedBody);
+    file_put_contents($root.'/package/files/'.$changedHash.'.json', $changedBody);
+    $manifest['files'][0]['file'] = $changedHash.'.json';
+    $manifest['files'][0]['sha256'] = $changedHash;
+    file_put_contents($manifestPath, json_encode($manifest, JSON_THROW_ON_ERROR));
+    $assert(Artisan::call('provider:import-legacy-history', $args) !== 0, 'Cross-season source identity conflict passed global validation.');
+    $assert($db->provider_captures->countDocuments() === 3, 'Conflicting package changed existing captures.');
+    file_put_contents($manifestPath, $manifestBody);
+    $archivePath = $root.'/archive/'.$entries[0]['sha256'].'.json.gz';
+    $archiveBody = file_get_contents($archivePath);
+    file_put_contents($archivePath, gzencode(json_encode(['body_sha256' => $entries[0]['sha256'], 'body_base64' => base64_encode('wrong')], JSON_THROW_ON_ERROR)));
+    $assert(Artisan::call('provider:import-legacy-history', $args) !== 0, 'Completed import skipped archive integrity checks.');
+    file_put_contents($archivePath, $archiveBody);
     echo 'History import passed: raw-first preservation, partial evidence, verified fields, idempotency and crash recovery.'.PHP_EOL;
 } finally {
     $db->drop();
