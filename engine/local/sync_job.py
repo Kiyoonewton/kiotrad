@@ -43,6 +43,9 @@ class SyncJob:
         return True
 
     def progress(self, line):
+        from sync_timings import STAGES
+        if line.startswith('Sync phase: ') and line[len('Sync phase: '):] in STAGES.values():
+            self.update(phase=line[len('Sync phase: '):], done=None, total=None)
         phases = [('Downloading strategy', 'Reading production settings'),
                   ('Preparing a fixed raw-file', 'Checking raw evidence inventory'),
                   ('Reusing ', 'Downloading new or changed evidence'),

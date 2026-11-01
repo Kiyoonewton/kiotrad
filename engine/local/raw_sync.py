@@ -51,6 +51,12 @@ echo json_encode(app(App\\Domain\\Strategies\\SimulationDefinitionSnapshot::clas
 
 
 def perform(sync, server, full_rebuild=False, history_packages=()):
+    from sync_timings import SyncTimings
+    with SyncTimings(sync.ROOT) as timings:
+        return _perform(sync, server, full_rebuild, history_packages, timings)
+
+
+def _perform(sync, server, full_rebuild, history_packages, timings):
     from history_overlay import packages, replay
     overlays = packages(sync.ROOT, history_packages)
     os.umask(0o077)
@@ -63,6 +69,7 @@ def perform(sync, server, full_rebuild=False, history_packages=()):
     database = 'kiotrad_local_' + stamp
     folder = sync.ROOT / 'backups/raw-sync' / stamp
     folder.mkdir(parents=True, exist_ok=False)
+    timings.stage('settings')
     print('Downloading strategy definitions and settings...', flush=True)
     snapshot = sync.run(sync.ssh_command(server, ['docker', 'exec', '-i', 'kiotrad-api-1', 'php']),
                         phase='strategy snapshot', input=strategy_script(), stdout=subprocess.PIPE).stdout
@@ -73,13 +80,17 @@ def perform(sync, server, full_rebuild=False, history_packages=()):
     definitions = sync.ROOT / 'backups/strategy-definitions'
     definitions.mkdir(parents=True, exist_ok=True)
     (definitions / (hashlib.sha256(snapshot).hexdigest() + '.json')).write_bytes(snapshot)
+    timings.stage('inventory')
     print('Preparing a fixed raw-file snapshot (latest 60 seconds deferred)...', flush=True)
     manifest = parse_manifest(sync.run(sync.ssh_command(server, ['docker', 'exec', '-i', 'kiotrad-api-1', 'php']),
                                       phase='raw file manifest', input=manifest_script(), stdout=subprocess.PIPE).stdout)
     (folder / 'raw-files.json').write_text(json.dumps(manifest, indent=2))
+    timings.stage('reuse')
     delta, reused = reuse_files(manifest, folder)
     total = sum(entry['bytes'] for entry in delta['files'])
     print(f"Reusing {reused} verified local raw files; downloading {len(delta['files'])} new or changed files ({total / 1048576:.1f} MiB)...", flush=True)
+    timings.evidence(reused_files=reused, download_files=len(delta['files']), download_bytes=total)
+    timings.stage('download')
     archive = folder / 'raw.tar.gz'
     downloaded = 0
     if delta['files']:
@@ -89,10 +100,14 @@ def perform(sync, server, full_rebuild=False, history_packages=()):
                      phase='raw evidence download', input=tar_input(delta), stdout=output)
         downloaded = extract_evidence(archive, folder)
     count = reused + downloaded
+    timings.stage('verify')
     verify_files(manifest, folder, count)
+    timings.evidence(raw_files=count)
     print(f'Validated {count} raw responses. Rebuilding local derived views...', flush=True)
     from raw_seed import seed_snapshot
+    timings.stage('build')
     sync.compose('build', 'api')
+    timings.stage('parser')
     parser_version = sync.compose('run', '--rm', '--no-deps', '-T', 'api', 'php', '-r',
         'require "/app/vendor/autoload.php"; $app = require "/app/bootstrap/app.php"; '
         '$app->make(Illuminate\\Contracts\\Console\\Kernel::class)->bootstrap(); '
@@ -100,11 +115,15 @@ def perform(sync, server, full_rebuild=False, history_packages=()):
         stdout=subprocess.PIPE).stdout.decode().strip()
     if len(parser_version) != 64 or any(c not in '0123456789abcdef' for c in parser_version):
         raise RuntimeError('Cannot verify current raw parser version.')
-    seed_snapshot(sync, database, folder, full_rebuild, parser_version=parser_version)
+    timings.stage('seed')
+    seed = seed_snapshot(sync, database, folder, full_rebuild, parser_version=parser_version)
+    timings.evidence(seed=seed)
+    timings.stage('rebuild')
     sync.compose('run', '--rm', '--no-deps', '-e', 'MONGODB_DATABASE=' + database,
                  '-e', 'MONGODB_URI=mongodb://mongodb:27017/' + database,
                  '-v', str(folder.resolve()) + ':/raw-evidence:ro', 'api',
                  'php', '-d', 'memory_limit=512M', 'artisan', 'provider:rebuild-raw', '/raw-evidence')
+    timings.stage('blockages')
     # Blockage classifications are permanent operator evidence, not simulations.
     password = sync.getpass('Production kiotrad_dev password (read-only, blockage records): ')
     if not password:
@@ -118,14 +137,19 @@ def perform(sync, server, full_rebuild=False, history_packages=()):
             sync.compose('exec', '-T', 'mongodb', 'mongorestore', '--archive', '--gzip',
                          '--nsFrom=kiotrad.*', '--nsTo=' + database + '.*', '--drop', '--stopOnError', stdin=source)
     from production_history_mirror import recover
+    timings.stage('packages')
     recovered = recover(sync, database, folder, overlays)
     overlays = packages(sync.ROOT, [*history_packages, *recovered])
-    replay(sync, database, overlays)
+    timings.stage('history')
+    replay(sync, database, overlays, timings=timings)
+    timings.stage('validate')
     print('Validating staging metadata before preparing views...', flush=True)
     sync.compose('exec', '-T', 'mongodb', 'mongosh', '--quiet', '--file', '/dev/stdin',
                  phase='validate staging snapshot', input=sync.validation_script(database, started).encode())
     from prewarm import prepare
+    timings.stage('views')
     prepare(sync, database, settings['capital_minor'])
+    timings.stage('activate')
     previous = sync.ENV.read_bytes()
     previous_database = next((line.split('=', 1)[1] for line in previous.decode().splitlines()
                               if line.startswith('LOCAL_DATABASE=')), None)
@@ -143,6 +167,7 @@ def perform(sync, server, full_rebuild=False, history_packages=()):
         'started_at': started, 'mode': 'raw_evidence_rebuild'}, indent=2))
     # The downloaded tar is only transport; validated extracted files are the retained evidence.
     archive.unlink(missing_ok=True)
+    timings.stage('retention')
     try:
         from snapshot_retention import prune
         prune(sync, database, previous_database)

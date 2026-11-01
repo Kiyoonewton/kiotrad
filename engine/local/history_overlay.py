@@ -1,5 +1,6 @@
 """Replay explicitly registered, hash-pinned legacy packages into local staging."""
 import hashlib
+from contextlib import nullcontext
 import json
 import os
 from pathlib import Path
@@ -83,7 +84,7 @@ def save(root, records):
             temporary.unlink(missing_ok=True)
 
 
-def replay(sync, database, records):
+def replay(sync, database, records, timings=None):
     if not records:
         print('History overlays: none registered.', flush=True)
         return
@@ -102,19 +103,20 @@ def replay(sync, database, records):
         print('Replaying retained history package into staging: ' + checked['path'], flush=True)
         # Importer hash-checks every source, archives originals, then applies only
         # compatible missing evidence. Completed import-ledger rows are idempotent.
-        sync.compose('run', '--rm', '--no-deps', '-T',
-                     '-e', 'MONGODB_DATABASE=' + database,
-                     '-e', 'MONGODB_URI=mongodb://mongodb:27017/' + database,
-                     '-v', checked['path'] + ':/legacy-history:ro',
-                     '-v', str(archive.resolve()) + ':/history-evidence', 'api',
-                     'php', 'artisan', 'provider:import-legacy-history', '/legacy-history',
-                     '--apply', '--archive-root=/history-evidence')
+        with (timings.operation('history_import') if timings else nullcontext()):
+            sync.compose('run', '--rm', '--no-deps', '-T',
+                         '-e', 'MONGODB_DATABASE=' + database,
+                         '-e', 'MONGODB_URI=mongodb://mongodb:27017/' + database,
+                         '-v', checked['path'] + ':/legacy-history:ro',
+                         '-v', str(archive.resolve()) + ':/history-evidence', 'api',
+                         'php', 'artisan', 'provider:import-legacy-history', '/legacy-history',
+                         '--apply', '--archive-root=/history-evidence')
     print('Verifying retained fixture, price and provenance identities...', flush=True)
     reports = sync.ROOT / 'recovery/history-verification'
     reports.mkdir(parents=True, exist_ok=True)
     report = reports / (database + '.jsonl')
     try:
-        with report.open('wb') as output:
+        with (timings.operation('history_verification') if timings else nullcontext()), report.open('wb') as output:
             sync.compose('run', '--rm', '--no-deps', '-T',
                          '-e', 'MONGODB_DATABASE=' + database,
                          '-e', 'MONGODB_URI=mongodb://mongodb:27017/' + database,
