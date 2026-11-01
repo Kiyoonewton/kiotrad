@@ -30,7 +30,8 @@ export function validScenario(s: ScenarioSettings) {
     [1, 2].includes(s.allowance) &&
     ["compound", "fixed"].includes(s.capital_mode ?? "compound") &&
     Number.isInteger(s.profit_stop ?? 0) &&
-    (s.profit_stop ?? 0) >= 0 && (s.profit_stop ?? 0) <= 10000000
+    (s.profit_stop ?? 0) >= 0 &&
+    (s.profit_stop ?? 0) <= 10000000
   );
 }
 export function initialScenario(capital: number): ScenarioSettings {
@@ -54,7 +55,20 @@ export function initialScenario(capital: number): ScenarioSettings {
     return fallback;
   }
 }
-export function useScenario(settings: ScenarioSettings, league: string) {
+export function useScenario(
+  settings: ScenarioSettings,
+  league: string,
+  savedSettings?: ScenarioSettings,
+) {
+  const savedKey = JSON.stringify(savedSettings ?? settings);
+  useEffect(() => {
+    if (!validScenario(JSON.parse(savedKey))) return;
+    try {
+      localStorage.setItem("kiotrad:simulator:v1", savedKey);
+    } catch {
+      /* Optional browser storage. */
+    }
+  }, [savedKey]);
   const [state, setState] = useState<{
     key: string;
     view: ScenarioView | null;
@@ -63,11 +77,6 @@ export function useScenario(settings: ScenarioSettings, league: string) {
   const key = JSON.stringify({ ...settings, league });
   useEffect(() => {
     if (!validScenario(settings)) return;
-    try {
-      localStorage.setItem("kiotrad:simulator:v1", JSON.stringify(settings));
-    } catch {
-      /* Browser storage is optional. */
-    }
     const controller = new AbortController();
     let timer: ReturnType<typeof setTimeout>;
     const refresh = async () => {

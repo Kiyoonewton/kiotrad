@@ -27,9 +27,11 @@ function formatLagos(value: string): string {
 export function Overview({
   data,
   league,
+  scopeLabel,
 }: {
   data: OverviewData;
   league: string;
+  scopeLabel?: string;
 }) {
   const competitions = data.competitions.filter(
     (item) => league === "all" || item.id === league,
@@ -41,7 +43,10 @@ export function Overview({
     <>
       <CalendarCoverage data={data} league={league} />
       {data.shared_simulation ? (
-        <SharedCapitalPerformance data={data.shared_simulation} />
+        <SharedCapitalPerformance
+          data={data.shared_simulation}
+          scopeLabel={scopeLabel}
+        />
       ) : data.research_simulation ? (
         <ResearchPerformance data={data.research_simulation} league={league} />
       ) : (

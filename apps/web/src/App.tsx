@@ -3,11 +3,11 @@ import { getOverview, type Overview as OverviewData } from "./api";
 import { Overview } from "./Overview";
 import { SimulationHistory } from "./SimulationHistory";
 import { StrategyList } from "./StrategyList";
-import { Simulator } from "./Simulator";
+import { ProjectionWorkspace } from "./ProjectionWorkspace";
 import { LocalSyncControl } from "./LocalSyncControl";
 import { Logo } from "./Logo";
 
-const pages = ["Overview", "Strategies", "History", "Simulator"] as const;
+const pages = ["Overview", "Strategies", "History"] as const;
 type Page = (typeof pages)[number];
 
 export default function App() {
@@ -130,7 +130,10 @@ export default function App() {
           </div>
         </header>
         <main id="main" tabIndex={-1}>
-          <LocalSyncControl onReady={() => setRequest((n) => n + 1)} lastSyncAt={data?.local_sync?.completed_at} />
+          <LocalSyncControl
+            onReady={() => setRequest((n) => n + 1)}
+            lastSyncAt={data?.local_sync?.completed_at}
+          />
           {updating &&
             data &&
             !["warming", "unavailable"].includes(
@@ -199,10 +202,10 @@ export default function App() {
             <p className="loading" role="status">
               Connecting to KioTrad…
             </p>
+          ) : data.shared_simulation ? (
+            <ProjectionWorkspace data={data} league={league} page={page} />
           ) : page === "Overview" ? (
             <Overview data={data} league={league} />
-          ) : page === "Simulator" ? (
-            <Simulator data={data} league={league} />
           ) : page === "Strategies" ? (
             <>
               <div className="page-intro">
