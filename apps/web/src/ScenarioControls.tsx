@@ -7,33 +7,29 @@ export function ScenarioControls({
   settings,
   change,
   view,
-  baseCapital,
-  factor,
 }: {
   data: Overview;
   settings: ScenarioSettings;
   change: (name: keyof ScenarioSettings, value: number | string) => void;
   view: ScenarioView | null;
-  baseCapital: number;
-  factor: number;
 }) {
   return (
-    <>
-      <section className="simulator-settings" aria-labelledby="simulator-title">
-        <div className="section-heading">
-          <div>
-            <p className="eyebrow">One capital across the workspace</p>
-            <h1 id="simulator-title">Capital projection</h1>
-          </div>
-          <span className="mode-badge">Saved evidence · adjustable rules</span>
-        </div>
-        <p className="subtle">
-          Change capital to scale every projected amount. Rule changes
-          recalculate the base scenario.
-        </p>
-        <div className="simulator-controls">
-          <label>
-            Projected initial capital · ₦
+    <section
+      className="simulator-settings"
+      aria-labelledby="simulation-settings-title"
+    >
+      <header className="settings-heading">
+        <h2 id="simulation-settings-title">Simulation</h2>
+        <span className="projection-badge">
+          <span aria-hidden="true" />
+          Projected results
+        </span>
+      </header>
+      <div className="capital-row">
+        <label className="capital-field">
+          Initial capital
+          <span className="capital-input">
+            <span aria-hidden="true">₦</span>
             <input
               aria-label="Initial capital"
               type="number"
@@ -43,112 +39,119 @@ export function ScenarioControls({
               value={settings.capital}
               onChange={(e) => change("capital", Number(e.target.value))}
             />
-          </label>
-          <label>
-            Capital mode
-            <select
-              aria-label="Capital mode"
-              value={settings.capital_mode ?? "compound"}
-              onChange={(e) => change("capital_mode", e.target.value)}
+          </span>
+        </label>
+        <div className="mode-field">
+          <span>Capital mode</span>
+          <div
+            className="settings-toggle"
+            role="group"
+            aria-label="Capital mode"
+          >
+            <button
+              type="button"
+              aria-pressed={
+                (settings.capital_mode ?? "compound") === "compound"
+              }
+              onClick={() => change("capital_mode", "compound")}
             >
-              <option value="compound">Compound capital + gains</option>
-              <option value="fixed">Fixed entered capital</option>
-            </select>
-          </label>
-          <label>
-            Base stop at net profit · ₦
-            <input
-              aria-label="Stop at net profit"
-              type="number"
-              min="0"
-              max="10000000"
-              step="1"
-              value={settings.profit_stop ?? 0}
-              onChange={(e) => change("profit_stop", Number(e.target.value))}
-            />
-          </label>
-          <label>
-            First win day ≥
-            <input
-              aria-label="Qualification day"
-              type="number"
-              min="1"
-              max="30"
-              step="1"
-              value={settings.qualification}
-              onChange={(e) => change("qualification", Number(e.target.value))}
-            />
-          </label>
-          <label>
-            Attempts maximum
-            <input
-              aria-label="Maximum attempts"
-              type="number"
-              min="1"
-              max="10"
-              step="1"
-              value={settings.attempts}
-              onChange={(e) => change("attempts", Number(e.target.value))}
-            />
-          </label>
-          <label>
-            Allowance
-            <select
-              aria-label="Allowance multiplier"
-              value={settings.allowance}
-              onChange={(e) => change("allowance", Number(e.target.value))}
+              Reinvest gains
+            </button>
+            <button
+              type="button"
+              aria-pressed={settings.capital_mode === "fixed"}
+              onClick={() => change("capital_mode", "fixed")}
             >
-              <option value="1">×1 estimated cost</option>
-              <option value="2">×2 estimated cost</option>
-            </select>
-          </label>
-          <label>
-            Strategy
-            <select
-              aria-label="Simulation strategy"
-              value={settings.strategy}
-              onChange={(e) => change("strategy", e.target.value)}
-            >
-              <option value="all">Both strategies</option>
-              {data.strategies.map((strategy) => (
-                <option key={strategy.id} value={strategy.id}>
-                  {strategy.name}
-                </option>
-              ))}
-            </select>
-          </label>
+              Fixed capital
+            </button>
+          </div>
         </div>
-        <p className="subtle">
-          Qualification is the first-win day threshold; attempts are the
-          subsequent trading window. Fixed mode sizes from entered capital;
-          compound mode sizes from total funds. Gains remain in the displayed
-          balance. A run is skipped if available funds cannot cover its
-          allowance. Profit stop uses settled net profit; 0 means no target. A
-          completed run may exceed the target. All monetary values are NGN.
-        </p>
-        {view && (
-          <small>
-            Evidence through{" "}
+        <label className="target-field">
+          Profit target · base ₦
+          <input
+            aria-label="Stop at net profit"
+            type="number"
+            min="0"
+            max="10000000"
+            step="1"
+            title="Base net profit target; 0 means no target."
+            value={settings.profit_stop ?? 0}
+            onChange={(e) => change("profit_stop", Number(e.target.value))}
+          />
+          <small>0 = no target</small>
+        </label>
+      </div>
+      <div className="simulator-controls">
+        <label>
+          First win day ≥
+          <input
+            aria-label="Qualification day"
+            type="number"
+            min="1"
+            max="30"
+            step="1"
+            value={settings.qualification}
+            onChange={(e) => change("qualification", Number(e.target.value))}
+          />
+        </label>
+        <label>
+          Attempts
+          <input
+            aria-label="Maximum attempts"
+            type="number"
+            min="1"
+            max="10"
+            step="1"
+            value={settings.attempts}
+            onChange={(e) => change("attempts", Number(e.target.value))}
+          />
+        </label>
+        <div className="allowance-field">
+          <span>Allowance</span>
+          <div
+            className="settings-toggle"
+            role="group"
+            aria-label="Allowance multiplier"
+          >
+            {[1, 2].map((n) => (
+              <button
+                type="button"
+                key={n}
+                aria-pressed={settings.allowance === n}
+                onClick={() => change("allowance", n)}
+              >
+                ×{n}
+              </button>
+            ))}
+          </div>
+        </div>
+        <label>
+          Strategy
+          <select
+            aria-label="Simulation strategy"
+            value={settings.strategy}
+            onChange={(e) => change("strategy", e.target.value)}
+          >
+            <option value="all">Both strategies</option>
+            {data.strategies.map((strategy) => (
+              <option key={strategy.id} value={strategy.id}>
+                {strategy.name}
+              </option>
+            ))}
+          </select>
+        </label>
+      </div>
+      {view && (
+        <footer className="settings-updated">
+          Updated{" "}
+          <time dateTime={view.source_as_of}>
             {new Date(view.source_as_of).toLocaleString("en-GB", {
               timeZone: "Africa/Lagos",
             })}{" "}
-            WAT ·{" "}
-            {view.scenario_cache === "hit"
-              ? "Cached scenario"
-              : "Recalculated from prepared evidence"}
-          </small>
-        )}
-      </section>
-      <p className="recovery-banner" role="note">
-        Scaled projection · base ₦{baseCapital.toLocaleString("en-NG")} ·
-        multiplier ×
-        {factor.toLocaleString("en-NG", { maximumFractionDigits: 6 })}. All
-        simulation money, including History, uses this factor. Odds, dates and
-        run decisions stay fixed for the base scenario. Fractional stakes are
-        proportional illustrations, not rounded executable bets. Recorded
-        evidence and paper balances are unchanged. The profit-stop input is in
-        base naira; its projected target scales by the same factor.
-      </p>
-    </>
+            WAT
+          </time>
+        </footer>
+      )}
+    </section>
   );
 }

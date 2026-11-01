@@ -2,48 +2,167 @@
   border: 1px solid var(--border, #283b33);
   background: var(--panel, #14221c);
   border-radius: 16px;
-  padding: clamp(18px, 3vw, 30px);
-  margin-bottom: 28px;
+  padding: clamp(18px, 3vw, 28px);
+  margin-bottom: 24px;
 }
-.simulator-settings h1 {
+.settings-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 22px;
+}
+.settings-heading h2 {
   margin: 0;
+  font-size: 1rem;
+}
+.projection-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 0.73rem;
+  color: #a6bcb0;
+}
+.projection-badge > span {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #81c9a0;
+}
+.capital-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1.25fr) minmax(0, 1.15fr) minmax(0, 0.65fr);
+  align-items: start;
+  gap: 24px;
+  padding-bottom: 22px;
+  border-bottom: 1px solid var(--border, #283b33);
+}
+.capital-field,
+.mode-field,
+.target-field,
+.simulator-controls label,
+.allowance-field {
+  display: grid;
+  min-width: 0;
+  gap: 10px;
+  font-size: 0.78rem;
+  color: #bac8bf;
+}
+.capital-input {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #f3f1e9;
+  font-size: clamp(1.6rem, 2.5vw, 2.35rem);
+  font-variant-numeric: tabular-nums;
+}
+.capital-input > span {
+  color: #81c9a0;
+  font-size: 0.7em;
+}
+.capital-input input {
+  width: 100%;
+  min-width: 0;
+  border: 0;
+  border-bottom: 1px solid #3a5145;
+  border-radius: 0;
+  padding: 2px 0 8px;
+  background: transparent;
+  color: inherit;
+  font: inherit;
 }
 .simulator-controls {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(min(100%, 180px), 1fr));
-  gap: 16px;
-  margin: 24px 0 16px;
-}
-.simulator-controls label {
-  display: grid;
-  gap: 9px;
-  font-size: 0.82rem;
-  color: #bac8bf;
+  grid-template-columns: minmax(0, 0.7fr) minmax(0, 0.7fr) minmax(
+      0,
+      0.8fr
+    ) minmax(0, 1.4fr);
+  gap: 18px;
+  margin: 20px 0 0;
 }
 .simulator-controls input,
-.simulator-controls select {
+.simulator-controls select,
+.target-field input {
   min-width: 0;
   width: 100%;
   box-sizing: border-box;
   background: #0e1914;
   border: 1px solid #3a5145;
-  border-radius: 9px;
-  padding: 12px;
+  border-radius: 8px;
+  padding: 11px;
   color: #f3f1e9;
   font: inherit;
 }
-.simulator-controls input:focus,
-.simulator-controls select:focus {
+.target-field small {
+  font-size: 0.7rem;
+  color: #94a69a;
+}
+.settings-toggle {
+  display: flex;
+  gap: 4px;
+  border: 1px solid #3a5145;
+  padding: 3px;
+  border-radius: 9px;
+  background: #0e1914;
+}
+.settings-toggle button {
+  flex: 1;
+  min-width: 0;
+  margin: 0;
+  padding: 9px 6px;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  color: #a6b8ac;
+  font: inherit;
+  cursor: pointer;
+}
+.settings-toggle button[aria-pressed="true"] {
+  background: #284435;
+  border-color: #527d62;
+  color: #e0f5e7;
+}
+.simulator-settings input:focus-visible,
+.simulator-settings select:focus-visible,
+.settings-toggle button:focus-visible {
   outline: 2px solid #81c9a0;
-  outline-offset: 2px;
+  outline-offset: 3px;
+}
+.settings-updated {
+  display: block;
+  margin: 16px 0 0;
+  padding: 0;
+  border: 0;
+  font-size: 0.7rem;
+  color: #94a69a;
 }
 @media (max-width: 1100px) {
+  .capital-row {
+    grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr);
+    gap: 18px;
+  }
+  .target-field {
+    grid-column: 1 / -1;
+    max-width: 220px;
+  }
   .simulator-controls {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
 @media (max-width: 560px) {
+  .capital-row {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .capital-input {
+    font-size: 2rem;
+  }
+  .target-field {
+    max-width: none;
+  }
   .simulator-controls {
-    grid-template-columns: 1fr;
+    gap: 16px 12px;
+  }
+  .simulator-controls label:last-child {
+    grid-column: 1 / -1;
   }
 }

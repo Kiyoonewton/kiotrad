@@ -131,7 +131,10 @@ it("shares one exact capital factor across Overview, daily totals, History and S
   fireEvent.change(screen.getByLabelText("Initial capital"), {
     target: { value: "14000" },
   });
-  expect(screen.getByRole("note")).toHaveTextContent("multiplier ×2");
+  expect(screen.getByText("Projected results")).toBeInTheDocument();
+  expect(
+    screen.queryByText(/multiplier ×|uses this factor|Scaled projection/),
+  ).not.toBeInTheDocument();
   expect(screen.getAllByText("₦14,200.00").length).toBeGreaterThan(0);
   const day = screen.getByText("2026-10-18").closest("tr")!;
   expect(day).toHaveTextContent("₦200.00");
@@ -161,7 +164,7 @@ it("shares one exact capital factor across Overview, daily totals, History and S
     target: { value: "700" },
   });
   ui.rerender(<ProjectionWorkspace data={data} league="all" page="History" />);
-  expect(screen.getByRole("note")).toHaveTextContent("multiplier ×0.1");
+  expect(screen.getByText("Projected results")).toBeInTheDocument();
   expect(screen.getByText("euro / 100").closest("tr")).toHaveTextContent(
     "₦20.00",
   );
@@ -181,6 +184,15 @@ it("changes rules through a base replay and hides amounts while the new selectio
   expect(screen.queryByText("Current capital")).not.toBeInTheDocument();
   await act(() => vi.advanceTimersByTimeAsync(401));
   expect(fetcher.mock.calls[1][0]).toContain("qualification=6");
+  fireEvent.click(screen.getByRole("button", { name: "Fixed capital" }));
+  fireEvent.click(screen.getByRole("button", { name: "×2" }));
+  await act(() => vi.advanceTimersByTimeAsync(401));
+  expect(fetcher.mock.calls.at(-1)?.[0]).toContain("capital_mode=fixed");
+  expect(fetcher.mock.calls.at(-1)?.[0]).toContain("allowance=2");
+  expect(screen.getByRole("button", { name: "Fixed capital" })).toHaveAttribute(
+    "aria-pressed",
+    "true",
+  );
   fireEvent.change(screen.getByLabelText("Initial capital"), {
     target: { value: "0" },
   });

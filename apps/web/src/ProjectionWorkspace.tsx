@@ -70,8 +70,6 @@ export function ProjectionWorkspace({
         settings={settings}
         change={change}
         view={view}
-        baseCapital={baseCapital}
-        factor={Number.isFinite(factor) ? factor : 0}
       />
       {!validScenario(settings) ? (
         <p role="status">
@@ -100,7 +98,7 @@ export function ProjectionWorkspace({
           <Overview
             data={projected}
             league={league}
-            scopeLabel={`Scaled projection · ${league === "all" ? "all leagues" : (data.competitions.find((c) => c.id === league)?.name ?? league)} · ${settings.strategy === "all" ? "both strategies" : (data.strategies.find((s) => s.id === settings.strategy)?.name ?? settings.strategy)}`}
+            scopeLabel={`Projected results · ${league === "all" ? "all leagues" : (data.competitions.find((c) => c.id === league)?.name ?? league)} · ${settings.strategy === "all" ? "both strategies" : (data.strategies.find((s) => s.id === settings.strategy)?.name ?? settings.strategy)}`}
           />
         ) : page === "History" ? (
           <ProjectionHistory view={view} />
