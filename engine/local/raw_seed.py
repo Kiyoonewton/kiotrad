@@ -10,21 +10,21 @@ DATABASE = re.compile(r'kiotrad_local_[0-9TZ]+')
 def seed_snapshot(sync, destination, folder, full=False, parser_version=None):
     if full:
         print('Explicit full rebuild requested.', flush=True)
-        return
+        return {'mode': 'full_rebuild', 'reason': 'explicit_request'}
     source = next((line.split('=', 1)[1] for line in sync.ENV.read_text().splitlines()
                    if line.startswith('LOCAL_DATABASE=')), '')
     if not DATABASE.fullmatch(source) or not DATABASE.fullmatch(destination) or source == destination:
         print('No eligible local seed; building the initial processing index.', flush=True)
-        return
+        return {'mode': 'full_rebuild', 'reason': 'no_eligible_seed'}
     script = 'print(JSON.stringify(db.getSiblingDB(' + json.dumps(source) + ').local_raw_rebuild.findOne({_id:"state"})))'
     state = json.loads(sync.compose('exec', '-T', 'mongodb', 'mongosh', '--quiet', '--eval', script,
                                    stdout=subprocess.PIPE).stdout)
     if not state or state.get('complete') is not True:
         print('Previous snapshot has no completed processing index; one full rebuild is required.', flush=True)
-        return
+        return {'mode': 'full_rebuild', 'reason': 'missing_completed_index'}
     if parser_version is not None and state.get('version') != parser_version:
         print('Raw parser changed; rebuilding the isolated staging index automatically.', flush=True)
-        return
+        return {'mode': 'full_rebuild', 'reason': 'parser_changed'}
     print('Copying completed local views into an isolated staging database...', flush=True)
     archive = folder / 'local-seed.archive'
     try:
@@ -37,3 +37,5 @@ def seed_snapshot(sync, destination, folder, full=False, parser_version=None):
                          '--stopOnError', stdin=incoming)
     finally:
         archive.unlink(missing_ok=True)
+
+    return {'mode': 'incremental_seed', 'reason': 'compatible_completed_index'}

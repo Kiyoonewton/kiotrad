@@ -175,3 +175,7 @@ class HistoryOverlayTests(unittest.TestCase):
                 self.perform(root, calls, fail_import=True, requested=[str(folder)])
             self.assertEqual(calls, ['import'])
             self.assertNotIn('SIMULATION_CAPITAL_NAIRA', (root / 'env').read_text())
+            report = json.loads(next((root / 'recovery/sync-timings').glob('*.json')).read_text())
+            self.assertEqual(report['status'], 'failed')
+            self.assertEqual(report['stages'][-1]['stage'], 'history')
+            self.assertNotIn('synthetic', json.dumps(report))

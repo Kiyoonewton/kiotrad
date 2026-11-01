@@ -31,6 +31,10 @@ class SyncJobTest(unittest.TestCase):
             job.progress('2026-10-31 workbench: season_monitoring 20/40')
             self.assertEqual(job.view()['phase'], 'Checking seasons')
             self.assertEqual(job.view()['total'], 40)
+            job.progress('Sync phase: Copying previous local snapshot')
+            self.assertEqual(job.view()['phase'], 'Copying previous local snapshot')
+            job.progress('Sync phase: synthetic-secret')
+            self.assertNotIn('synthetic-secret', json.dumps(job.view()))
 
     def test_success_requires_changed_active_snapshot_and_http_readiness(self):
         with tempfile.TemporaryDirectory() as temporary:
