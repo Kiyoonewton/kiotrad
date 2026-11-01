@@ -55,6 +55,9 @@ it("shows unavailable feeds and no invented balance, supports league filtering a
   );
   render(<App />);
   expect(
+    screen.queryByRole("button", { name: /Simulator/ }),
+  ).not.toBeInTheDocument();
+  expect(
     await screen.findByText("Bankroll not configured"),
   ).toBeInTheDocument();
   const leagues = screen.getByRole("region", {

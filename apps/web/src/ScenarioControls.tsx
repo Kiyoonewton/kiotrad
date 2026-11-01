@@ -1,52 +1,39 @@
-import { CalendarCoverage } from "./CalendarCoverage";
-import { useState } from "react";
 import type { Overview } from "./api";
-import { SharedCapitalPerformance } from "./SharedCapitalPerformance";
-import { RunEventTimeline } from "./RunEventTimeline";
-import { sharedRunMap } from "./runMapData";
-import {
-  initialScenario,
-  useScenario,
-  type ScenarioSettings,
-} from "./useScenario";
+import type { ScenarioSettings, ScenarioView } from "./useScenario";
 import "./simulator.css";
 
-export function Simulator({
+export function ScenarioControls({
   data,
-  league,
+  settings,
+  change,
+  view,
+  baseCapital,
+  factor,
 }: {
   data: Overview;
-  league: string;
+  settings: ScenarioSettings;
+  change: (name: keyof ScenarioSettings, value: number | string) => void;
+  view: ScenarioView | null;
+  baseCapital: number;
+  factor: number;
 }) {
-  const [settings, setSettings] = useState<ScenarioSettings>(() =>
-    initialScenario(
-      (data.shared_simulation?.starting_capital_minor ?? 5000000) / 100,
-    ),
-  );
-  const { view, message } = useScenario(settings, league);
-  const change = (name: keyof ScenarioSettings, value: number | string) =>
-    setSettings((s) => ({ ...s, [name]: value }));
-  const limited = view?.runs.some(
-    (r) => r.skip_reason === "calculation_range_limit",
-  );
   return (
     <>
-      <CalendarCoverage data={data} league={league} simulation={view} />
       <section className="simulator-settings" aria-labelledby="simulator-title">
         <div className="section-heading">
           <div>
-            <p className="eyebrow">Research sandbox</p>
-            <h1 id="simulator-title">Simulator</h1>
+            <p className="eyebrow">One capital across the workspace</p>
+            <h1 id="simulator-title">Capital projection</h1>
           </div>
           <span className="mode-badge">Saved evidence · adjustable rules</span>
         </div>
         <p className="subtle">
-          Change a setting to recalculate. These scenarios leave the monitored
-          benchmark and recorded decisions unchanged.
+          Change capital to scale every projected amount. Rule changes
+          recalculate the base scenario.
         </p>
         <div className="simulator-controls">
           <label>
-            Initial capital · ₦
+            Projected initial capital · ₦
             <input
               aria-label="Initial capital"
               type="number"
@@ -59,17 +46,26 @@ export function Simulator({
           </label>
           <label>
             Capital mode
-            <select aria-label="Capital mode" value={settings.capital_mode ?? "compound"}
-              onChange={(e) => change("capital_mode", e.target.value)}>
+            <select
+              aria-label="Capital mode"
+              value={settings.capital_mode ?? "compound"}
+              onChange={(e) => change("capital_mode", e.target.value)}
+            >
               <option value="compound">Compound capital + gains</option>
               <option value="fixed">Fixed entered capital</option>
             </select>
           </label>
           <label>
-            Stop at net profit · ₦
-            <input aria-label="Stop at net profit" type="number" min="0" max="10000000" step="1"
+            Base stop at net profit · ₦
+            <input
+              aria-label="Stop at net profit"
+              type="number"
+              min="0"
+              max="10000000"
+              step="1"
               value={settings.profit_stop ?? 0}
-              onChange={(e) => change("profit_stop", Number(e.target.value))} />
+              onChange={(e) => change("profit_stop", Number(e.target.value))}
+            />
           </label>
           <label>
             First win day ≥
@@ -124,11 +120,11 @@ export function Simulator({
         </div>
         <p className="subtle">
           Qualification is the first-win day threshold; attempts are the
-          subsequent trading window. Fixed mode sizes from entered capital; compound
-          mode sizes from total funds. Gains remain in the displayed balance.
-          A run is skipped if available funds cannot cover its allowance. Profit stop
-          uses settled net profit; 0 means no target. A completed run may exceed the target.
-          All monetary values are NGN.
+          subsequent trading window. Fixed mode sizes from entered capital;
+          compound mode sizes from total funds. Gains remain in the displayed
+          balance. A run is skipped if available funds cannot cover its
+          allowance. Profit stop uses settled net profit; 0 means no target. A
+          completed run may exceed the target. All monetary values are NGN.
         </p>
         {view && (
           <small>
@@ -143,33 +139,16 @@ export function Simulator({
           </small>
         )}
       </section>
-      {message && (
-        <p className="message-panel" role="status">
-          {message}
-        </p>
-      )}
-      {view && (
-        <>
-          {limited && (
-            <p role="status" className="recovery-banner">
-              Calculation limit reached: entries above ₦10,000,000 available
-              capital are excluded. The displayed result covers processed runs
-              only.
-            </p>
-          )}
-          <SharedCapitalPerformance
-            data={view}
-            scopeLabel={`One active run · ${league === "all" ? "all leagues" : (data.competitions.find((c) => c.id === league)?.name ?? league)} · ${settings.strategy === "all" ? "both strategies" : (data.strategies.find((s) => s.id === settings.strategy)?.name ?? settings.strategy)}`}
-          />
-          <RunEventTimeline
-            data={sharedRunMap(view)}
-            shared
-            competitions={data.competitions.filter(
-              (c) => league === "all" || c.id === league,
-            )}
-          />
-        </>
-      )}
+      <p className="recovery-banner" role="note">
+        Scaled projection · base ₦{baseCapital.toLocaleString("en-NG")} ·
+        multiplier ×
+        {factor.toLocaleString("en-NG", { maximumFractionDigits: 6 })}. All
+        simulation money, including History, uses this factor. Odds, dates and
+        run decisions stay fixed for the base scenario. Fractional stakes are
+        proportional illustrations, not rounded executable bets. Recorded
+        evidence and paper balances are unchanged. The profit-stop input is in
+        base naira; its projected target scales by the same factor.
+      </p>
     </>
   );
 }

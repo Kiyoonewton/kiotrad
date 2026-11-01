@@ -48,7 +48,7 @@ are never returned to the browser. Errors give a sanitized failure state; run
 the existing terminal sync command for detailed diagnostics.
 
 Success requires sync exit 0, a changed timestamped active database, local HTTP
-readiness, an overview identifying that database and an available Simulator
+readiness, an overview identifying that database and an available research
 scenario. Only then does the panel say **Dashboard ready to view**, and it
 refreshes the displayed overview. A readiness timeout is reported as failure,
 not success. The current snapshot/rollback behavior remains owned by sync.py.
