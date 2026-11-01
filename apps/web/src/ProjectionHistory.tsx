@@ -30,13 +30,9 @@ export function ProjectionHistory({ view }: { view: SharedSimulation }) {
   const shown = new Set(seasons.slice((current - 1) * 10, current * 10));
   return (
     <section className="paper-history" aria-label="Strategy simulation history">
-      <p className="eyebrow">Scaled projection · same settings as Overview</p>
+      <p className="eyebrow">Projected history</p>
       <h2>Simulation history.</h2>
-      <p className="subtle">
-        Selected scenario runs · newest entry first · 10 seasons per page.
-        Missing or unqualified opportunities are not substituted from the
-        recorded benchmark.
-      </p>
+      <p className="subtle">Newest entry first · 10 seasons per page.</p>
       <label>
         Run entry date (Lagos){" "}
         <input

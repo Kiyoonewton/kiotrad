@@ -32,8 +32,8 @@ Only numeric monetary `*_minor` fields are scaled, including nested attempts,
 allowances, recovery targets, equity, timing comparisons and strategy monetary
 rules. Odds, dates, evidence IDs/hashes, counts, attempts, qualification, status and
 selection decisions are unchanged. Source objects are copied, never mutated.
-The banner on every research page identifies the base and multiplier and labels
-the results as projections. Recorded provider evidence, production settings,
+A compact badge identifies projected results; multiplier/base explanations stay
+in this document rather than repeating on every page. Recorded provider evidence, production settings,
 monitored benchmark and paper ledger are not written or rescaled.
 
 History now reads the same projected scenario already shown on Overview, rather
@@ -49,3 +49,8 @@ and source availability retain the existing behavior. This is a frontend project
 feature; it does not change strategy or settlement versions or require a database
 rebuild. Refresh the local app after rebuilding web; production uses the normal
 reviewed web deployment.
+
+The settings panel groups the large capital input with capital-mode buttons and
+the base profit target, followed by qualification, attempts, allowance buttons
+and strategy. The amber multiplier explanation is removed. Detailed mechanics
+remain in this document; no calculation or default changes accompany the layout.
