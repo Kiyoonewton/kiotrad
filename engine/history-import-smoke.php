@@ -51,13 +51,15 @@ try {
     $db->season_checkpoints->insertOne(['_id' => 'virtual-euro:10', 'season_id' => '10', 'capture_id' => 'original']);
     $db->provider_checkpoints->insertOne(['_id' => 'virtual-euro', 'capture_id' => 'original']);
     $args = ['folder' => $root.'/package', '--apply' => true, '--archive-root' => $root.'/archive'];
-    $assert(Artisan::call('provider:import-legacy-history', $args) === 0, 'Initial local import failed: '.Artisan::output());
-    $summary = function () {
-        $lines = array_filter(explode("\n", trim(Artisan::output())));
+    $initialStatus = Artisan::call('provider:import-legacy-history', $args);
+    $initialOutput = Artisan::output();
+    $assert($initialStatus === 0, 'Initial local import failed: '.$initialOutput);
+    $summary = function (string $output) {
+        $lines = array_filter(explode("\n", trim($output)));
 
         return json_decode(end($lines), true, 512, JSON_THROW_ON_ERROR);
     };
-    $assert($summary()['source_parses'] === 4, 'Fresh import did not normalize both sources fully.');
+    $assert($summary($initialOutput)['source_parses'] === 4, 'Fresh import did not normalize both sources fully.');
     $options = ['typeMap' => ['root' => 'array', 'document' => 'array', 'array' => 'array']];
     $original = $db->provider_captures->findOne(['_id' => 'original'], $options);
     $assert($original['matches'][0] === $match, 'Original verified fixture was changed.');
@@ -70,18 +72,18 @@ try {
     $assert($db->provider_checkpoints->findOne(['_id' => 'virtual-euro'])['capture_id'] === 'original', 'Current provider pointer changed.');
     $assert(count(glob($root.'/archive/*.gz')) === 2, 'Raw responses were not archived.');
     $assert(Artisan::call('provider:import-legacy-history', $args) === 0 && $db->provider_captures->countDocuments() === 3, 'Retry duplicated captures.');
-    $assert($summary()['source_parses'] === 2, 'Completed import repeated the per-season normalization pass.');
+    $assert($summary(Artisan::output())['source_parses'] === 2, 'Completed import repeated the per-season normalization pass.');
     // Simulate interruption after capture insert but before completion ledger update.
     $db->local_history_imports->updateMany([], ['$set' => ['status' => 'prepared']]);
     $assert(Artisan::call('provider:import-legacy-history', $args) === 0 && $db->provider_captures->countDocuments() === 3, 'Crash retry failed or duplicated captures.');
     $assert($db->local_history_imports->countDocuments(['status' => 'complete']) === 2, 'Crash retry did not complete.');
-    $assert($summary()['source_parses'] === 4, 'Prepared retries must fully normalize source seasons.');
+    $assert($summary(Artisan::output())['source_parses'] === 4, 'Prepared retries must fully normalize source seasons.');
     // Seeded ledgers can survive raw reconstruction that removed a pointer.
     $db->season_checkpoints->deleteOne(['_id' => 'virtual-euro:11']);
     $db->provider_captures->deleteOne(['_id' => $new['_id']]);
     $assert(Artisan::call('provider:import-legacy-history', $args) === 0, 'Overlay did not restore missing materialization.');
     $assert($db->provider_captures->countDocuments() === 3, 'Overlay repair duplicated or lost captures.');
-    $assert($summary()['source_parses'] === 2, 'Completed overlay restoration repeated season normalization.');
+    $assert($summary(Artisan::output())['source_parses'] === 2, 'Completed overlay restoration repeated season normalization.');
     $restored = $db->provider_captures->findOne(['_id' => $new['_id']], $options);
     $assert($restored === $new, 'Overlay repair changed the pinned original plan.');
     $assert($db->season_checkpoints->findOne(['_id' => 'virtual-euro:11'])['capture_id'] === $new['_id'], 'Missing history checkpoint not restored.');
