@@ -65,6 +65,7 @@ final class ImportLegacyHistory extends Command
                 }
                 $groups[$source['competition'].':'.$source['season_id']][] = $entry;
             }
+            $sourceParses = count($entries);
             unset($identities);
             ksort($groups);
             $db = DB::connection('mongodb')->getDatabase();
@@ -76,8 +77,6 @@ final class ImportLegacyHistory extends Command
                 if (! $lock->isOwnedByCurrentProcess()) {
                     throw new RuntimeException('History import lease expired.');
                 }
-                $sources = array_map(fn ($entry) => $this->parse($entry, $parser), $files);
-                $ids = array_values(array_unique(array_merge(...array_map(fn ($s) => array_column($s['matches'], 'provider_match_id'), $sources))));
                 $hashes = array_column($files, 'sha256');
                 sort($hashes);
                 $key = LegacyHistoryPlan::VERSION.':'.$season.':'.hash('sha256', implode(':', $hashes));
@@ -88,6 +87,10 @@ final class ImportLegacyHistory extends Command
                 if (($record['status'] ?? '') === 'complete') {
                     $result = $writer->restoreCompleted($db, $key, $record['plan']);
                 } else {
+                    // Completed seeded plans need restoration, not a second normalization pass.
+                    $sources = array_map(fn ($entry) => $this->parse($entry, $parser), $files);
+                    $sourceParses += count($files);
+                    $ids = array_values(array_unique(array_merge(...array_map(fn ($s) => array_column($s['matches'], 'provider_match_id'), $sources))));
                     $captures = $db->provider_captures->find(['$or' => [
                         ['competition' => $sources[0]['competition'], 'season_id' => $sources[0]['season_id']],
                         ['matches.provider_match_id' => ['$in' => $ids]],
@@ -126,7 +129,8 @@ final class ImportLegacyHistory extends Command
                 $this->line(json_encode(['season' => $season, 'progress' => ++$position.'/'.count($groups), ...$result], JSON_THROW_ON_ERROR));
             }
             $this->line(json_encode(['mode' => 'local_apply', 'database' => $database, 'seasons' => count($groups),
-                'counts' => $counts, 'totals' => $totals, 'timing_estimated' => false], JSON_THROW_ON_ERROR));
+                'counts' => $counts, 'totals' => $totals, 'source_files' => count($entries),
+                'source_parses' => $sourceParses, 'timing_estimated' => false], JSON_THROW_ON_ERROR));
 
             return $failed ? self::FAILURE : self::SUCCESS;
         } catch (Throwable $exception) {
