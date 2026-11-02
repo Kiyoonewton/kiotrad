@@ -7,10 +7,13 @@ use DomainException;
 
 final class SharedCapitalReplay
 {
-    public const VERSION = 'single-active-capital-modes-2.2.0';
+    public const VERSION = 'single-active-carry-model-2.3.0';
 
-    public function calculate(array $candidates, int $capital, string $asOf, ?int $settlementSeconds = null, int $maxAttempts = 4, int $multiplier = 1, string $capitalMode = 'compound', int $profitStop = 0): array
+    public function calculate(array $candidates, int $capital, string $asOf, ?int $settlementSeconds = null, int $maxAttempts = 4, int $multiplier = 1, string $capitalMode = 'compound', int $profitStop = 0, string $stakingModel = 'recovery'): array
     {
+        if (! in_array($stakingModel, ['recovery', 'payout_carry_v1'], true)) {
+            throw new DomainException('invalid_staking_model');
+        }
         if ($maxAttempts < 1 || $maxAttempts > 10 || ! in_array($multiplier, [1, 2], true)) {
             throw new DomainException('invalid_scenario_settings');
         }
@@ -77,6 +80,12 @@ final class SharedCapitalReplay
             $eligible = [];
             foreach ($group as $candidate) {
                 $sizingCapital = $capitalMode === 'fixed' ? $capital : $balance;
+                if ($stakingModel === 'payout_carry_v1' && $sizingCapital < 1) {
+                    $rows[] = [...$candidate, 'entry_at' => $at, 'status' => 'skipped_budget',
+                        'skip_reason' => 'insufficient_allowance', 'capital_at_entry_minor' => $balance];
+
+                    continue;
+                }
                 if ($sizingCapital > 1000000000) {
                     $rows[] = [...$candidate, 'entry_at' => $at, 'status' => 'skipped_budget',
                         'skip_reason' => 'calculation_range_limit', 'capital_at_entry_minor' => $balance];
@@ -91,10 +100,18 @@ final class SharedCapitalReplay
 
                     continue;
                 }
-                $estimate = (new RunBudgetEstimate)->calculate($odds, $sizingCapital, $multiplier);
+                $estimate = $stakingModel === 'payout_carry_v1'
+                    ? (new PayoutCarryPlan)->calculate($candidate['fixtures'], $sizingCapital, $multiplier)
+                    : (new RunBudgetEstimate)->calculate($odds, $sizingCapital, $multiplier);
+                if ($estimate['status'] === 'missing_plan_odds') {
+                    $rows[] = [...$candidate, 'entry_at' => $at, 'status' => 'incomplete_retrospective_odds',
+                        'funded' => false, 'entry_issue' => $estimate['missing_field'], 'budget_diagnostic' => $estimate];
+
+                    continue;
+                }
                 if ($estimate['status'] !== 'estimated' || $estimate['allowance_minor'] > $balance) {
                     $rows[] = [...$candidate, 'entry_at' => $at, 'status' => 'skipped_budget',
-                        'skip_reason' => 'insufficient_allowance', 'capital_at_entry_minor' => $balance,
+                        'skip_reason' => $estimate['status'] === 'calculation_range_limit' ? 'calculation_range_limit' : 'insufficient_allowance', 'capital_at_entry_minor' => $balance,
                         'budget_diagnostic' => $estimate];
 
                     continue;
@@ -110,7 +127,7 @@ final class SharedCapitalReplay
 
                     continue;
                 }
-                $settled = (new SharedRunSettlement)->calculate($candidate, $candidate['estimate'], $asOf, $maxAttempts);
+                $settled = (new SharedRunSettlement)->calculate($candidate, $candidate['estimate'], $asOf, $candidate['attempt_limit'] ?? $maxAttempts);
                 if ($settled['total_staked_minor'] === 0 && $settled['status'] === 'awaiting_price_or_market_resolution') {
                     $rows[] = [...$candidate, ...$settled, 'status' => 'unfunded_entry', 'funded' => false,
                         'capital_at_entry_minor' => $balance, 'entry_issue' => $settled['pricing_issue']];
@@ -130,6 +147,8 @@ final class SharedCapitalReplay
 
         return ['policy_version' => self::VERSION, 'mode' => 'shared_capital_simulation', 'as_of' => $asOf,
             'timing_basis' => $settlementSeconds === null ? 'recorded_result_confirmation_conservative' : 'modeled_scheduled_kickoff_offset', 'starting_capital_minor' => $capital,
+            'staking_model' => $stakingModel, 'staking_model_version' => $stakingModel === 'payout_carry_v1' ? PayoutCarryPlan::VERSION : RunBudgetEstimate::VERSION,
+            'retrospective_odds_sizing' => $stakingModel === 'payout_carry_v1',
             'capital_mode' => $capitalMode, 'sizing_capital_minor' => $capitalMode === 'fixed' ? $capital : $balance,
             'profit_stop_minor' => $profitStop,
             'stop_reason' => $profitStop > 0 && $balance - $capital >= $profitStop ? 'profit_target_reached' : null,

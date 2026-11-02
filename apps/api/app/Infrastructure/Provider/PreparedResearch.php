@@ -2,6 +2,7 @@
 
 namespace App\Infrastructure\Provider;
 
+use App\Domain\Research\PayoutCarryPlan;
 use App\Domain\Research\ResearchScenario;
 use App\Domain\Research\RunBudgetEstimate;
 use App\Domain\Research\SharedCapitalReplay;
@@ -41,7 +42,7 @@ class PreparedResearch
                         : 'Preparing reusable fixture and price evidence.', 'preparation' => $state];
             }
             $revision = hash('sha256', json_encode([$prepared['revision'], $settings, ResearchScenario::VERSION,
-                SharedCapitalReplay::VERSION, RunBudgetEstimate::VERSION]));
+                SharedCapitalReplay::VERSION, RunBudgetEstimate::VERSION, PayoutCarryPlan::VERSION]));
             $scenarioCache = new ScenarioResultCache;
             try {
                 $cached = $scenarioCache->get($this->key(), $revision);

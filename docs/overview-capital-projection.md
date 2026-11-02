@@ -1,8 +1,12 @@
 # Capital calculations across the workspace
 
+The current workspace selects versioned retrospective payout-carry research; see
+[payout-carry-research.md](payout-carry-research.md) for the recurrence, separate
+strategy controls and real-evidence inspection command.
+
 Overview, Strategies and History share the scenario requested with the entered
-capital, qualification day, attempts, allowance, strategy, league, capital mode
-and profit stop. All money is returned by the financial replay; the frontend no
+capital, each strategy’s qualification day and attempts, global allowance,
+strategy/league filter, capital mode and profit stop. All money is returned by the financial replay; the frontend no
 longer multiplies a ₦7,000 baseline.
 
 This replaces the earlier proportional display projection. Minimum stakes and
@@ -30,4 +34,4 @@ the current settings.
 Browser preferences retain their entered capital. Existing saved profit targets
 are now interpreted literally in naira, as labelled by the control. The
 production configured bankroll, source evidence and historical paper ledger are
-unchanged. No strategy or settlement rule changed.
+unchanged. The legacy recovery and new payout-carry research models remain explicitly versioned.

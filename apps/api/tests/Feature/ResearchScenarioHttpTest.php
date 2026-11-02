@@ -44,6 +44,10 @@ class ResearchScenarioHttpTest extends TestCase
         $this->getJson($this->url(['capital_mode' => 'fixed', 'profit_stop' => 20000]))->assertOk()
             ->assertJsonPath('scenario_cache', 'miss')->assertJsonPath('capital_mode', 'fixed')->assertJsonPath('profit_stop_minor', 2000000);
         $this->getJson($this->url(['capital_mode' => 'fixed', 'profit_stop' => 20000]))->assertOk()->assertJsonPath('scenario_cache', 'hit');
+        $carry = ['staking_model' => 'payout_carry_v1', 'next_win_attempts' => 4, 'next_season_attempts' => 5];
+        $this->getJson($this->url($carry))->assertOk()->assertJsonPath('scenario_cache', 'miss')->assertJsonPath('retrospective_odds_sizing', true);
+        $this->getJson($this->url($carry))->assertOk()->assertJsonPath('scenario_cache', 'hit');
+        $this->getJson($this->url([...$carry, 'next_win_qualification' => 6]))->assertOk()->assertJsonPath('scenario_cache', 'miss');
         Cache::store('redis')->put($key, [...$source, 'revision' => 'repaired'], 100);
         $this->getJson($this->url())->assertOk()->assertJsonPath('scenario_cache', 'miss')->assertJsonPath('data_revision', 'repaired');
         $this->assertSame(700000, config('kiotrad.simulation_capital_minor'));
@@ -81,7 +85,7 @@ class ResearchScenarioHttpTest extends TestCase
     public function test_invalid_settings_never_reach_the_replay(): void
     {
         $this->mock(PreparedResearch::class)->shouldReceive('scenario')->never();
-        foreach ([['capital' => 99], ['capital' => 10000001], ['qualification' => 31], ['attempts' => 0],
+        foreach ([['staking_model' => 'unknown'], ['next_win_attempts' => 0], ['next_season_attempts' => 11], ['next_win_qualification' => 31], ['next_season_qualification' => 1.5], ['capital' => 99], ['capital' => 10000001], ['qualification' => 31], ['attempts' => 0],
             ['capital_mode' => 'unknown'], ['profit_stop' => -1], ['profit_stop' => 10000001], ['attempts' => 11], ['allowance' => 3], ['qualification' => 4.5], ['strategy' => 'unknown'], ['league' => 'unknown']] as $bad) {
             $this->getJson($this->url($bad))->assertStatus(422);
         }

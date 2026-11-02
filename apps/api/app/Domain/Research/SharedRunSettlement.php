@@ -29,7 +29,9 @@ final class SharedRunSettlement
             }
             $target = $spent + ($index + 1) * $profit;
             $divisor = ($price - 10000) * 100;
-            $stake = max(10000, intdiv($target * 10000 + $divisor - 1, $divisor) * 100);
+            $carry = ($estimate['policy_version'] ?? '') === PayoutCarryPlan::VERSION;
+            $stake = $carry ? $estimate['plan']['attempts'][$index]['stake_minor']
+                : max(10000, intdiv($target * 10000 + $divisor - 1, $divisor) * 100);
             if ($spent + $stake > $allowance) {
                 return $this->view('allowance_stop', $start, $spent, 0, $attempts);
             }
@@ -37,7 +39,7 @@ final class SharedRunSettlement
             $confirmation = $fixture['simulation_settlement_at'] ?? $fixture['result_confirmed_at'] ?? null;
             $won = $fixture['won'] ?? null;
             $attempts[] = [...$fixture, 'attempt' => $index + 1, 'stake_minor' => $stake,
-                'target_profit_minor' => ($index + 1) * $profit, 'payout_minor' => null];
+                'target_profit_minor' => $carry ? $profit : ($index + 1) * $profit, 'payout_minor' => null];
             if ($confirmation === null || $confirmation < $start || $confirmation > $asOf || ! is_bool($won)) {
                 return $this->view('awaiting_result', null, $spent, 0, $attempts);
             }

@@ -22,7 +22,7 @@ export function ScenarioControls({
         <h2 id="simulation-settings-title">Simulation</h2>
         <span className="projection-badge">
           <span aria-hidden="true" />
-          Simulation results
+          Retrospective research
         </span>
       </header>
       <div className="capital-row">
@@ -82,30 +82,6 @@ export function ScenarioControls({
         </label>
       </div>
       <div className="simulator-controls">
-        <label>
-          First win day ≥
-          <input
-            aria-label="Qualification day"
-            type="number"
-            min="1"
-            max="30"
-            step="1"
-            value={settings.qualification}
-            onChange={(e) => change("qualification", Number(e.target.value))}
-          />
-        </label>
-        <label>
-          Attempts
-          <input
-            aria-label="Maximum attempts"
-            type="number"
-            min="1"
-            max="10"
-            step="1"
-            value={settings.attempts}
-            onChange={(e) => change("attempts", Number(e.target.value))}
-          />
-        </label>
         <div className="allowance-field">
           <span>Allowance</span>
           <div

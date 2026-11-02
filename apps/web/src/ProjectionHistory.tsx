@@ -6,7 +6,7 @@ import { SharedRunCalculation } from "./SharedRunCalculation";
 export function ProjectionHistory({ view }: { view: SharedSimulation }) {
   const [date, setDate] = useState("");
   const [page, setPage] = useState(1);
-  const runs = [...view.runs].sort(
+  const runs = [...view.runs, ...(view.unqualified ?? [])].sort(
     (a, b) =>
       (b.entry_at ?? "").localeCompare(a.entry_at ?? "") ||
       a.id.localeCompare(b.id),

@@ -4,6 +4,7 @@ export type SharedRun = {
   season_id?: string;
   strategy_id?: string;
   team?: string;
+  trigger_day?: number;
   entry_at: string;
   released_at?: string | null;
   status: string;
@@ -33,9 +34,17 @@ export type SharedRun = {
   capital_at_entry_minor?: number;
   sizing_capital_at_entry_minor?: number;
   estimate?: {
+    baseline_profit_minor?: number;
+    baseline?: CarryPlan;
+    scaling_numerator_minor?: number;
+    scaling_denominator_minor?: number;
     allowance_minor: number;
     allowance_multiplier?: number;
-    plan: { total_minor: number; profit_per_attempt_minor: number };
+    plan: {
+      total_minor: number;
+      profit_per_attempt_minor: number;
+      attempts?: CarryAttempt[];
+    };
   };
   attempts?: {
     home_team?: string;
@@ -51,6 +60,8 @@ export type SharedRun = {
 };
 export type SharedSimulation = {
   status: string;
+  retrospective_odds_sizing?: boolean;
+  staking_model?: string;
   starting_capital_minor: number;
   capital_mode?: "compound" | "fixed";
   sizing_capital_minor?: number;
@@ -63,6 +74,7 @@ export type SharedSimulation = {
   active_run_id: string | null;
   seasons_assessed: number;
   runs: SharedRun[];
+  unqualified?: SharedRun[];
   excluded?: { reason: string }[];
   timing_basis: string;
   timing_quality?: string;
@@ -80,3 +92,16 @@ export type SharedSimulation = {
   recovery_target_minor?: number | null;
   allowance_multiplier?: number;
 };
+
+export type CarryAttempt = {
+  attempt: number;
+  matchday: number;
+  odds_scaled: number;
+  actual_odds_scaled: number;
+  previous_potential_payout_minor: number;
+  stake_minor: number;
+  potential_payout_minor: number;
+  total_staked_minor: number;
+  net_if_won_minor: number;
+};
+export type CarryPlan = { total_minor: number; attempts: CarryAttempt[] };

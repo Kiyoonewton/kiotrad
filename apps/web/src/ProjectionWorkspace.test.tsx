@@ -153,7 +153,7 @@ it("replays entered capital and shares returned amounts across all pages without
   expect(screen.queryByText("₦14,200.00")).not.toBeInTheDocument();
   await act(() => vi.advanceTimersByTimeAsync(401));
   expect(fetcher.mock.calls.at(-1)?.[0]).toContain("capital=14000");
-  expect(screen.getByText("Simulation results")).toBeInTheDocument();
+  expect(screen.getByText("Retrospective research")).toBeInTheDocument();
   expect(screen.getAllByText("₦14,123.45").length).toBeGreaterThan(0);
   const day = screen.getByText("2026-10-18").closest("tr")!;
   for (const money of ["₦123.45", "₦300.00", "₦423.45"])
@@ -185,14 +185,19 @@ it("changes rules through a financial replay and hides amounts while the new sel
     .fn()
     .mockResolvedValue({ ok: true, status: 200, json: async () => baseline });
   vi.stubGlobal("fetch", fetcher);
-  render(<ProjectionWorkspace data={data} league="all" page="Overview" />);
+  render(<ProjectionWorkspace data={data} league="all" page="Strategies" />);
+  fireEvent.click(screen.getByText("Next Win", { selector: ".strategy-name" }));
   await act(() => vi.advanceTimersByTimeAsync(401));
-  fireEvent.change(screen.getByLabelText("Qualification day"), {
+  fireEvent.change(screen.getByLabelText("champion-next-win qualification"), {
     target: { value: "6" },
   });
   expect(screen.queryByText("Current capital")).not.toBeInTheDocument();
   await act(() => vi.advanceTimersByTimeAsync(401));
-  expect(fetcher.mock.calls[1][0]).toContain("qualification=6");
+  expect(fetcher.mock.calls[1][0]).toContain("next_win_qualification=6");
+  expect(fetcher.mock.calls[1][0]).toContain("staking_model=payout_carry_v1");
+  fireEvent.change(screen.getByLabelText("champion-next-win attempts"), {
+    target: { value: "6" },
+  });
   fireEvent.click(screen.getByRole("button", { name: "Fixed capital" }));
   fireEvent.click(screen.getByRole("button", { name: "×2" }));
   await act(() => vi.advanceTimersByTimeAsync(401));

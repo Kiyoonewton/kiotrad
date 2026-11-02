@@ -28,6 +28,39 @@ class ResearchScenarioTest extends TestCase
         return [...['capital' => 50000, 'qualification' => 5, 'attempts' => 4, 'allowance' => 1, 'strategy' => 'all', 'league' => 'all'], ...$overrides];
     }
 
+    public function test_carry_model_uses_separate_strategy_rules_with_one_bankroll(): void
+    {
+        $source = $this->prepared(1);
+        $second = [...$source['candidates'][0], 'id' => 'next-season', 'strategy_id' => 'champion-next-season', 'trigger_day' => 6];
+        foreach ($second['fixtures'] as &$fixture) {
+            foreach (['scheduled_start_at', 'result_confirmed_at'] as $field) {
+                $fixture[$field] = CarbonImmutable::parse($fixture[$field])->addDay()->toIso8601String();
+            }
+        }
+        unset($fixture);
+        $source['candidates'][] = $second;
+        $source['as_of'] = '2026-10-22T00:00:00Z';
+        $settings = $this->settings(['staking_model' => 'payout_carry_v1', 'capital' => 30000,
+            'next_win_qualification' => 5, 'next_win_attempts' => 4,
+            'next_season_qualification' => 6, 'next_season_attempts' => 5]);
+        $original = $source;
+        $view = (new ResearchScenario)->calculate($source, $settings);
+        $this->assertSame($original, $source);
+        $this->assertSame([4, 5], array_column($view['runs'], 'attempt_limit'));
+        $this->assertCount(4, $view['runs'][0]['estimate']['baseline']['attempts']);
+        $this->assertCount(5, $view['runs'][1]['estimate']['baseline']['attempts']);
+        $this->assertSame(3000000, $view['starting_capital_minor']);
+        $this->assertSame($view['runs'][0]['net_minor'] + 3000000, $view['runs'][1]['capital_at_entry_minor']);
+        $settings['next_win_qualification'] = 6;
+        $filtered = (new ResearchScenario)->calculate($source, $settings);
+        $this->assertSame(['next-season'], array_column($filtered['runs'], 'id'));
+        $this->assertSame('not_qualified', $filtered['unqualified'][0]['status']);
+        $source['candidates'][0]['fixtures'] = array_slice($source['candidates'][0]['fixtures'], 0, 3);
+        $settings['next_win_qualification'] = 5;
+        $short = (new ResearchScenario)->calculate($source, $settings);
+        $this->assertSame('incomplete_retrospective_window', $short['excluded'][0]['reason']);
+    }
+
     public function test_attempts_change_the_window_and_never_extend_a_four_attempt_run_to_a_later_win(): void
     {
         $source = $this->prepared();

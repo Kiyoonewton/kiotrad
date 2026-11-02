@@ -1,3 +1,4 @@
+import { CarryPlanTable } from "./CarryPlanTable";
 import { naira } from "./api";
 import type { SharedRun } from "./sharedSimulation";
 
@@ -11,7 +12,9 @@ export function SharedRunCalculation({ run }: { run?: SharedRun }) {
   if (run.funded === false)
     return (
       <div className="run-calculation">
-        <strong>Unfunded entry · {run.entry_issue?.replaceAll("_", " ")}</strong>
+        <strong>
+          Unfunded entry · {run.entry_issue?.replaceAll("_", " ")}
+        </strong>
         <p>No stake placed · no capital reserved · profit unresolved</p>
       </div>
     );
@@ -25,6 +28,34 @@ export function SharedRunCalculation({ run }: { run?: SharedRun }) {
           allowance ×{run.estimate.allowance_multiplier ?? 1}:{" "}
           {naira(run.estimate.allowance_minor)}
         </p>
+      )}
+      {run.estimate?.baseline && (
+        <details className="run-details">
+          <summary>Baseline &amp; full-window plan</summary>
+          <p>
+            Retrospective sizing · full-window actual odds required. Potential
+            payouts below assume a win on that row.
+          </p>
+          <p>
+            ₦100 baseline cost: {naira(run.estimate.baseline.total_minor)} ·
+            selected profit target:{" "}
+            {naira(run.estimate.plan.profit_per_attempt_minor)}
+          </p>
+          <h4>₦100 baseline</h4>
+          <CarryPlanTable plan={run.estimate.baseline} profit={10000} />
+          {run.estimate.plan.attempts && (
+            <>
+              <h4>Capital-sized plan</h4>
+              <CarryPlanTable
+                plan={{
+                  total_minor: run.estimate.plan.total_minor,
+                  attempts: run.estimate.plan.attempts,
+                }}
+                profit={run.estimate.plan.profit_per_attempt_minor}
+              />
+            </>
+          )}
+        </details>
       )}
       <dl className="run-totals">
         <div>
@@ -56,7 +87,9 @@ export function SharedRunCalculation({ run }: { run?: SharedRun }) {
             {run.capital_at_entry_minor != null
               ? naira(run.capital_at_entry_minor)
               : "—"}
-            {run.sizing_capital_at_entry_minor != null && <> · sizing capital {naira(run.sizing_capital_at_entry_minor)}</>}
+            {run.sizing_capital_at_entry_minor != null && (
+              <> · sizing capital {naira(run.sizing_capital_at_entry_minor)}</>
+            )}
             . Target stays fixed during this run.
           </p>
           <div className="paper-table-scroll">

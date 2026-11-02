@@ -3,6 +3,11 @@ import type { SharedSimulation } from "./sharedSimulation";
 
 export type ScenarioSettings = {
   capital: number;
+  staking_model?: "recovery" | "payout_carry_v1";
+  next_win_qualification?: number;
+  next_win_attempts?: number;
+  next_season_qualification?: number;
+  next_season_attempts?: number;
   capital_mode?: "compound" | "fixed";
   profit_stop?: number;
   qualification: number;
@@ -27,6 +32,22 @@ export function validScenario(s: ScenarioSettings) {
     Number.isInteger(s.attempts) &&
     s.attempts >= 1 &&
     s.attempts <= 10 &&
+    [
+      "next_win_qualification",
+      "next_season_qualification",
+      "next_win_attempts",
+      "next_season_attempts",
+    ].every((key) => {
+      const value = s[key as keyof ScenarioSettings];
+      return (
+        value === undefined ||
+        (typeof value === "number" &&
+          Number.isInteger(value) &&
+          value >= 1 &&
+          value <= (key.endsWith("qualification") ? 30 : 10))
+      );
+    }) &&
+    [undefined, "recovery", "payout_carry_v1"].includes(s.staking_model) &&
     [1, 2].includes(s.allowance) &&
     ["compound", "fixed"].includes(s.capital_mode ?? "compound") &&
     Number.isInteger(s.profit_stop ?? 0) &&
@@ -36,6 +57,7 @@ export function validScenario(s: ScenarioSettings) {
 }
 export function initialScenario(capital: number): ScenarioSettings {
   const fallback: ScenarioSettings = {
+    staking_model: "payout_carry_v1",
     capital_mode: "compound",
     profit_stop: 0,
     capital,
@@ -49,7 +71,7 @@ export function initialScenario(capital: number): ScenarioSettings {
       localStorage.getItem("kiotrad:simulator:v1") ?? "null",
     );
     return saved && validScenario(saved) && typeof saved.strategy === "string"
-      ? { ...fallback, ...saved }
+      ? { ...fallback, ...saved, staking_model: "payout_carry_v1" }
       : fallback;
   } catch {
     return fallback;

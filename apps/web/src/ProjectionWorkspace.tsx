@@ -26,13 +26,7 @@ export function ProjectionWorkspace({
   const { view, message } = useScenario(settings, league);
   const change = (name: keyof ScenarioSettings, value: number | string) =>
     setSettings((s) => ({ ...s, [name]: value }));
-  const projected = view
-    ? {
-        ...data,
-        shared_simulation: view,
-        strategies: data.strategies,
-      }
-    : null;
+  const scenarioData = view ? { ...data, shared_simulation: view } : null;
   return (
     <>
       <ScenarioControls
@@ -59,26 +53,26 @@ export function ProjectionWorkspace({
           skipped runs.
         </p>
       )}
+      {page === "Strategies" && (
+        <StrategyList
+          strategies={data.strategies}
+          competitions={data.competitions}
+          settings={settings}
+          change={change}
+          sharedRuns={view ? [...view.runs, ...(view.unqualified ?? [])] : []}
+        />
+      )}
       {view &&
-        projected &&
+        scenarioData &&
         (page === "Overview" ? (
           <Overview
-            data={projected}
+            data={{ ...scenarioData, strategy_monitoring: [] }}
             league={league}
-            scopeLabel={`Simulation results · ${league === "all" ? "all leagues" : (data.competitions.find((c) => c.id === league)?.name ?? league)} · ${settings.strategy === "all" ? "both strategies" : (data.strategies.find((s) => s.id === settings.strategy)?.name ?? settings.strategy)}`}
+            scopeLabel={`Retrospective research · ${league === "all" ? "all leagues" : (data.competitions.find((c) => c.id === league)?.name ?? league)} · ${settings.strategy === "all" ? "both strategies" : (data.strategies.find((s) => s.id === settings.strategy)?.name ?? settings.strategy)}`}
           />
         ) : page === "History" ? (
           <ProjectionHistory view={view} />
-        ) : (
-          <StrategyList
-            strategies={projected.strategies}
-            competitions={data.competitions}
-            sharedRuns={view.runs}
-            monitoring={data.strategy_monitoring?.filter(
-              (r) => league === "all" || r.competition === league,
-            )}
-          />
-        ))}
+        ) : null)}
     </>
   );
 }
