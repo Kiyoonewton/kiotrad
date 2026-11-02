@@ -14,14 +14,14 @@
 .strategy-row:last-child {
   border-bottom: 1px solid #27342c;
 }
-.strategy-row summary {
+.strategy-row > summary {
   display: flex;
   align-items: center;
   gap: 22px;
   padding: 22px 2px;
   list-style: none;
 }
-.strategy-row summary::-webkit-details-marker {
+.strategy-row > summary::-webkit-details-marker {
   display: none;
 }
 .strategy-number {

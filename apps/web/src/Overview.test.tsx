@@ -53,24 +53,24 @@ const data: Data = {
   ],
 };
 
-it("connects Overview activity and expanded strategy rows to monitoring", () => {
+it("shows one monitoring section without duplicating the strategy library", () => {
   render(<Overview data={data} league="all" />);
   const activity = within(
-    screen.getByRole("region", { name: "Strategy observations." }),
+    screen.getByRole("region", { name: "Current matches" }),
   );
   expect(activity.getByText("waiting for history")).toBeInTheDocument();
   expect(activity.getByText(/snapshot count alone/)).toBeInTheDocument();
   expect(
     activity.getByLabelText("Observed window: 1 of 4 attempts"),
   ).toBeInTheDocument();
-  expect(screen.getAllByText("watching fixture")).toHaveLength(2);
+  expect(screen.getAllByText("watching fixture")).toHaveLength(1);
   expect(screen.getByText("Bankroll not configured")).toBeInTheDocument();
   expect(
     screen.queryByText("Waiting for the first signal."),
   ).not.toBeInTheDocument();
 });
 
-it("filters both monitoring locations by league and removes previous league observations", () => {
+it("filters monitoring by league and removes previous league observations", () => {
   const view = render(<Overview data={data} league="virtual-euro" />);
   expect(screen.queryByText("waiting for history")).not.toBeInTheDocument();
   view.rerender(<Overview data={data} league="virtual-football" />);
@@ -90,7 +90,7 @@ it("distinguishes unavailable monitoring and absent API observations", () => {
       league="all"
     />,
   );
-  expect(screen.getAllByText(/could not read its data/)).toHaveLength(2);
+  expect(screen.getAllByText(/could not read its data/)).toHaveLength(1);
   view.rerender(
     <Overview
       data={{ ...data, strategy_monitoring: undefined }}
@@ -99,7 +99,7 @@ it("distinguishes unavailable monitoring and absent API observations", () => {
   );
   expect(
     screen.getAllByText(/No monitoring observations returned/),
-  ).toHaveLength(2);
+  ).toHaveLength(1);
   expect(screen.queryByText("waiting for history")).not.toBeInTheDocument();
 });
 
@@ -122,7 +122,7 @@ it("shows the reported missing evidence instead of a generic wait", () => {
   );
   expect(
     screen.getAllByText(/No unique recorded link to the previous season/),
-  ).toHaveLength(2);
+  ).toHaveLength(1);
 });
 
 it("distinguishes an interruption from resumed collection without inventing recovered entries", () => {

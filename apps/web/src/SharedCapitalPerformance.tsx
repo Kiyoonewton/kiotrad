@@ -1,10 +1,17 @@
+import { RunBrowser } from "./RunBrowser";
 import { naira } from "./api";
 import { TimingSensitivityPanel } from "./TimingSensitivityPanel";
 import { ResearchChart } from "./ResearchChart";
 import type { SharedSimulation } from "./sharedSimulation";
 import type { ResearchRun } from "./researchChartData";
 
-export function SharedCapitalPerformance({ data, scopeLabel }: { data: SharedSimulation; scopeLabel?: string }) {
+export function SharedCapitalPerformance({
+  data,
+  scopeLabel,
+}: {
+  data: SharedSimulation;
+  scopeLabel?: string;
+}) {
   if (data.status !== "available")
     return (
       <section className="message-panel">
@@ -55,56 +62,87 @@ export function SharedCapitalPerformance({ data, scopeLabel }: { data: SharedSim
     <>
       <section className="balance-header">
         <div>
-          <p className="eyebrow">{scopeLabel ?? "One active run · all leagues and strategies"}</p>
-          <h1>Shared-capital simulation.</h1>
-          <p>
-            Proportional profit targets · frozen per run · ×
-            {data.allowance_multiplier ?? 1} estimated allowance
+          <p className="eyebrow">
+            {scopeLabel ?? "One active run · all leagues and strategies"}
           </p>
+          <h1>Performance</h1>
         </div>
         <div className="balance-value">
-          <p>{fixedCapital ? "Total funds" : "Current capital"}{data.settlement_model ? " · modeled" : provisional ? " · provisional" : ""}</p>
+          <p>
+            {fixedCapital ? "Total funds" : "Current capital"}
+            {data.settlement_model
+              ? " · modeled"
+              : provisional
+                ? " · provisional"
+                : ""}
+          </p>
           <strong>{naira(data.balance_minor)}</strong>
           <span>
             Started with {naira(data.starting_capital_minor)}
-            {fixedCapital ? <> · fixed sizing capital {naira(data.starting_capital_minor)}</> : <> · next doubling
-            milestone{" "}
-            {naira(
-              data.starting_capital_minor *
-                2 **
-                  Math.max(
-                    0,
-                    Math.floor(
-                      Math.log2(
-                        Math.max(
-                          1,
-                          data.balance_minor / data.starting_capital_minor,
+            {fixedCapital ? (
+              <> · fixed sizing capital {naira(data.starting_capital_minor)}</>
+            ) : (
+              <>
+                {" "}
+                · next doubling milestone{" "}
+                {naira(
+                  data.starting_capital_minor *
+                    2 **
+                      Math.max(
+                        0,
+                        Math.floor(
+                          Math.log2(
+                            Math.max(
+                              1,
+                              data.balance_minor / data.starting_capital_minor,
+                            ),
+                          ),
                         ),
-                      ),
-                    ),
-                  ) *
-                2,
-            )}</>}
+                      ) *
+                    2,
+                )}
+              </>
+            )}
           </span>
           <span className={net < 0 ? "negative" : "positive"}>
             Net {naira(net)}
           </span>
         </div>
       </section>
-      {(data.profit_stop_minor ?? 0) > 0 && <p className="recovery-banner" role="status" aria-label="Profit target status">
-        Net profit target: {naira(data.profit_stop_minor!)} · {data.stop_reason === "profit_target_reached"
-          ? "Reached — no further runs entered." : "Not yet reached."}
-        {data.stopped_at && <> · stopped {new Date(data.stopped_at).toLocaleString("en-GB", { timeZone: "Africa/Lagos" })} WAT</>}
-      </p>}
+      {(data.profit_stop_minor ?? 0) > 0 && (
+        <p
+          className="recovery-banner"
+          role="status"
+          aria-label="Profit target status"
+        >
+          Net profit target: {naira(data.profit_stop_minor!)} ·{" "}
+          {data.stop_reason === "profit_target_reached"
+            ? "Reached — no further runs entered."
+            : "Not yet reached."}
+          {data.stopped_at && (
+            <>
+              {" "}
+              · stopped{" "}
+              {new Date(data.stopped_at).toLocaleString("en-GB", {
+                timeZone: "Africa/Lagos",
+              })}{" "}
+              WAT
+            </>
+          )}
+        </p>
+      )}
       <TimingSensitivityPanel data={data} />
-      {provisional && <p className="recovery-banner" role="status">
-        Timing correction pending. Late archive confirmations affect allocation
-        and this balance. Overlap exclusions are not verified event clashes.
-      </p>}
+      {provisional && (
+        <p className="recovery-banner" role="status">
+          Timing correction pending. Late archive confirmations affect
+          allocation and this balance. Overlap exclusions are not verified event
+          clashes.
+        </p>
+      )}
       {data.recovery_target_minor != null && (
         <p className="recovery-banner">
-          Pre-loss capital:{" "}
-          {naira(data.recovery_target_minor)}. Amount to recover:{" "}
+          Pre-loss capital: {naira(data.recovery_target_minor)}. Amount to
+          recover:{" "}
           {naira(Math.max(0, data.recovery_target_minor - data.balance_minor))}.
         </p>
       )}
@@ -173,8 +211,9 @@ export function SharedCapitalPerformance({ data, scopeLabel }: { data: SharedSim
             ))}
           </dl>
           <p className="subtle">
-            Capital release follows the labelled timing policy. Modeled settlement
-            times are simulation assumptions, not verified match finishes.
+            Capital release follows the labelled timing policy. Modeled
+            settlement times are simulation assumptions, not verified match
+            finishes.
           </p>
           <p>
             Pending stakes {naira(data.active_staked_minor)}. Reserved capital
@@ -182,61 +221,7 @@ export function SharedCapitalPerformance({ data, scopeLabel }: { data: SharedSim
           </p>
         </aside>
       </div>
-      <details className="quiet-panel">
-        <summary>Accepted runs and skipped opportunities</summary>
-        <div className="shared-run-table">
-          <table>
-            <thead>
-              <tr>
-                <th>Run</th>
-                <th>Status</th>
-                <th>Profit / attempt</th>
-                <th>Allowance</th>
-                <th>Staked</th>
-                <th>Net</th>
-              </tr>
-            </thead>
-            <tbody>
-              {data.runs.map((r) => (
-                <tr key={r.id}>
-                  <td>{r.team ?? r.id}</td>
-                  <td>
-                    {r.status === "skipped_overlap" && r.overlap_basis
-                      ? (r.overlap_basis === "modeled_settlement_offset" ? "excluded · modeled overlap" : "excluded · overlap timing unverified")
-                      : r.status.replaceAll("_", " ")}
-                    {r.entry_issue && <small> · {r.entry_issue.replaceAll("_", " ")}</small>}
-                    {r.skip_reason && (
-                      <small> · {r.skip_reason.replaceAll("_", " ")}</small>
-                    )}
-                    {r.missing_historical_fixtures?.map((f) => (
-                      <div key={f.provider_match_id ?? f.matchday}>
-                        <small>
-                          D{f.matchday} · {f.home_team} vs {f.away_team} ·{" "}
-                          {f.outcome}: earlier-season odds missing
-                        </small>
-                      </div>
-                    ))}
-                  </td>
-                  <td>
-                    {r.estimate && r.funded !== false
-                      ? naira(r.estimate.plan.profit_per_attempt_minor)
-                      : "—"}
-                  </td>
-                  <td>
-                    {r.estimate && r.funded !== false ? naira(r.estimate.allowance_minor) : "—"}
-                  </td>
-                  <td>
-                    {r.total_staked_minor != null
-                      ? naira(r.total_staked_minor)
-                      : "—"}
-                  </td>
-                  <td>{r.net_minor != null ? naira(r.net_minor) : "—"}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </details>
+      <RunBrowser runs={data.runs} />
     </>
   );
 }

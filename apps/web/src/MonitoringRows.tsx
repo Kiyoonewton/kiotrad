@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { SharedRunCalculation } from "./SharedRunCalculation";
 import type { SharedRun } from "./sharedSimulation";
 import type { Overview } from "./api";
@@ -58,6 +59,14 @@ export function MonitoringRows({
   strategies: Overview["strategies"];
   competitions: Overview["competitions"];
 }) {
+  const [qualifiedOnly, setQualifiedOnly] = useState(false);
+  const qualified = rows.filter(
+    (row) =>
+      row.trigger_day != null &&
+      row.status !== "not_qualified" &&
+      row.status !== "waiting_for_history",
+  );
+  const shown = qualifiedOnly ? qualified : rows;
   if (!rows.length)
     return (
       <p className="subtle">
@@ -65,100 +74,135 @@ export function MonitoringRows({
       </p>
     );
   return (
-    <ul className="monitoring-rows">
-      {rows.map((row) => (
-        <li key={`${row.competition}:${row.strategy_id ?? "availability"}`}>
-          <div className="monitoring-heading">
-            <strong>
-              {competitions.find((c) => c.id === row.competition)?.name ??
-                row.competition}
-            </strong>
-            <span>
-              {strategies.find((s) => s.id === row.strategy_id)?.name ??
-                "Monitoring availability"}
-            </span>
-          </div>
-          <span className={`monitoring-state state-${row.status}`}>
-            {row.status === "observed_win"
-              ? "✓ Win observed"
-              : row.status.replaceAll("_", " ")}
-          </span>
-          {row.team && <h3 className="run-team">{row.team}</h3>}
-          <div className="run-meta">
-            {row.trigger_day ? (
-              <span>First win · D{row.trigger_day}</span>
-            ) : null}
-            {row.next_match && (
+    <div className="monitoring-browser">
+      <div className="browse-toolbar">
+        <div
+          className="browse-tabs"
+          role="group"
+          aria-label="Qualification filter"
+        >
+          <button
+            aria-pressed={!qualifiedOnly}
+            onClick={() => setQualifiedOnly(false)}
+          >
+            All ({rows.length})
+          </button>
+          <button
+            aria-pressed={qualifiedOnly}
+            onClick={() => setQualifiedOnly(true)}
+          >
+            Qualified ({qualified.length})
+          </button>
+        </div>
+      </div>
+      {!shown.length && (
+        <p className="browse-empty" role="status">
+          No qualified observations.
+        </p>
+      )}
+      <ul className="monitoring-rows">
+        {shown.map((row) => (
+          <li
+            key={`${row.competition}:${row.season_id ?? "current"}:${row.strategy_id ?? "availability"}`}
+          >
+            <div className="monitoring-heading">
+              <strong>
+                {competitions.find((c) => c.id === row.competition)?.name ??
+                  row.competition}
+              </strong>
               <span>
-                D{row.next_match.matchday} · {row.next_match.home_team} vs{" "}
-                {row.next_match.away_team}
+                {strategies.find((s) => s.id === row.strategy_id)?.name ??
+                  "Monitoring availability"}
               </span>
-            )}
-          </div>
-          {!!row.attempt && (
-            <div
-              className="observation-track"
-              aria-label={`Observed window: ${row.attempt ?? 0} of 4 attempts`}
-            >
-              {[1, 2, 3, 4].map((n) => (
-                <span
-                  key={n}
-                  className={
-                    n === row.attempt && row.status === "observed_win"
-                      ? "track-win"
-                      : n < (row.attempt ?? 0) ||
-                          (n === row.attempt &&
-                            row.status === "four_attempts_without_win")
-                        ? "track-seen"
-                        : ""
-                  }
-                >
-                  <b>
-                    {n === row.attempt && row.status === "observed_win"
-                      ? "✓"
-                      : n}
-                  </b>
-                  <small>
-                    {n === row.attempt && row.status === "observed_win"
-                      ? "Win"
-                      : n < (row.attempt ?? 0) ||
-                          (n === row.attempt &&
-                            row.status === "four_attempts_without_win")
-                        ? "Observed"
-                        : "—"}
-                  </small>
-                </span>
-              ))}
             </div>
-          )}
-          <details className="run-details">
-            <summary>Qualification details</summary>
-            <p>
-              {(row.reason ? historyReasons[row.reason] : undefined) ??
-                reasons[row.status] ??
-                "Monitoring state unavailable."}
-            </p>
-          </details>
-          {sharedRuns
-            ? (() => {
-                const run = sharedRuns.find(
-                  (r) =>
-                    r.id ===
-                    `${row.competition}:${row.season_id}:${row.strategy_id}`,
-                );
-                return <SharedRunCalculation run={run} />;
-              })()
-            : row.simulation && <RunCalculation calculation={row.simulation} />}
-          {!row.simulation && !!row.data_quality_notes?.length && (
+            <span className={`monitoring-state state-${row.status}`}>
+              {row.status === "observed_win"
+                ? "✓ Win observed"
+                : row.status.replaceAll("_", " ")}
+            </span>
+            {row.team && <h3 className="run-team">{row.team}</h3>}
+            <div className="run-meta">
+              {row.season_id && <span>Season {row.season_id}</span>}
+              {row.trigger_day ? (
+                <span>First win · D{row.trigger_day}</span>
+              ) : null}
+              {row.next_match && (
+                <span>
+                  D{row.next_match.matchday} · {row.next_match.home_team} vs{" "}
+                  {row.next_match.away_team}
+                </span>
+              )}
+            </div>
+            {!!row.attempt && (
+              <div
+                className="observation-track"
+                aria-label={`Observed window: ${row.attempt ?? 0} of 4 attempts`}
+              >
+                {[1, 2, 3, 4].map((n) => (
+                  <span
+                    key={n}
+                    className={
+                      n === row.attempt && row.status === "observed_win"
+                        ? "track-win"
+                        : n < (row.attempt ?? 0) ||
+                            (n === row.attempt &&
+                              row.status === "four_attempts_without_win")
+                          ? "track-seen"
+                          : ""
+                    }
+                  >
+                    <b>
+                      {n === row.attempt && row.status === "observed_win"
+                        ? "✓"
+                        : n}
+                    </b>
+                    <small>
+                      {n === row.attempt && row.status === "observed_win"
+                        ? "Win"
+                        : n < (row.attempt ?? 0) ||
+                            (n === row.attempt &&
+                              row.status === "four_attempts_without_win")
+                          ? "Observed"
+                          : "—"}
+                    </small>
+                  </span>
+                ))}
+              </div>
+            )}
             <details className="run-details">
-              <summary>Data notes</summary>
-              {row.data_quality_notes.map((note) => (
-                <p key={note}>{note}</p>
-              ))}
+              <summary>Qualification details</summary>
+              <p>
+                {(row.reason ? historyReasons[row.reason] : undefined) ??
+                  reasons[row.status] ??
+                  "Monitoring state unavailable."}
+              </p>
             </details>
-          )}
-        </li>
-      ))}
-    </ul>
+            <details className="run-details">
+              <summary>Stake &amp; results</summary>
+              {sharedRuns
+                ? (() => {
+                    const run = sharedRuns.find(
+                      (r) =>
+                        r.id ===
+                        `${row.competition}:${row.season_id}:${row.strategy_id}`,
+                    );
+                    return <SharedRunCalculation run={run} />;
+                  })()
+                : row.simulation && (
+                    <RunCalculation calculation={row.simulation} />
+                  )}
+            </details>
+            {!row.simulation && !!row.data_quality_notes?.length && (
+              <details className="run-details">
+                <summary>Data notes</summary>
+                {row.data_quality_notes.map((note) => (
+                  <p key={note}>{note}</p>
+                ))}
+              </details>
+            )}
+          </li>
+        ))}
+      </ul>
+    </div>
   );
 }

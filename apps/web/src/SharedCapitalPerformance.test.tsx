@@ -130,6 +130,7 @@ it("separates budget skips from missing history and shows the affected fixtures"
   expect(
     screen.getByText(/1 completed · 1 unresolved · 0 overlap exclusions/),
   ).toBeInTheDocument();
+  fireEvent.click(screen.getAllByRole("button", { name: "Inspect" })[2]);
   expect(
     screen.getByText(
       /D5 · Synthetic vs Opponent · H: earlier-season odds missing/,
@@ -138,26 +139,66 @@ it("separates budget skips from missing history and shows the affected fixtures"
 });
 
 it("marks the balance provisional when archive timing affects allocation", () => {
-  render(<SharedCapitalPerformance data={{ ...data, timing_quality: "provisional_capture_timing" }} />);
+  render(
+    <SharedCapitalPerformance
+      data={{ ...data, timing_quality: "provisional_capture_timing" }}
+    />,
+  );
   expect(screen.getByText("Current capital · provisional")).toBeInTheDocument();
-  expect(screen.getByText(/Timing correction pending/)).toHaveTextContent("Overlap exclusions are not verified event clashes");
+  expect(screen.getByText(/Timing correction pending/)).toHaveTextContent(
+    "Overlap exclusions are not verified event clashes",
+  );
 });
 it("keeps an unfunded missing-price entry unresolved without counting it as an accepted trade", () => {
-  render(<SharedCapitalPerformance data={{ ...data, runs: [{
-    id: "unpriced", entry_at: "2026-10-20T10:00:00Z", status: "unfunded_entry",
-    funded: false, entry_issue: "missing_actual_odds", total_staked_minor: 0,
-    estimate: { allowance_minor: 5000000, plan: { total_minor: 2500000, profit_per_attempt_minor: 10000 } },
-  }] }} />);
-  expect(screen.getByText(/missing actual odds/)).toBeInTheDocument();
-  expect(screen.getByText(/0 completed · 1 unresolved · 0 overlap exclusions/)).toBeInTheDocument();
+  render(
+    <SharedCapitalPerformance
+      data={{
+        ...data,
+        runs: [
+          {
+            id: "unpriced",
+            entry_at: "2026-10-20T10:00:00Z",
+            status: "unfunded_entry",
+            funded: false,
+            entry_issue: "missing_actual_odds",
+            total_staked_minor: 0,
+            estimate: {
+              allowance_minor: 5000000,
+              plan: { total_minor: 2500000, profit_per_attempt_minor: 10000 },
+            },
+          },
+        ],
+      }}
+    />,
+  );
+  fireEvent.click(screen.getByRole("button", { name: "Inspect" }));
+  expect(screen.getAllByText(/missing actual odds/).length).toBeGreaterThan(0);
+  expect(
+    screen.getByText(/0 completed · 1 unresolved · 0 overlap exclusions/),
+  ).toBeInTheDocument();
 });
 
 it("shows fixed sizing separately from total funds and confirms a reached profit stop", () => {
-  render(<SharedCapitalPerformance data={{ ...data, capital_mode: "fixed", profit_stop_minor: 90000,
-    stop_reason: "profit_target_reached", stopped_at: "2026-10-20T10:02:00Z" }} />);
+  render(
+    <SharedCapitalPerformance
+      data={{
+        ...data,
+        capital_mode: "fixed",
+        profit_stop_minor: 90000,
+        stop_reason: "profit_target_reached",
+        stopped_at: "2026-10-20T10:02:00Z",
+      }}
+    />,
+  );
   expect(screen.getByText("Total funds")).toBeInTheDocument();
-  expect(screen.getByText(/fixed sizing capital/)).toHaveTextContent("₦50,000.00");
+  expect(screen.getByText(/fixed sizing capital/)).toHaveTextContent(
+    "₦50,000.00",
+  );
   expect(screen.queryByText(/next doubling milestone/)).not.toBeInTheDocument();
-  expect(screen.getByRole("status", { name: "Profit target status" })).toHaveTextContent("Reached — no further runs entered.");
-  expect(screen.getByRole("status", { name: "Profit target status" })).toHaveTextContent("20/10/2026");
+  expect(
+    screen.getByRole("status", { name: "Profit target status" }),
+  ).toHaveTextContent("Reached — no further runs entered.");
+  expect(
+    screen.getByRole("status", { name: "Profit target status" }),
+  ).toHaveTextContent("20/10/2026");
 });

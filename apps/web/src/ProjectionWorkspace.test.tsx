@@ -153,7 +153,7 @@ it("shares one exact capital factor across Overview, daily totals, History and S
   ui.rerender(
     <ProjectionWorkspace data={data} league="all" page="Strategies" />,
   );
-  expect(screen.getByText("₦200.00")).toBeInTheDocument();
+  expect(screen.getAllByText("₦200.00").length).toBeGreaterThan(0);
   await act(() => vi.advanceTimersByTimeAsync(401));
   expect(fetcher).toHaveBeenCalledTimes(1);
   expect(fetcher.mock.calls[0][0]).toContain("capital=7000");

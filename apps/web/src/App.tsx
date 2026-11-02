@@ -209,13 +209,9 @@ export default function App() {
           ) : page === "Strategies" ? (
             <>
               <div className="page-intro">
-                <p className="eyebrow">Hypotheses become measurable rules</p>
-                <h1>The strategy library.</h1>
-                <p>
-                  Open a strategy to inspect its definition and observed
-                  fixtures. Research simulations evaluate collected events and
-                  saved odds, including data recovered after an interruption.
-                </p>
+                <p className="eyebrow">Research</p>
+                <h1>Strategies</h1>
+                <p>Matches, results and qualification.</p>
               </div>
               <StrategyList
                 strategies={data.strategies}
