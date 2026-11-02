@@ -5,7 +5,6 @@ import { PaperActivity } from "./PaperActivity";
 import { naira } from "./api";
 import type { Overview as OverviewData } from "./api";
 import { MonitoringGroups } from "./MonitoringGroups";
-import { StrategyList } from "./StrategyList";
 import { LeaguePulse } from "./LeaguePulse";
 import { RunEventTimeline } from "./RunEventTimeline";
 import { SharedCapitalPerformance } from "./SharedCapitalPerformance";
@@ -137,16 +136,9 @@ export function Overview({
       <div className="simulation-sections">
         <section className="quiet-panel" aria-labelledby="monitoring-title">
           <p className="eyebrow">Current activity</p>
-          <h2 id="monitoring-title">
-            {data.research_simulation
-              ? "Strategy simulations."
-              : "Strategy observations."}
-          </h2>
+          <h2 id="monitoring-title">Current matches</h2>
           {data.research_simulation ? (
-            <p>
-              Results and recorded odds are evaluated in matchday order,
-              including recovered events.
-            </p>
+            <p>Research simulation · includes recovered evidence.</p>
           ) : (
             <>
               <p>
@@ -197,12 +189,6 @@ export function Overview({
           competitions={competitions}
         />
       </div>
-      <StrategyList
-        sharedRuns={data.shared_simulation?.runs}
-        strategies={data.strategies}
-        monitoring={monitoring}
-        competitions={data.competitions}
-      />
     </>
   );
 }

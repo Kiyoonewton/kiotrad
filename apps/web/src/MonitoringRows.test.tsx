@@ -1,4 +1,10 @@
-import { cleanup, render, screen, within } from "@testing-library/react";
+import {
+  cleanup,
+  fireEvent,
+  render,
+  screen,
+  within,
+} from "@testing-library/react";
 import { afterEach, expect, it } from "vitest";
 import { MonitoringRows } from "./MonitoringRows";
 afterEach(cleanup);
@@ -44,4 +50,39 @@ it("shows an observed win without implying priced profit, and keeps inactive win
     screen.getAllByText("Qualification details", { selector: "summary" })[0]
       .parentElement,
   ).not.toHaveAttribute("open");
+});
+
+it("filters qualification from the recorded decision and restores all observations", () => {
+  const rows = [
+    {
+      competition: "Euro",
+      season_id: "100",
+      status: "observed_win",
+      team: "Qualified team",
+      trigger_day: 5,
+    },
+    {
+      competition: "Euro",
+      season_id: "101",
+      status: "not_qualified",
+      team: "Early winner",
+      trigger_day: 2,
+    },
+    {
+      competition: "Euro",
+      season_id: "102",
+      status: "waiting_for_history",
+      team: "Unverified team",
+    },
+  ];
+  const before = JSON.stringify(rows);
+  render(<MonitoringRows rows={rows} strategies={[]} competitions={[]} />);
+  fireEvent.click(screen.getByRole("button", { name: "Qualified (1)" }));
+  expect(screen.getByText("Qualified team")).toBeInTheDocument();
+  expect(screen.queryByText("Early winner")).not.toBeInTheDocument();
+  expect(screen.queryByText("Unverified team")).not.toBeInTheDocument();
+  fireEvent.click(screen.getByRole("button", { name: "All (3)" }));
+  expect(screen.getByText("Early winner")).toBeInTheDocument();
+  expect(screen.getByText("Unverified team")).toBeInTheDocument();
+  expect(JSON.stringify(rows)).toBe(before);
 });

@@ -71,10 +71,13 @@ it("shows unavailable feeds and no invented balance, supports league filtering a
   expect(within(leagues).queryByText("English")).not.toBeInTheDocument();
   fireEvent.click(screen.getByRole("button", { name: /Strategies/ }));
   expect(
-    screen.getByRole("heading", { name: "The strategy library." }),
+    screen.getByRole("heading", { name: "Strategies", level: 1 }),
   ).toBeInTheDocument();
   fireEvent.click(
     screen.getByText("Champion — Next Win", { selector: ".strategy-name" }),
+  );
+  fireEvent.click(
+    screen.getByText("Rules & assumptions", { selector: "summary" }),
   );
   expect(screen.getByText("Official tiebreaks.")).toBeVisible();
 });
@@ -174,5 +177,5 @@ it("shows read-only strategy evidence without inventing staking", () => {
     screen.getByLabelText("Observed window: 1 of 4 attempts"),
   ).toBeInTheDocument();
   expect(screen.getByText(/D5 · Example champion/)).toBeInTheDocument();
-  expect(screen.getAllByText("Strategy simulation monitoring")).toHaveLength(1);
+  expect(screen.getAllByText("Current matches")).toHaveLength(1);
 });
