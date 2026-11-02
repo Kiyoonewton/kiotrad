@@ -1,56 +1,37 @@
-# One capital projection across the workspace
+# Capital calculations across the workspace
 
-Overview now contains the former Simulator controls and results. The separate
-Simulator navigation item is removed. Overview, Strategies and History share
-one selection; changing pages does not reset it. Existing saved Simulator
-settings migrate through the same browser storage key.
+The current workspace selects versioned retrospective payout-carry research; see
+[payout-carry-research.md](payout-carry-research.md) for the recurrence, separate
+strategy controls and real-evidence inspection command.
 
-The base capital is the configured dashboard starting capital when the workspace
-opens (currently production uses ₦7,000). It stays pinned during that workspace
-session. Every projected monetary value uses:
+Overview, Strategies and History share the scenario requested with the entered
+capital, each strategy’s qualification day and attempts, global allowance,
+strategy/league filter, capital mode and profit stop. All money is returned by the financial replay; the frontend no
+longer multiplies a ₦7,000 baseline.
 
-```
-factor = selected initial capital / base initial capital
-projected money = base scenario money × factor
-```
+This replaces the earlier proportional display projection. Minimum stakes and
+whole-naira rounding can change affordability, candidate selection and subsequent
+overlap decisions, so multiplying an old balance cannot certify a larger-capital
+run. The minimum stake remains ₦100; strategy definitions are not scaled.
 
-For a ₦7,000 base, ₦14,000 is ×2 and ₦700 is ×0.1. Other valid whole-naira
-inputs need not be exact multiples. Amounts can contain fractional kobo internally;
-formatting rounds to two naira decimals. Independently rounded visible rows may
-differ slightly from their displayed total. These are proportional projections,
-not newly rounded executable stakes.
+Fixed mode sizes each opportunity with the entered initial capital, subject to
+the available balance. Reinvest mode sizes with the updated balance. The profit
+stop is expressed in actual naira and checked against settled net profit.
 
-Capital changes apply immediately in the browser without another capital replay.
-Qualification, attempts, allowance, strategy, capital mode and base profit stop
-still request a scenario at the fixed base capital. The base profit-stop field is
-explicitly in base naira: the projected target scales along with every other money
-value. Run choices, closures and the point where a profit stop happens remain those
-of the selected base scenario. Increasing projected capital cannot rescue a run
-excluded at the base or bypass its calculation limits.
+## Performance and freshness
 
-Only numeric monetary `*_minor` fields are scaled, including nested attempts,
-allowances, recovery targets, equity, timing comparisons and strategy monetary
-rules. Odds, dates, evidence IDs/hashes, counts, attempts, qualification, status and
-selection decisions are unchanged. Source objects are copied, never mutated.
-A compact badge identifies projected results; multiplier/base explanations stay
-in this document rather than repeating on every page. Recorded provider evidence, production settings,
-monitored benchmark and paper ledger are not written or rescaled.
+Input edits are debounced for 400 milliseconds. Scenario requests reuse prepared
+fixtures, odds and qualification evidence; they never reconstruct raw evidence or
+query MongoDB. The existing backend result cache keys each scenario by all
+settings, source revision and calculation versions. Repeat settings reuse a
+cached result while evidence changes invalidate it.
 
-History now reads the same projected scenario already shown on Overview, rather
-than fetching a separate benchmark calculation. It lists the selected scenario's
-runs, pages ten seasons at a time and filters by run entry date in Lagos. It does
-not replace missing or unqualified opportunities with old benchmark money.
-Historical observations remain available in the current-activity and strategy
-sections; financial details use the selected shared scenario where present.
+A changed selection hides the old amounts until its result arrives. Aborted or
+late responses cannot replace the current selection. Page navigation reuses the
+same result. Background refresh failures retain only the last result matching
+the current settings.
 
-Invalid settings hide projected results. While changed rules are calculating,
-results from the previous rule selection are not substituted. Evidence refresh
-and source availability retain the existing behavior. This is a frontend projection
-feature; it does not change strategy or settlement versions or require a database
-rebuild. Refresh the local app after rebuilding web; production uses the normal
-reviewed web deployment.
-
-The settings panel groups the large capital input with capital-mode buttons and
-the base profit target, followed by qualification, attempts, allowance buttons
-and strategy. The amber multiplier explanation is removed. Detailed mechanics
-remain in this document; no calculation or default changes accompany the layout.
+Browser preferences retain their entered capital. Existing saved profit targets
+are now interpreted literally in naira, as labelled by the control. The
+production configured bankroll, source evidence and historical paper ledger are
+unchanged. The legacy recovery and new payout-carry research models remain explicitly versioned.

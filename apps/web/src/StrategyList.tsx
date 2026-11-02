@@ -1,3 +1,6 @@
+import { StrategyTotals } from "./StrategyTotals";
+import { StrategyParameters } from "./StrategyParameters";
+import type { ScenarioSettings } from "./useScenario";
 import { RunBrowser } from "./RunBrowser";
 import type { SharedRun } from "./sharedSimulation";
 import { MonitoringRows } from "./MonitoringRows";
@@ -8,8 +11,12 @@ export function StrategyList({
   monitoring = [],
   competitions = [],
   sharedRuns,
+  settings,
+  change,
 }: {
   strategies: Strategy[];
+  settings?: ScenarioSettings;
+  change?: (name: keyof ScenarioSettings, value: number | string) => void;
   sharedRuns?: SharedRun[];
   monitoring?: Overview["strategy_monitoring"];
   competitions?: Overview["competitions"];
@@ -30,8 +37,13 @@ export function StrategyList({
             <span className="strategy-name">
               {strategy.name}
               <small>
-                {strategy.version} · {strategy.rules.max_attempts} attempts
-                maximum
+                {settings ? "Payout carry v1" : strategy.version} ·{" "}
+                {settings
+                  ? ((strategy.id === "champion-next-win"
+                      ? settings.next_win_attempts
+                      : settings.next_season_attempts) ?? settings.attempts)
+                  : strategy.rules.max_attempts}{" "}
+                attempts maximum
               </small>
             </span>
             <span className="research-status">Research</span>
@@ -40,9 +52,20 @@ export function StrategyList({
             </span>
           </summary>
           <div className="strategy-description">
+            {settings && change && (
+              <StrategyParameters
+                id={strategy.id}
+                settings={settings}
+                change={change}
+              />
+            )}
             <details className="strategy-rules">
               <summary>Rules &amp; assumptions</summary>
-              <p>{strategy.description}</p>
+              <p>
+                {settings
+                  ? `First win day ≥ ${(strategy.id === "champion-next-win" ? settings.next_win_qualification : settings.next_season_qualification) ?? settings.qualification}; up to ${(strategy.id === "champion-next-win" ? settings.next_win_attempts : settings.next_season_attempts) ?? settings.attempts} attempts.`
+                  : strategy.description}
+              </p>
               <p>
                 <strong>Entry:</strong> {strategy.entry}
               </p>
@@ -61,8 +84,9 @@ export function StrategyList({
                 </span>
               </div>
               <p>
-                Recover prior losses + attempt number × profit target. Stop at
-                the first win.
+                {settings
+                  ? "Next stake = (previous potential payout + frozen profit target) ÷ (estimated odds − 1). Full-window recorded odds size the run; retrospective research only. Stop at the first win."
+                  : "Recover prior losses + attempt number × profit target. Stop at the first win."}
               </p>
               <ul>
                 {strategy.unresolved.map((item) => (
@@ -70,15 +94,24 @@ export function StrategyList({
                 ))}
               </ul>
             </details>
-            <h3>Current matches</h3>
-            <MonitoringRows
-              rows={monitoring.filter(
-                (row) => row.strategy_id === strategy.id || !row.strategy_id,
-              )}
-              sharedRuns={sharedRuns}
-              strategies={strategies}
-              competitions={competitions}
-            />
+            {!settings && <h3>Current matches</h3>}
+            {!settings && (
+              <MonitoringRows
+                rows={monitoring.filter(
+                  (row) => row.strategy_id === strategy.id || !row.strategy_id,
+                )}
+                sharedRuns={sharedRuns}
+                strategies={strategies}
+                competitions={competitions}
+              />
+            )}
+            {sharedRuns && (
+              <StrategyTotals
+                runs={sharedRuns.filter(
+                  (run) => run.strategy_id === strategy.id,
+                )}
+              />
+            )}
             {sharedRuns && (
               <RunBrowser
                 runs={sharedRuns.filter(

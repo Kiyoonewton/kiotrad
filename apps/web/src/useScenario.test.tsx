@@ -164,7 +164,37 @@ it("restores old settings as compounding and validates new mode and stop setting
   localStorage.setItem("kiotrad:simulator:v1", JSON.stringify(settings));
   expect(initialScenario(7000).capital_mode).toBe("compound");
   expect(initialScenario(7000).profit_stop).toBe(0);
-  expect(validScenario({ ...settings, capital_mode: "fixed", profit_stop: 1000 })).toBe(true);
+  expect(
+    validScenario({ ...settings, capital_mode: "fixed", profit_stop: 1000 }),
+  ).toBe(true);
   expect(validScenario({ ...settings, profit_stop: -1 })).toBe(false);
   expect(validScenario({ ...settings, profit_stop: 1.5 })).toBe(false);
+});
+
+it("includes independent strategy parameters and the versioned model in cached scenario requests", async () => {
+  const fetcher = vi.fn().mockResolvedValue(response(3000000));
+  vi.stubGlobal("fetch", fetcher);
+  const { rerender } = renderHook(
+    ({ attempts }) =>
+      useScenario(
+        {
+          ...settings,
+          staking_model: "payout_carry_v1",
+          next_win_qualification: 5,
+          next_win_attempts: attempts,
+          next_season_qualification: 6,
+          next_season_attempts: 5,
+        },
+        "all",
+      ),
+    { initialProps: { attempts: 4 } },
+  );
+  await act(() => vi.advanceTimersByTimeAsync(401));
+  const url = new URL(fetcher.mock.calls[0][0], "http://localhost");
+  expect(url.searchParams.get("next_season_attempts")).toBe("5");
+  expect(url.searchParams.get("staking_model")).toBe("payout_carry_v1");
+  rerender({ attempts: 6 });
+  await act(() => vi.advanceTimersByTimeAsync(401));
+  expect(fetcher.mock.calls.at(-1)?.[0]).toContain("next_win_attempts=6");
+  expect(validScenario({ ...settings, next_season_attempts: 11 })).toBe(false);
 });

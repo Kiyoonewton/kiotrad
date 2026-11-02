@@ -134,51 +134,53 @@ export function Overview({
       )}
       <LeaguePulse competitions={competitions} />
       <div className="simulation-sections">
-        <section className="quiet-panel" aria-labelledby="monitoring-title">
-          <p className="eyebrow">Current activity</p>
-          <h2 id="monitoring-title">Current matches</h2>
-          {data.research_simulation ? (
-            <p>Research simulation · includes recovered evidence.</p>
-          ) : (
-            <>
-              <p>
-                {data.bankroll?.status === "paper"
-                  ? "Paper ledger configured · observations below are separate"
-                  : "Read-only monitoring · paper bankroll not configured"}
-              </p>
-              <p>
-                Paper worker:{" "}
-                {(
-                  {
-                    active: "recent check observed",
-                    not_observed: "no heartbeat recorded",
-                    not_recent: "no recent heartbeat",
-                    unavailable: "health unavailable",
-                    retrying: "retrying after a failure",
-                    clock_unknown: "clock needs checking",
-                  } as Record<string, string>
-                )[data.paper_worker?.status ?? "not_observed"] ?? "unknown"}
-                {data.paper_worker?.observed_at &&
-                  ` · ${formatLagos(data.paper_worker.observed_at)} WAT`}
-                {data.paper_worker?.last_result &&
-                  ` · ${data.paper_worker.last_result.replaceAll("_", " ")}`}
-              </p>
-              <PaperActivity data={data} />
-              {data.paper_journal_full && (
+        {(!data.shared_simulation || monitoring.length > 0) && (
+          <section className="quiet-panel" aria-labelledby="monitoring-title">
+            <p className="eyebrow">Current activity</p>
+            <h2 id="monitoring-title">Current matches</h2>
+            {data.research_simulation ? (
+              <p>Research simulation · includes recovered evidence.</p>
+            ) : (
+              <>
                 <p>
-                  Paper journal capacity reached. New runs are paused; export
-                  and archival are required.
+                  {data.bankroll?.status === "paper"
+                    ? "Paper ledger configured · observations below are separate"
+                    : "Read-only monitoring · paper bankroll not configured"}
                 </p>
-              )}
-            </>
-          )}
-          <MonitoringGroups
-            rows={monitoring}
-            sharedRuns={data.shared_simulation?.runs}
-            strategies={data.strategies}
-            competitions={data.competitions}
-          />
-        </section>
+                <p>
+                  Paper worker:{" "}
+                  {(
+                    {
+                      active: "recent check observed",
+                      not_observed: "no heartbeat recorded",
+                      not_recent: "no recent heartbeat",
+                      unavailable: "health unavailable",
+                      retrying: "retrying after a failure",
+                      clock_unknown: "clock needs checking",
+                    } as Record<string, string>
+                  )[data.paper_worker?.status ?? "not_observed"] ?? "unknown"}
+                  {data.paper_worker?.observed_at &&
+                    ` · ${formatLagos(data.paper_worker.observed_at)} WAT`}
+                  {data.paper_worker?.last_result &&
+                    ` · ${data.paper_worker.last_result.replaceAll("_", " ")}`}
+                </p>
+                <PaperActivity data={data} />
+                {data.paper_journal_full && (
+                  <p>
+                    Paper journal capacity reached. New runs are paused; export
+                    and archival are required.
+                  </p>
+                )}
+              </>
+            )}
+            <MonitoringGroups
+              rows={monitoring}
+              sharedRuns={data.shared_simulation?.runs}
+              strategies={data.strategies}
+              competitions={data.competitions}
+            />
+          </section>
+        )}
         <RunEventTimeline
           data={
             data.shared_simulation

@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import type { Overview as OverviewData } from "./api";
 import { Overview } from "./Overview";
 import { StrategyList } from "./StrategyList";
@@ -10,7 +10,6 @@ import {
   validScenario,
   type ScenarioSettings,
 } from "./useScenario";
-import { projectMoney } from "./capitalProjection";
 
 export function ProjectionWorkspace({
   data,
@@ -21,48 +20,13 @@ export function ProjectionWorkspace({
   league: string;
   page: "Overview" | "Strategies" | "History";
 }) {
-  // Pin the base for this workspace session; background refreshes never change its factor.
-  const [baseCapital] = useState(
-    () => data.shared_simulation!.starting_capital_minor / 100,
-  );
   const [settings, setSettings] = useState<ScenarioSettings>(() =>
-    initialScenario(baseCapital),
+    initialScenario(data.shared_simulation!.starting_capital_minor / 100),
   );
-  const factor = settings.capital / baseCapital;
-  const baseSettings = { ...settings, capital: baseCapital };
-  const { view: baseView, message } = useScenario(
-    baseSettings,
-    league,
-    settings,
-  );
-  const view = useMemo(
-    () =>
-      baseView && validScenario(settings)
-        ? projectMoney(baseView, factor)
-        : null,
-    [baseView, factor, settings],
-  );
+  const { view, message } = useScenario(settings, league);
   const change = (name: keyof ScenarioSettings, value: number | string) =>
     setSettings((s) => ({ ...s, [name]: value }));
-  const projected = view
-    ? {
-        ...data,
-        shared_simulation: view,
-        strategies: projectMoney(data.strategies, factor),
-      }
-    : null;
-  if (
-    !Number.isFinite(baseCapital) ||
-    baseCapital < 100 ||
-    baseCapital > 10000000
-  ) {
-    return (
-      <p role="status">
-        Base capital unavailable. Waiting for a valid dashboard baseline; no
-        projected amounts are shown.
-      </p>
-    );
-  }
+  const scenarioData = view ? { ...data, shared_simulation: view } : null;
   return (
     <>
       <ScenarioControls
@@ -83,35 +47,32 @@ export function ProjectionWorkspace({
           </p>
         )
       )}
-      {baseView?.runs.some(
-        (r) => r.skip_reason === "calculation_range_limit",
-      ) && (
+      {view?.runs.some((r) => r.skip_reason === "calculation_range_limit") && (
         <p role="status">
-          Base calculation limit reached. This projection scales the processed
-          base runs only; increasing projected capital does not remove base
-          exclusions.
+          Calculation limit reached. Some runs could not be sized; inspect
+          skipped runs.
         </p>
       )}
+      {page === "Strategies" && (
+        <StrategyList
+          strategies={data.strategies}
+          competitions={data.competitions}
+          settings={settings}
+          change={change}
+          sharedRuns={view ? [...view.runs, ...(view.unqualified ?? [])] : []}
+        />
+      )}
       {view &&
-        projected &&
+        scenarioData &&
         (page === "Overview" ? (
           <Overview
-            data={projected}
+            data={{ ...scenarioData, strategy_monitoring: [] }}
             league={league}
-            scopeLabel={`Projected results · ${league === "all" ? "all leagues" : (data.competitions.find((c) => c.id === league)?.name ?? league)} · ${settings.strategy === "all" ? "both strategies" : (data.strategies.find((s) => s.id === settings.strategy)?.name ?? settings.strategy)}`}
+            scopeLabel={`Retrospective research · ${league === "all" ? "all leagues" : (data.competitions.find((c) => c.id === league)?.name ?? league)} · ${settings.strategy === "all" ? "both strategies" : (data.strategies.find((s) => s.id === settings.strategy)?.name ?? settings.strategy)}`}
           />
         ) : page === "History" ? (
           <ProjectionHistory view={view} />
-        ) : (
-          <StrategyList
-            strategies={projected.strategies}
-            competitions={data.competitions}
-            sharedRuns={view.runs}
-            monitoring={data.strategy_monitoring?.filter(
-              (r) => league === "all" || r.competition === league,
-            )}
-          />
-        ))}
+        ) : null)}
     </>
   );
 }

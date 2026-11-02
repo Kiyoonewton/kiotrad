@@ -221,7 +221,7 @@ export function SharedCapitalPerformance({
           </p>
         </aside>
       </div>
-      <RunBrowser runs={data.runs} />
+      <RunBrowser runs={[...data.runs, ...(data.unqualified ?? [])]} />
     </>
   );
 }

@@ -118,6 +118,10 @@ try {
     $scenario = $prepared->scenario($settings);
     $assert($scenario['status'] === 'available' && $scenario['scenario_cache'] === 'miss', 'Prepared scenario did not calculate.');
     $assert($prepared->scenario($settings)['scenario_cache'] === 'hit', 'Identical scenario did not reuse Redis.');
+    $carrySettings = [...$settings, 'staking_model' => 'payout_carry_v1', 'next_win_attempts' => 2, 'next_season_attempts' => 1];
+    $carry = $prepared->scenario($carrySettings);
+    $assert($carry['status'] === 'available' && $carry['retrospective_odds_sizing'] === true, 'Retrospective model was not selected.');
+    $assert($prepared->scenario($carrySettings)['scenario_cache'] === 'hit', 'Carry scenario did not reuse native Redis.');
     $stricter = $prepared->scenario([...$settings, 'qualification' => 6, 'allowance' => 2]);
     $assert($stricter['runs'] === [] && $stricter['allowance_multiplier'] === 2, 'Scenario settings leaked or qualification was ignored.');
     $assert($db->provider_captures->countDocuments() === $countBefore && $portfolio->read() === $before,

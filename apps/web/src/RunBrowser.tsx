@@ -12,9 +12,11 @@ export function RunBrowser({ runs }: { runs: SharedRun[] }) {
     const skipped = r.status.startsWith("skipped_");
     return (
       (filter === "all" ||
-        (filter === "skipped"
-          ? skipped
-          : !skipped && r.net_minor != null && !!r.released_at)) &&
+        (filter === "qualified"
+          ? r.status !== "not_qualified"
+          : filter === "skipped"
+            ? skipped
+            : !skipped && r.net_minor != null && !!r.released_at)) &&
       `${r.team ?? ""} ${r.season_id ?? ""} ${r.competition ?? ""} ${r.id}`
         .toLowerCase()
         .includes(search.toLowerCase())
@@ -37,6 +39,7 @@ export function RunBrowser({ runs }: { runs: SharedRun[] }) {
         <div className="browse-tabs" role="group" aria-label="Run status">
           {[
             ["all", "All"],
+            ["qualified", "Qualified"],
             ["settled", "Settled"],
             ["skipped", "Skipped"],
           ].map(([value, label]) => (
@@ -134,6 +137,9 @@ export function RunBrowser({ runs }: { runs: SharedRun[] }) {
                     <td colSpan={6} id={`run-detail-${r.id}`}>
                       <div className="browse-detail">
                         <p>{r.id}</p>
+                        {r.trigger_day != null && (
+                          <p>First win · D{r.trigger_day}</p>
+                        )}
                         {r.entry_at && (
                           <p>
                             Entry ·{" "}

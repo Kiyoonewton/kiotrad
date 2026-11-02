@@ -109,81 +109,95 @@ afterEach(() => {
   vi.useRealTimers();
 });
 
-it("shares one exact capital factor across Overview, daily totals, History and Strategies without another capital replay", async () => {
-  const fetcher = vi
-    .fn()
-    .mockResolvedValue({ ok: true, status: 200, json: async () => baseline });
+it("replays entered capital and shares returned amounts across all pages without scaling", async () => {
+  const fetcher = vi.fn().mockImplementation(async (url: string) => {
+    const query = new URL(url, "http://localhost").searchParams;
+    const capital = Number(query.get("capital"));
+    const net = capital === 14000 ? 12345 : 10000;
+    const stake = capital === 14000 ? 30000 : 20000;
+    return {
+      ok: true,
+      status: 200,
+      json: async () => ({
+        ...baseline,
+        starting_capital_minor: capital * 100,
+        balance_minor: capital * 100 + net,
+        runs: [
+          {
+            ...baseline.runs[0],
+            total_staked_minor: stake,
+            gross_payout_minor: stake + net,
+            net_minor: net,
+            attempts: [
+              {
+                ...baseline.runs[0].attempts![0],
+                stake_minor: stake,
+                payout_minor: stake + net,
+              },
+            ],
+          },
+        ],
+      }),
+    };
+  });
   vi.stubGlobal("fetch", fetcher);
   const ui = render(
     <ProjectionWorkspace data={data} league="all" page="Overview" />,
   );
   await act(() => vi.advanceTimersByTimeAsync(401));
   expect(screen.getAllByText("₦7,100.00").length).toBeGreaterThan(0);
-  for (const label of [
-    "Capital mode",
-    "Stop at net profit",
-    "Qualification day",
-    "Maximum attempts",
-    "Allowance multiplier",
-    "Simulation strategy",
-  ])
-    expect(screen.getByLabelText(label)).toBeInTheDocument();
   fireEvent.change(screen.getByLabelText("Initial capital"), {
     target: { value: "14000" },
   });
-  expect(screen.getByText("Projected results")).toBeInTheDocument();
-  expect(
-    screen.queryByText(/multiplier ×|uses this factor|Scaled projection/),
-  ).not.toBeInTheDocument();
-  expect(screen.getAllByText("₦14,200.00").length).toBeGreaterThan(0);
+  expect(screen.queryByText("Current capital")).not.toBeInTheDocument();
+  expect(screen.queryByText("₦14,200.00")).not.toBeInTheDocument();
+  await act(() => vi.advanceTimersByTimeAsync(401));
+  expect(fetcher.mock.calls.at(-1)?.[0]).toContain("capital=14000");
+  expect(screen.getByText("Retrospective research")).toBeInTheDocument();
+  expect(screen.getAllByText("₦14,123.45").length).toBeGreaterThan(0);
   const day = screen.getByText("2026-10-18").closest("tr")!;
-  expect(day).toHaveTextContent("₦200.00");
-  expect(day).toHaveTextContent("₦400.00");
-  expect(day).toHaveTextContent("₦600.00");
+  for (const money of ["₦123.45", "₦300.00", "₦423.45"])
+    expect(day).toHaveTextContent(money);
   ui.rerender(<ProjectionWorkspace data={data} league="all" page="History" />);
-  expect(screen.getByLabelText("Initial capital")).toHaveValue(14000);
   const row = screen.getByText("euro / 100").closest("tr")!;
   expect(
     within(row)
       .getAllByRole("cell")
       .slice(-3)
       .map((c) => c.textContent),
-  ).toEqual(["₦400.00", "₦600.00", "₦200.00"]);
+  ).toEqual(["₦300.00", "₦423.45", "₦123.45"]);
   expect(row).toHaveTextContent("1.50");
   ui.rerender(
     <ProjectionWorkspace data={data} league="all" page="Strategies" />,
   );
-  expect(screen.getAllByText("₦200.00").length).toBeGreaterThan(0);
+  expect(screen.getAllByText("₦123.45").length).toBeGreaterThan(0);
+  expect(screen.getByText("₦100.00")).toBeInTheDocument(); // Minimum stake is never multiplied.
   await act(() => vi.advanceTimersByTimeAsync(401));
-  expect(fetcher).toHaveBeenCalledTimes(1);
-  expect(fetcher.mock.calls[0][0]).toContain("capital=7000");
+  expect(fetcher).toHaveBeenCalledTimes(2); // Page changes reuse the same scenario.
   expect(
     JSON.parse(localStorage.getItem("kiotrad:simulator:v1")!).capital,
   ).toBe(14000);
-  fireEvent.change(screen.getByLabelText("Initial capital"), {
-    target: { value: "700" },
-  });
-  ui.rerender(<ProjectionWorkspace data={data} league="all" page="History" />);
-  expect(screen.getByText("Projected results")).toBeInTheDocument();
-  expect(screen.getByText("euro / 100").closest("tr")).toHaveTextContent(
-    "₦20.00",
-  );
   expect(data.shared_simulation?.balance_minor).toBe(710000);
 });
 
-it("changes rules through a base replay and hides amounts while the new selection is pending or invalid", async () => {
+it("changes rules through a financial replay and hides amounts while the new selection is pending or invalid", async () => {
   const fetcher = vi
     .fn()
     .mockResolvedValue({ ok: true, status: 200, json: async () => baseline });
   vi.stubGlobal("fetch", fetcher);
-  render(<ProjectionWorkspace data={data} league="all" page="Overview" />);
+  render(<ProjectionWorkspace data={data} league="all" page="Strategies" />);
+  fireEvent.click(screen.getByText("Next Win", { selector: ".strategy-name" }));
   await act(() => vi.advanceTimersByTimeAsync(401));
-  fireEvent.change(screen.getByLabelText("Qualification day"), {
+  fireEvent.change(screen.getByLabelText("champion-next-win qualification"), {
     target: { value: "6" },
   });
   expect(screen.queryByText("Current capital")).not.toBeInTheDocument();
   await act(() => vi.advanceTimersByTimeAsync(401));
-  expect(fetcher.mock.calls[1][0]).toContain("qualification=6");
+  expect(fetcher.mock.calls[1][0]).toContain("next_win_qualification=6");
+  expect(fetcher.mock.calls[1][0]).toContain("staking_model=payout_carry_v1");
+  fireEvent.change(screen.getByLabelText("champion-next-win attempts"), {
+    target: { value: "6" },
+  });
   fireEvent.click(screen.getByRole("button", { name: "Fixed capital" }));
   fireEvent.click(screen.getByRole("button", { name: "×2" }));
   await act(() => vi.advanceTimersByTimeAsync(401));
