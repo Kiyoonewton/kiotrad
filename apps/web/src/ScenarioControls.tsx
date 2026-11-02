@@ -22,7 +22,7 @@ export function ScenarioControls({
         <h2 id="simulation-settings-title">Simulation</h2>
         <span className="projection-badge">
           <span aria-hidden="true" />
-          Projected results
+          Simulation results
         </span>
       </header>
       <div className="capital-row">
@@ -67,14 +67,14 @@ export function ScenarioControls({
           </div>
         </div>
         <label className="target-field">
-          Profit target · base ₦
+          Profit target · ₦
           <input
             aria-label="Stop at net profit"
             type="number"
             min="0"
             max="10000000"
             step="1"
-            title="Base net profit target; 0 means no target."
+            title="Net profit target; 0 means no target."
             value={settings.profit_stop ?? 0}
             onChange={(e) => change("profit_stop", Number(e.target.value))}
           />

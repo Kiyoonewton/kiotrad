@@ -55,12 +55,8 @@ export function initialScenario(capital: number): ScenarioSettings {
     return fallback;
   }
 }
-export function useScenario(
-  settings: ScenarioSettings,
-  league: string,
-  savedSettings?: ScenarioSettings,
-) {
-  const savedKey = JSON.stringify(savedSettings ?? settings);
+export function useScenario(settings: ScenarioSettings, league: string) {
+  const savedKey = JSON.stringify(settings);
   useEffect(() => {
     if (!validScenario(JSON.parse(savedKey))) return;
     try {

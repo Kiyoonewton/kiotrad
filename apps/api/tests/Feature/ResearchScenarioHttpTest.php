@@ -51,6 +51,33 @@ class ResearchScenarioHttpTest extends TestCase
         $this->getJson($this->url())->assertStatus(202)->assertJsonPath('status', 'warming');
     }
 
+    public function test_entered_capital_changes_affordability_without_reading_or_rebuilding_source_data(): void
+    {
+        DB::shouldReceive('connection')->never();
+        $key = (new ReflectionMethod(PreparedResearch::class, 'key'))->invoke(new PreparedResearch);
+        $fixtures = [];
+        foreach ([26500, 11000, 11000, 11000] as $index => $odds) {
+            $fixtures[] = ['matchday' => $index + 6,
+                'scheduled_start_at' => sprintf('2026-10-20T10:%02d:00Z', $index * 4),
+                'result_confirmed_at' => sprintf('2026-10-20T10:%02d:00Z', $index * 4 + 3),
+                'historical_odds_scaled' => $odds, 'actual_odds_scaled' => 27000, 'won' => $index === 0];
+        }
+        $source = ['as_of' => '2026-10-21T00:00:00Z', 'revision' => 'synthetic-affordability', 'seasons_assessed' => 1,
+            'excluded' => [], 'candidates' => [['id' => 'synthetic', 'competition' => 'virtual-football',
+                'strategy_id' => 'champion-next-win', 'trigger_day' => 5, 'fixtures' => $fixtures]]];
+        Cache::store('redis')->put($key, $source, 100);
+        $small = $this->getJson($this->url(['capital' => 7000, 'capital_mode' => 'fixed']));
+        $small->assertOk()->assertJsonPath('runs.0.status', 'skipped_budget');
+        $largeUrl = $this->url(['capital' => 1000000, 'capital_mode' => 'fixed']);
+        $large = $this->getJson($largeUrl);
+        $large->assertOk()->assertJsonPath('runs.0.status', 'win')->assertJsonPath('starting_capital_minor', 100000000)
+            ->assertJsonPath('runs.0.sizing_capital_at_entry_minor', 100000000)->assertJsonPath('scenario_cache', 'miss');
+        $this->getJson($largeUrl)->assertOk()->assertJsonPath('scenario_cache', 'hit')
+            ->assertJsonPath('runs.0.status', 'win');
+        $this->assertSame($source, Cache::store('redis')->get($key));
+        $this->assertSame(700000, config('kiotrad.simulation_capital_minor'));
+    }
+
     public function test_invalid_settings_never_reach_the_replay(): void
     {
         $this->mock(PreparedResearch::class)->shouldReceive('scenario')->never();

@@ -30,7 +30,7 @@ export function ProjectionHistory({ view }: { view: SharedSimulation }) {
   const shown = new Set(seasons.slice((current - 1) * 10, current * 10));
   return (
     <section className="paper-history" aria-label="Strategy simulation history">
-      <p className="eyebrow">Projected history</p>
+      <p className="eyebrow">Research history</p>
       <h2>Simulation history.</h2>
       <p className="subtle">Newest entry first · 10 seasons per page.</p>
       <label>
