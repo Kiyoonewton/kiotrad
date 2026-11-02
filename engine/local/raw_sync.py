@@ -12,7 +12,7 @@ from raw_manifest import manifest_script, parse_manifest, tar_input, verify_file
 from raw_reuse import reuse_files
 
 
-def extract_evidence(archive, target):
+def extract_evidence(archive, target, progress=None):
     """Extract regular raw evidence only; reject traversal, links and extra files."""
     count = 0
     with tarfile.open(archive, 'r|gz') as source:
@@ -36,9 +36,35 @@ def extract_evidence(archive, target):
             if hashlib.sha256(body).hexdigest() != record['body_sha256']:
                 raise RuntimeError('Raw evidence checksum mismatch.')
             count += 1
+            if progress is not None:
+                progress(count)
     if count == 0:
         raise RuntimeError('No raw evidence received; existing local data remains active.')
     return count
+
+
+def download_evidence(sync, server, delta, folder, timings):
+    """Measure the existing batched transport separately from extraction/validation."""
+    total = len(delta['files'])
+    if total == 0:
+        return 0
+    archive = folder / 'raw.tar.gz'
+    with timings.operation('raw_transfer'):
+        with archive.open('wb') as output:
+            sync.run(sync.ssh_command(server, ['docker', 'exec', '-i', 'kiotrad-api-1', 'tar',
+                     '--null', '--no-recursion', '-czf', '-', '-C', '/app/storage/app/private', '-T', '-']),
+                     phase='raw evidence download', input=tar_input(delta), stdout=output)
+    timings.evidence(archive_bytes=archive.stat().st_size)
+    print(f'Raw transfer received: {archive.stat().st_size / 1048576:.1f} MiB; validating {total} files...', flush=True)
+
+    def progress(count):
+        if count > total:
+            raise RuntimeError('Raw archive contains more files than requested.')
+        if count % 250 == 0 or count == total:
+            print(f'Raw extraction: {count}/{total}', flush=True)
+
+    with timings.operation('raw_extraction_validation'):
+        return extract_evidence(archive, folder, progress=progress)
 
 
 def strategy_script():
@@ -92,13 +118,7 @@ def _perform(sync, server, full_rebuild, history_packages, timings):
     timings.evidence(reused_files=reused, download_files=len(delta['files']), download_bytes=total)
     timings.stage('download')
     archive = folder / 'raw.tar.gz'
-    downloaded = 0
-    if delta['files']:
-        with archive.open('wb') as output:
-            sync.run(sync.ssh_command(server, ['docker', 'exec', '-i', 'kiotrad-api-1', 'tar',
-                     '--null', '--no-recursion', '-czf', '-', '-C', '/app/storage/app/private', '-T', '-']),
-                     phase='raw evidence download', input=tar_input(delta), stdout=output)
-        downloaded = extract_evidence(archive, folder)
+    downloaded = download_evidence(sync, server, delta, folder, timings)
     count = reused + downloaded
     timings.stage('verify')
     verify_files(manifest, folder, count)

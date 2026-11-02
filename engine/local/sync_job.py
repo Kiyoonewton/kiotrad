@@ -62,6 +62,9 @@ class SyncJob:
         inventory = re.match(r'Reusing (\d+) verified local raw files; downloading (\d+) new or changed files', line)
         if inventory:
             self.update(phase='Reusing ' + inventory[1] + ' files; downloading ' + inventory[2] + ' new or changed files')
+        extraction = re.fullmatch(r'Raw extraction: (\d+)/(\d+)', line)
+        if extraction and 0 < int(extraction[1]) <= int(extraction[2]):
+            self.update(phase='Extracting and verifying downloaded evidence', done=int(extraction[1]), total=int(extraction[2]))
         progress = re.search(r'workbench: (fixture_baselines|season_monitoring|run_evidence) (\d+)/(\d+)', line)
         if progress:
             self.update(phase={'fixture_baselines': 'Preparing historical prices', 'season_monitoring': 'Checking seasons',

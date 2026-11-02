@@ -33,6 +33,12 @@ class SyncJobTest(unittest.TestCase):
             self.assertEqual(job.view()['total'], 40)
             job.progress('Sync phase: Copying previous local snapshot')
             self.assertEqual(job.view()['phase'], 'Copying previous local snapshot')
+            job.progress('Raw extraction: 250/3435')
+            self.assertEqual(job.view()['phase'], 'Extracting and verifying downloaded evidence')
+            self.assertEqual((job.view()['done'], job.view()['total']), (250, 3435))
+            job.progress('Raw extraction: 999/1')
+            job.progress('Raw extraction: 1/2 synthetic-secret')
+            self.assertEqual((job.view()['done'], job.view()['total']), (250, 3435))
             job.progress('Sync phase: synthetic-secret')
             self.assertNotIn('synthetic-secret', json.dumps(job.view()))
 

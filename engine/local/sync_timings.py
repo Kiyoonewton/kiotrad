@@ -54,7 +54,7 @@ class SyncTimings:
 
     def evidence(self, **values):
         for key, value in values.items():
-            if key in ('raw_files', 'reused_files', 'download_files', 'download_bytes') and type(value) is int:
+            if key in ('raw_files', 'reused_files', 'download_files', 'download_bytes', 'archive_bytes') and type(value) is int:
                 self.data['evidence'][key] = value
             elif key == 'seed' and isinstance(value, dict) and value.get('mode') in ('full_rebuild', 'incremental_seed') and value.get('reason') in (
                     'explicit_request', 'no_eligible_seed', 'missing_completed_index', 'parser_changed', 'compatible_completed_index'):
@@ -63,7 +63,7 @@ class SyncTimings:
 
     @contextmanager
     def operation(self, name):
-        if name not in ('history_import', 'history_verification'):
+        if name not in ('history_import', 'history_verification', 'raw_transfer', 'raw_extraction_validation'):
             raise ValueError('Unknown timing operation.')
         start, status = self.clock(), 'failed'
         try:
@@ -84,3 +84,7 @@ class SyncTimings:
         print('Sync timing report: ' + str(self.path), flush=True)
         for stage in sorted(self.data['stages'], key=lambda row: row['seconds'], reverse=True)[:5]:
             print(f"Sync timing: {STAGES[stage['stage']]} · {stage['seconds']:.1f}s", flush=True)
+        labels = {'raw_transfer': 'Network/archive transfer', 'raw_extraction_validation': 'Local extraction and validation'}
+        for operation in self.data['operations']:
+            if operation['operation'] in labels:
+                print(f"Raw download timing: {labels[operation['operation']]} · {operation['seconds']:.1f}s ({operation['status']})", flush=True)

@@ -38,3 +38,33 @@ Compare the slowest phase and seed mode before optimizing. If the report cannot 
 saved, a generic warning is printed and the existing sync safety checks continue.
 These timings cover the raw sync pipeline, including activation/retention, but not
 the button helper's additional HTTP readiness polling afterward.
+
+## Separate download transport from local validation
+
+The existing transfer is already one compressed tar stream containing only the
+missing/changed manifest paths. Download timing previously included both SSH/tar
+transport and local gzip extraction, JSON/base64 decoding and body checksums.
+A long download stage alone therefore does not establish a network bottleneck.
+
+The report now includes two nested operations:
+
+- `raw_transfer`: remote archive generation, SSH transport and local archive writing.
+- `raw_extraction_validation`: local extraction and raw-envelope/body validation.
+
+`evidence.archive_bytes` records the received transport archive size. The existing
+`download_bytes` remains the sum of compressed source file sizes in the delta;
+these differ due to tar metadata and outer compression. Neither is a decoded
+payload size. Nested operations are included in the download stage, not extra
+elapsed time.
+
+Terminal output prints these operation timings even on failure and emits
+`Raw extraction: 250/3435` counters after files pass body validation. The local
+sync helper can display the validated extraction counters without exposing raw
+filenames or arbitrary child logs; an already-running helper needs a normal
+restart to load its updated progress parser.
+
+Normal sync commands are unchanged. No production deployment, full rebuild or
+raw file deletion is required. This adds measurement and progress, not a claimed
+transfer speedup. Manifest SHA-256, gzip/envelope/body checks and staging
+activation remain unchanged. Compare the two nested timings on the next sync
+before selecting a transport or local-processing optimization.

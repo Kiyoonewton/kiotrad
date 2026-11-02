@@ -30,6 +30,21 @@ class SyncTimingsTest(unittest.TestCase):
             self.assertNotIn('DO_NOT_SAVE', timer.path.read_text())
             self.assertFalse(timer.path.with_suffix('.tmp').exists())
 
+    def test_download_operations_record_distinct_times_and_allowlisted_size_only(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            tick = [0]
+            with SyncTimings(temporary, clock=lambda: tick[0]) as timer:
+                timer.stage('download')
+                with timer.operation('raw_transfer'):
+                    tick[0] = 10
+                with timer.operation('raw_extraction_validation'):
+                    tick[0] = 13
+                timer.evidence(archive_bytes=1234, command='DO_NOT_SAVE')
+            report = json.loads(timer.path.read_text())
+            self.assertEqual([r['seconds'] for r in report['operations']], [10, 3])
+            self.assertEqual(report['evidence']['archive_bytes'], 1234)
+            self.assertNotIn('DO_NOT_SAVE', timer.path.read_text())
+
     def test_failed_stage_is_saved_without_exception_details_or_commands(self):
         with tempfile.TemporaryDirectory() as tmp:
             timer = SyncTimings(tmp)
