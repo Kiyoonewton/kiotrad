@@ -136,12 +136,17 @@ class ChampionMonitoring
         foreach (array_reverse($ids) as $id) {
             $season = ['season_id' => $id, 'matches' => [], 'champion' => null];
             $seen = [];
+            $trackedTeam = $seasons[$ids[1] ?? '']['champion']['team_uid'] ?? null;
+            $needsReplay = ! $this->preparing && $id === $currentId && $trackedTeam !== null;
+            $projection = ['observed_at' => 1, 'matches' => 1, 'standings' => 1];
+            if ($needsReplay) {
+                $projection['odds_snapshots'] = 1;
+            }
             $captures = $db->provider_captures->find(['competition' => $competition, 'season_id' => $id, 'observed_at' => ['$lte' => $asOf]],
                 [...$options, 'sort' => ['observed_at' => 1], 'batchSize' => 5,
-                    'projection' => ['observed_at' => 1, 'matches' => 1, 'standings' => 1, 'odds_snapshots' => 1]]);
+                    'projection' => $projection]);
             foreach ($captures as $capture) {
-                $trackedTeam = $seasons[$ids[1] ?? '']['champion']['team_uid'] ?? null;
-                if (! $this->preparing && $id === $currentId && $trackedTeam !== null) {
+                if ($needsReplay) {
                     $replayCapture = (new ReplayCapture)->forTeam($capture, $trackedTeam);
                     if ($replayCapture !== null) {
                         $currentCaptures[] = $replayCapture;
