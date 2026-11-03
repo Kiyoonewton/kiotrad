@@ -23,7 +23,7 @@ class WatchQualificationEmail extends Command
                 $this->error('Qualification email check unavailable; credentials and source payloads hidden.');
             }
             if ($this->option('once')) {
-                return in_array($status, ['disabled_or_unconfigured', 'unavailable'], true) ? self::FAILURE : self::SUCCESS;
+                return in_array($status, ['disabled_or_unconfigured', 'unavailable', 'production_only'], true) ? self::FAILURE : self::SUCCESS;
             }
             sleep(5);
         } while (true);

@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Infrastructure\Notifications\AlertStakePlanner;
 use App\Infrastructure\Notifications\QualificationEmailPolicy;
 use App\Infrastructure\Notifications\QualificationSlackSettings;
 use App\Infrastructure\Notifications\QualificationSlackStore;
@@ -15,8 +16,19 @@ use Tests\TestCase;
 
 class QualificationSlackTest extends TestCase
 {
+    private function planner(): AlertStakePlanner
+    {
+        $planner = Mockery::mock(AlertStakePlanner::class);
+        $planner->shouldReceive('make')->andReturn(['status' => 'estimated', 'policy_version' => 'synthetic-test']);
+        $planner->shouldReceive('details')->andReturn(['Planned total spend' => 'Synthetic test plan', 'Run capital' => '₦75,000.00 synthetic']);
+
+        return $planner;
+    }
+
     public function test_slack_uses_its_own_settings_transport_and_delivery_identity_without_smtp(): void
     {
+        $this->app->instance('env', 'production');
+        config(['kiotrad.local_data_mirror' => false, 'database.connections.mongodb.database' => 'kiotrad']);
         $this->travelTo(CarbonImmutable::parse('2026-11-03T10:00:00Z'));
         config(['notifications.slack_qualification.enabled' => true, 'notifications.email.enabled' => false, 'mail.default' => 'log']);
         $settings = [...(new QualificationSlackSettings)->defaults(), 'capital' => 75000, 'next_win_qualification' => 3];
@@ -37,7 +49,7 @@ class QualificationSlackTest extends TestCase
         $transport->shouldReceive('configured')->once()->andReturn(true);
         $transport->shouldReceive('send')->once()->with(Mockery::on(fn ($payload) => str_contains($payload['text'], '₦75,000.00')
             && str_contains($payload['text'], '&lt;!channel&gt;') && ! str_contains($payload['text'], '<!channel>') && $payload['mrkdwn'] === false))->andReturn(['status' => 'sent']);
-        $worker = new QualificationSlackWorker($monitor, $market, new QualificationEmailPolicy, $store, $storeSettings, $transport);
+        $worker = new QualificationSlackWorker($monitor, $market, new QualificationEmailPolicy, $store, $storeSettings, $transport, $this->planner());
         $this->assertSame('submitted:1', $worker->tick());
     }
 

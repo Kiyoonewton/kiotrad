@@ -41,6 +41,9 @@ it("loads and explicitly saves independent email settings with an in-memory sett
   expect(await screen.findByLabelText("Total run capital · ₦")).toHaveValue(
     50000,
   );
+  fireEvent.change(screen.getByLabelText("Alert allowance"), {
+    target: { value: "2" },
+  });
   fireEvent.change(screen.getByLabelText("next_win attempts"), {
     target: { value: "6" },
   });
@@ -54,6 +57,7 @@ it("loads and explicitly saves independent email settings with an in-memory sett
   expect(call.method).toBe("PUT");
   expect(JSON.parse(call.body)).toMatchObject({
     capital: 50000,
+    allowance: 2,
     next_win_attempts: 6,
     next_season_qualification: 7,
     next_season_attempts: 4,
@@ -80,17 +84,15 @@ it("shows an authorization error without displaying editable settings", async ()
   ).not.toBeInTheDocument();
 });
 it("uses the Slack endpoint and webhook status without requiring email configuration", async () => {
-  const fetcher = vi
-    .fn()
-    .mockResolvedValue({
-      ok: true,
-      json: async () => ({
-        settings,
-        delivery_enabled: true,
-        smtp_configured: false,
-        transport_configured: true,
-      }),
-    });
+  const fetcher = vi.fn().mockResolvedValue({
+    ok: true,
+    json: async () => ({
+      settings,
+      delivery_enabled: true,
+      smtp_configured: false,
+      transport_configured: true,
+    }),
+  });
   vi.stubGlobal("fetch", fetcher);
   render(<EmailAlertSettings channel="slack" />);
   expect(
@@ -105,5 +107,29 @@ it("uses the Slack endpoint and webhook status without requiring email configura
   expect(fetcher.mock.calls[0][0]).toBe("/api/v1/notifications/slack-settings");
   expect(
     screen.getByRole("button", { name: "Save slack settings" }),
+  ).toBeInTheDocument();
+});
+it("shows that local delivery is blocked even when credentials are configured", async () => {
+  vi.stubGlobal(
+    "fetch",
+    vi
+      .fn()
+      .mockResolvedValue({
+        ok: true,
+        json: async () => ({
+          settings,
+          delivery_enabled: false,
+          smtp_configured: true,
+          production_delivery_allowed: false,
+        }),
+      }),
+  );
+  render(<EmailAlertSettings />);
+  fireEvent.change(screen.getByLabelText("Settings key"), {
+    target: { value: "k".repeat(32) },
+  });
+  fireEvent.click(screen.getByRole("button", { name: "Unlock settings" }));
+  expect(
+    await screen.findByText(/Local and test environments cannot send alerts/),
   ).toBeInTheDocument();
 });

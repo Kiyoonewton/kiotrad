@@ -13,7 +13,7 @@ class QualificationEmailSettings
 
     public function defaults(): array
     {
-        return ['enabled' => true, 'capital' => intdiv((int) config('notifications.email.capital_minor', 5000000), 100),
+        return ['enabled' => true, 'allowance' => 1, 'capital' => intdiv((int) config('notifications.email.capital_minor', 5000000), 100),
             'lead_seconds' => (int) config('notifications.email.lead_seconds', 10), 'league' => 'all',
             'next_win_enabled' => true, 'next_win_qualification' => 5, 'next_win_attempts' => 4,
             'next_season_enabled' => true, 'next_season_qualification' => 5, 'next_season_attempts' => 4];

@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Infrastructure\Notifications\AlertStakePlanner;
 use App\Infrastructure\Notifications\QualificationEmail;
 use App\Infrastructure\Notifications\QualificationEmailPolicy;
 use App\Infrastructure\Notifications\QualificationEmailSettings;
@@ -35,12 +36,23 @@ class QualificationEmailTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
+        $this->app->instance('env', 'production');
+        config(['kiotrad.local_data_mirror' => false, 'database.connections.mongodb.database' => 'kiotrad']);
         $this->travelTo(CarbonImmutable::parse('2026-11-03T10:00:00Z'));
         config(['notifications.email.enabled' => true, 'notifications.email.to' => 'recipient@example.com',
             'notifications.email.capital_minor' => 5000000, 'notifications.email.lead_seconds' => 10,
             'mail.default' => 'smtp', 'mail.from.address' => 'sender@example.com', 'mail.mailers.smtp.host' => 'smtp.example.com',
             'mail.mailers.smtp.username' => 'synthetic', 'mail.mailers.smtp.password' => 'synthetic']);
         Mail::fake();
+    }
+
+    private function planner(): AlertStakePlanner
+    {
+        $planner = Mockery::mock(AlertStakePlanner::class);
+        $planner->shouldReceive('make')->andReturn(['status' => 'estimated', 'policy_version' => 'synthetic-test']);
+        $planner->shouldReceive('details')->andReturn(['Planned total spend' => 'Synthetic test plan']);
+
+        return $planner;
     }
 
     public function test_alert_has_fifty_thousand_total_budget_and_scheduled_lagos_time_without_live_stake(): void
@@ -76,7 +88,7 @@ class QualificationEmailTest extends TestCase
             $store->shouldNotReceive('claim');
         }
 
-        return new QualificationEmailWorker($monitor, $market, new QualificationEmailPolicy, $store, $this->settings());
+        return new QualificationEmailWorker($monitor, $market, new QualificationEmailPolicy, $store, $this->settings(), $this->planner());
     }
 
     public function test_sends_qualified_mail_after_fresh_fixture_check(): void
@@ -103,7 +115,7 @@ class QualificationEmailTest extends TestCase
         config(['mail.default' => 'log']);
         $monitor = Mockery::mock(ChampionMonitoring::class);
         $monitor->shouldNotReceive('forEmail');
-        $worker = new QualificationEmailWorker($monitor, Mockery::mock(PaperMarket::class), new QualificationEmailPolicy, Mockery::mock(QualificationEmailStore::class), $this->settings());
+        $worker = new QualificationEmailWorker($monitor, Mockery::mock(PaperMarket::class), new QualificationEmailPolicy, Mockery::mock(QualificationEmailStore::class), $this->settings(), $this->planner());
         $this->assertSame('disabled_or_unconfigured', $worker->tick());
         Mail::assertNothingSent();
     }
@@ -122,7 +134,27 @@ class QualificationEmailTest extends TestCase
         $store->shouldReceive('claim')->once()->andReturn(true);
         $store->shouldReceive('finish')->once()->with(Mockery::type('string'), 'delivery_uncertain');
         Mail::shouldReceive('to')->once()->andThrow(new \RuntimeException('synthetic secret must not escape'));
-        $worker = new QualificationEmailWorker($monitor, $market, new QualificationEmailPolicy, $store, $this->settings());
+        $worker = new QualificationEmailWorker($monitor, $market, new QualificationEmailPolicy, $store, $this->settings(), $this->planner());
         $this->assertSame('delivery_uncertain:1', $worker->tick());
+    }
+
+    public function test_missing_stake_inputs_are_retried_without_claiming_or_sending(): void
+    {
+        $candidate = $this->candidate();
+        $monitor = Mockery::mock(ChampionMonitoring::class);
+        $monitor->shouldReceive('forEmail')->once()->andReturn([$candidate]);
+        $market = Mockery::mock(PaperMarket::class);
+        $market->shouldReceive('facts')->once()->andReturn(['virtual-euro:123:team:1:6' => [
+            'collection_interrupted' => false, 'observed_at' => now('UTC')->toIso8601String(),
+            'fixture' => ['scheduled_start_at' => $candidate['next_match']['scheduled_start_at']],
+        ]]);
+        $planner = Mockery::mock(AlertStakePlanner::class);
+        $planner->shouldReceive('make')->once()->andReturn(['status' => 'missing_schedule_or_historical_odds']);
+        $planner->shouldNotReceive('details');
+        $store = Mockery::mock(QualificationEmailStore::class);
+        $store->shouldNotReceive('claim');
+        $worker = new QualificationEmailWorker($monitor, $market, new QualificationEmailPolicy, $store, $this->settings(), $planner);
+        $this->assertSame('waiting_for_stake_inputs:1', $worker->tick());
+        Mail::assertNothingSent();
     }
 }

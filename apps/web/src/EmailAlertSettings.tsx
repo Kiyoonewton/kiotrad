@@ -1,3 +1,4 @@
+import { AlertAllowance } from "./AlertAllowance";
 import { useState, type FormEvent } from "react";
 import "./history.css";
 import "./simulator.css";
@@ -5,6 +6,7 @@ import "./simulator.css";
 type AlertSettings = {
   enabled: boolean;
   capital: number;
+  allowance?: number;
   lead_seconds: number;
   league: string;
   next_win_enabled: boolean;
@@ -19,6 +21,7 @@ type SettingsResponse = {
   delivery_enabled: boolean;
   smtp_configured: boolean;
   transport_configured?: boolean;
+  production_delivery_allowed?: boolean;
 };
 export function EmailAlertSettings({
   channel = "email",
@@ -91,6 +94,12 @@ export function EmailAlertSettings({
           </p>
         </div>
       </header>
+      {saved?.production_delivery_allowed === false && (
+        <p role="status" className="message-panel">
+          Delivery is production-only. Local and test environments cannot send
+          alerts.
+        </p>
+      )}
       <form onSubmit={submit}>
         {!saved ? (
           <div className="history-filters">
@@ -197,6 +206,10 @@ export function EmailAlertSettings({
                   />
                 </label>
               </div>
+              <AlertAllowance
+                value={draft.allowance ?? 1}
+                change={(value) => change("allowance", value)}
+              />
               {(["next_win", "next_season"] as const).map((prefix) => (
                 <fieldset className="history-filters" key={prefix}>
                   <legend>
@@ -248,9 +261,10 @@ export function EmailAlertSettings({
                 </fieldset>
               ))}
               <p className="subtle">
-                Alerts include your run budget and attempt limit. Live stake
-                amounts are not calculated. Lead time is measured before
-                scheduled kickoff; delivery and bookmaker cutoff may differ.
+                Alerts include a frozen stake plan sized to saved capital and
+                allowance. Future rows use historical estimates. Missing prices
+                or schedules delay the alert; delivery and bookmaker cutoff may
+                differ.
               </p>
               <div className="browse-toolbar" style={{ marginTop: 24 }}>
                 <button type="submit" disabled={busy}>

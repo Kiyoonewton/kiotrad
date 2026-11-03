@@ -186,3 +186,19 @@
     font-size: 15px;
   }
 }
+
+.alert-allowance {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin: 0 0 24px;
+  color: #a8bdb0;
+  font-size: 12px;
+}
+.alert-allowance select {
+  padding: 10px 16px;
+  border: 1px solid #3a5142;
+  border-radius: 7px;
+  background: #0e1712;
+  color: #e1ece5;
+}

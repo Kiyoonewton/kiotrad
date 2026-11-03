@@ -17,7 +17,7 @@ class QualificationEmailStore
         // Insert-only identity survives restarts and multiple workers.
         $result = DB::connection('mongodb')->getDatabase()->selectCollection($this->collectionName())->updateOne(
             ['_id' => $alert['id']], ['$setOnInsert' => ['status' => 'sending', 'created_at' => now('UTC')->toIso8601String(),
-                'deadline' => $alert['deadline'], 'details' => $alert['details']]], ['upsert' => true]);
+                'deadline' => $alert['deadline'], 'details' => $alert['details'], 'stake_plan' => $alert['stake_plan'] ?? null]], ['upsert' => true]);
 
         return $result->getUpsertedCount() === 1;
     }
