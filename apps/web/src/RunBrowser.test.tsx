@@ -114,7 +114,7 @@ it("shows qualified runs newest first and counts attempts to win", () => {
   );
   expect(screen.queryByText("Unqualified team")).not.toBeInTheDocument();
   expect(
-    screen.queryByRole("button", { name: "All", exact: true }),
+    screen.queryByRole("button", { name: /^All$/ }),
   ).not.toBeInTheDocument();
   const rows = screen.getAllByRole("row");
   expect(rows[1]).toHaveTextContent("Latest pending");
