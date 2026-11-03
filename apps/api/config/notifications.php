@@ -2,6 +2,7 @@
 
 return [
     'email' => [
+        'settings_token' => env('QUALIFICATION_EMAIL_SETTINGS_TOKEN', ''),
         'enabled' => (bool) env('QUALIFICATION_EMAIL_ENABLED', false),
         'to' => env('QUALIFICATION_EMAIL_TO', ''),
         'capital_minor' => (int) env('QUALIFICATION_EMAIL_CAPITAL_MINOR', 5000000),

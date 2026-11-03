@@ -11,7 +11,7 @@ use Throwable;
 final class QualificationEmailWorker
 {
     public function __construct(private ChampionMonitoring $monitoring, private PaperMarket $market,
-        private QualificationEmailPolicy $policy, private QualificationEmailStore $store) {}
+        private QualificationEmailPolicy $policy, private QualificationEmailStore $store, private QualificationEmailSettings $settings) {}
 
     public function tick(): string
     {
@@ -22,9 +22,13 @@ final class QualificationEmailWorker
             || ! config('mail.mailers.smtp.username') || ! config('mail.mailers.smtp.password')) {
             return 'disabled_or_unconfigured';
         }
+        $settings = $this->settings->read();
+        if (! $settings['enabled']) {
+            return 'paused';
+        }
         $sent = $uncertain = 0;
-        foreach ($this->monitoring->all(false) as $candidate) {
-            $alert = $this->policy->prepare($candidate, now('UTC')->toIso8601String());
+        foreach ($this->monitoring->forEmail($settings) as $candidate) {
+            $alert = $this->policy->prepare($candidate, now('UTC')->toIso8601String(), $settings);
             if ($alert === null) {
                 continue;
             }
@@ -37,7 +41,7 @@ final class QualificationEmailWorker
                 || ($fact['fixture']['scheduled_start_at'] ?? '') !== $candidate['next_match']['scheduled_start_at']) {
                 continue;
             }
-            if ($this->policy->prepare($candidate, now('UTC')->toIso8601String()) === null || ! $this->store->claim($alert)) {
+            if ($this->policy->prepare($candidate, now('UTC')->toIso8601String(), $settings) === null || ! $this->store->claim($alert)) {
                 continue;
             }
             if (now('UTC')->greaterThanOrEqualTo($alert['deadline'])) {

@@ -1,3 +1,4 @@
+import { EmailAlertSettings } from "./EmailAlertSettings";
 import { useEffect, useState } from "react";
 import { getOverview, type Overview as OverviewData } from "./api";
 import { Overview } from "./Overview";
@@ -7,7 +8,7 @@ import { ProjectionWorkspace } from "./ProjectionWorkspace";
 import { LocalSyncControl } from "./LocalSyncControl";
 import { Logo } from "./Logo";
 
-const pages = ["Overview", "Strategies", "History"] as const;
+const pages = ["Overview", "Strategies", "History", "Email alerts"] as const;
 type Page = (typeof pages)[number];
 
 export default function App() {
@@ -172,7 +173,9 @@ export default function App() {
                 : ""}
             </div>
           )}
-          {error && !data ? (
+          {page === "Email alerts" ? (
+            <EmailAlertSettings />
+          ) : error && !data ? (
             <section className="message-panel" role="alert">
               <h1>Connection interrupted</h1>
               <p>{error}</p>

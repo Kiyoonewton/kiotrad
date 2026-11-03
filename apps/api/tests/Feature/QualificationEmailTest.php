@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Infrastructure\Notifications\QualificationEmail;
 use App\Infrastructure\Notifications\QualificationEmailPolicy;
+use App\Infrastructure\Notifications\QualificationEmailSettings;
 use App\Infrastructure\Notifications\QualificationEmailStore;
 use App\Infrastructure\Notifications\QualificationEmailWorker;
 use App\Infrastructure\Paper\PaperMarket;
@@ -15,6 +16,14 @@ use Tests\TestCase;
 
 class QualificationEmailTest extends TestCase
 {
+    private function settings(): QualificationEmailSettings
+    {
+        $store = Mockery::mock(QualificationEmailSettings::class);
+        $store->shouldReceive('read')->andReturn((new QualificationEmailSettings)->defaults());
+
+        return $store;
+    }
+
     private function candidate(): array
     {
         return ['status' => 'watching_fixture', 'attempt' => 1, 'team_uid' => 'team:1', 'team' => 'Synthetic team',
@@ -51,7 +60,7 @@ class QualificationEmailTest extends TestCase
     {
         $candidate = $this->candidate();
         $monitor = Mockery::mock(ChampionMonitoring::class);
-        $monitor->shouldReceive('all')->with(false)->once()->andReturn([$candidate]);
+        $monitor->shouldReceive('forEmail')->with(Mockery::type('array'))->once()->andReturn([$candidate]);
         $market = Mockery::mock(PaperMarket::class);
         $market->shouldReceive('facts')->once()->andReturn(['virtual-euro:123:team:1:6' => [
             'collection_interrupted' => $interrupted, 'observed_at' => $observed,
@@ -67,7 +76,7 @@ class QualificationEmailTest extends TestCase
             $store->shouldNotReceive('claim');
         }
 
-        return new QualificationEmailWorker($monitor, $market, new QualificationEmailPolicy, $store);
+        return new QualificationEmailWorker($monitor, $market, new QualificationEmailPolicy, $store, $this->settings());
     }
 
     public function test_sends_qualified_mail_after_fresh_fixture_check(): void
@@ -93,8 +102,8 @@ class QualificationEmailTest extends TestCase
     {
         config(['mail.default' => 'log']);
         $monitor = Mockery::mock(ChampionMonitoring::class);
-        $monitor->shouldNotReceive('all');
-        $worker = new QualificationEmailWorker($monitor, Mockery::mock(PaperMarket::class), new QualificationEmailPolicy, Mockery::mock(QualificationEmailStore::class));
+        $monitor->shouldNotReceive('forEmail');
+        $worker = new QualificationEmailWorker($monitor, Mockery::mock(PaperMarket::class), new QualificationEmailPolicy, Mockery::mock(QualificationEmailStore::class), $this->settings());
         $this->assertSame('disabled_or_unconfigured', $worker->tick());
         Mail::assertNothingSent();
     }
@@ -103,7 +112,7 @@ class QualificationEmailTest extends TestCase
     {
         $candidate = $this->candidate();
         $monitor = Mockery::mock(ChampionMonitoring::class);
-        $monitor->shouldReceive('all')->andReturn([$candidate]);
+        $monitor->shouldReceive('forEmail')->andReturn([$candidate]);
         $market = Mockery::mock(PaperMarket::class);
         $market->shouldReceive('facts')->andReturn(['virtual-euro:123:team:1:6' => [
             'collection_interrupted' => false, 'observed_at' => now('UTC')->toIso8601String(),
@@ -113,7 +122,7 @@ class QualificationEmailTest extends TestCase
         $store->shouldReceive('claim')->once()->andReturn(true);
         $store->shouldReceive('finish')->once()->with(Mockery::type('string'), 'delivery_uncertain');
         Mail::shouldReceive('to')->once()->andThrow(new \RuntimeException('synthetic secret must not escape'));
-        $worker = new QualificationEmailWorker($monitor, $market, new QualificationEmailPolicy, $store);
+        $worker = new QualificationEmailWorker($monitor, $market, new QualificationEmailPolicy, $store, $this->settings());
         $this->assertSame('delivery_uncertain:1', $worker->tick());
     }
 }

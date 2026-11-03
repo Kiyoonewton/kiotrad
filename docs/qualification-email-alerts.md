@@ -40,3 +40,13 @@ Existing MongoDB must be running. `disabled_or_unconfigured` means no delivery h
 Each league/season/strategy/version has an insert-only record in `qualification_email_alerts`. Concurrent workers cannot claim the same new identity. Ambiguous SMTP failures become `delivery_uncertain` and are not retried automatically, preventing duplicate or stale betting prompts; interrupted `sending` records also remain deduplicated. Inspect these statuses before any manual delivery decision. No historical alerts are backfilled. This uses a dedicated collection and leaves Slack alerts unchanged.
 
 To stop: `docker compose --env-file engine/.env -f engine/compose.yaml stop qualification-email-worker`.
+
+## Email alerts page
+
+The dashboard's **Email alerts** page edits this channel independently of the retrospective simulator. Generate a strong settings key on the server (`openssl rand -hex 32`) and put it in `QUALIFICATION_EMAIL_SETTINGS_TOKEN` in `engine/.env`; enter it in the page to unlock. The key stays in component memory and is cleared on Lock or navigation, never local storage. GET/PUT require this bearer key (minimum 32 characters); an absent key disables this API. Keep the dashboard behind HTTPS and existing operator access controls. Never put the key in a URL.
+
+Editable parameters: alert pause, capital in naira, league, minimum lead seconds, plus independent enable, first-win qualification day and maximum attempts for each strategy. Save explicitly; the next worker scan reads the persisted MongoDB settings. These thresholds are evaluated against current as-observed season evidence, without future results or retrospective cache reuse. Qualification overrides do not change the normal production monitor, paper bankroll or simulator. Maximum attempts is included in the message and monitoring window; this worker still sends one initial alert per run, not a per-attempt betting sequence.
+
+SMTP credentials and recipient stay in env. Changing settings does not resend an already claimed run, enable the env delivery switch or certify SMTP/inbox delivery. Capital is a reference run budget; there are no allowance, compounding or profit-stop controls pretending to manage a bankroll because live stake execution is not implemented.
+
+After adding/changing env values recreate both `api` and `qualification-email-worker` to load configuration. Build `web` to expose the new page. Local snapshots have their own settings and do not copy SMTP secrets from production.
