@@ -15,7 +15,7 @@ final class QualificationEmailSettingsController extends Controller
     public function __invoke(Request $request, QualificationEmailSettings $store): JsonResponse
     {
         $slack = $request->route('channel') === 'slack';
-        $token = (string) config($slack ? 'notifications.slack_qualification.settings_token' : 'notifications.email.settings_token');
+        $token = (string) (config('notifications.alert_settings_token') ?: config($slack ? 'notifications.slack_qualification.settings_token' : 'notifications.email.settings_token'));
         abort_unless(strlen($token) >= 32 && hash_equals($token, (string) $request->bearerToken()), 403);
         if ($slack) {
             $store = app(QualificationSlackSettings::class);

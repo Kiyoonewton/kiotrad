@@ -202,3 +202,29 @@
   background: #0e1712;
   color: #e1ece5;
 }
+
+.alert-delivery-channels {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  margin-bottom: 24px;
+}
+.alert-delivery-channels > label {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 20px;
+  border: 1px solid #304538;
+  border-radius: 10px;
+}
+.alert-delivery-channels select {
+  min-height: 42px;
+  padding: 10px;
+  background: #0e1712;
+  color: #e1ece5;
+  border: 1px solid #3a5142;
+  border-radius: 7px;
+}
+@media (max-width: 520px) {
+  .alert-delivery-channels {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

@@ -19,7 +19,25 @@ class QualificationEmailSettings
             'next_season_enabled' => true, 'next_season_qualification' => 5, 'next_season_attempts' => 4];
     }
 
+    protected function channel(): string
+    {
+        return 'email';
+    }
+
     public function read(): array
+    {
+        $shared = app(QualificationAlertSettings::class)->stored();
+        if ($shared !== null) {
+            $settings = array_replace($this->defaults(), array_intersect_key($shared, $this->defaults()));
+            $settings['enabled'] = $settings['enabled'] && ($shared[$this->channel().'_enabled'] ?? false);
+
+            return $settings;
+        }
+
+        return $this->legacyRead();
+    }
+
+    public function legacyRead(): array
     {
         $row = DB::connection('mongodb')->getDatabase()->selectCollection($this->collectionName())->findOne(['_id' => 'current'],
             ['typeMap' => ['root' => 'array', 'document' => 'array', 'array' => 'array']]);
@@ -29,6 +47,14 @@ class QualificationEmailSettings
 
     public function save(array $settings): array
     {
+        if (app(QualificationAlertSettings::class)->stored() !== null) {
+            $patch = array_diff_key($settings, ['enabled' => true]);
+            $patch[$this->channel().'_enabled'] = $settings['enabled'];
+            DB::connection('mongodb')->getDatabase()->qualification_alert_settings->updateOne(['_id' => 'current'],
+                ['$set' => [...$patch, 'updated_at' => now('UTC')->toIso8601String()]]);
+
+            return $this->read();
+        }
         DB::connection('mongodb')->getDatabase()->selectCollection($this->collectionName())->updateOne(['_id' => 'current'],
             ['$set' => [...$settings, 'updated_at' => now('UTC')->toIso8601String()]], ['upsert' => true]);
 

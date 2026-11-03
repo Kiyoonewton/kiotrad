@@ -1,6 +1,7 @@
 <?php
 
 return [
+    'alert_settings_token' => env('QUALIFICATION_ALERT_SETTINGS_TOKEN', ''),
     'slack_qualification' => [
         'enabled' => (bool) env('QUALIFICATION_SLACK_ENABLED', false),
         'settings_token' => env('QUALIFICATION_SLACK_SETTINGS_TOKEN', env('QUALIFICATION_EMAIL_SETTINGS_TOKEN', '')),
