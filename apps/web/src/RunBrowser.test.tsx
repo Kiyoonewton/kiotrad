@@ -122,3 +122,44 @@ it("shows qualified runs newest first and counts attempts to win", () => {
   expect(rows[2].children[2]).toHaveTextContent("2");
   expect(rows[1].children[2]).toHaveTextContent("—");
 });
+it("shows skipped hypothetical amounts without losing the skipped label", () => {
+  render(
+    <RunBrowser
+      qualifiedOnly
+      runs={[
+        {
+          id: "skipped",
+          team: "Skipped preview",
+          entry_at: "2026-10-20T10:00:00Z",
+          status: "skipped_overlap",
+          hypothetical: {
+            id: "skipped",
+            entry_at: "2026-10-20T10:00:00Z",
+            status: "win",
+            total_staked_minor: 20000,
+            gross_payout_minor: 32000,
+            net_minor: 12000,
+            attempts: [
+              {
+                attempt: 1,
+                matchday: 1,
+                stake_minor: 20000,
+                target_profit_minor: 10000,
+                payout_minor: 32000,
+              },
+            ],
+          },
+        },
+      ]}
+    />,
+  );
+  expect(screen.getByText("skipped overlap")).toBeInTheDocument();
+  expect(screen.getByText(/Hypothetical · win/)).toBeInTheDocument();
+  expect(screen.getByText("₦200.00")).toBeInTheDocument();
+  expect(screen.getByText("₦320.00")).toBeInTheDocument();
+  expect(screen.getByText("₦120.00")).toBeInTheDocument();
+  fireEvent.click(screen.getByRole("button", { name: "Inspect" }));
+  expect(
+    screen.getByText(/excluded from bankroll and totals/),
+  ).toBeInTheDocument();
+});

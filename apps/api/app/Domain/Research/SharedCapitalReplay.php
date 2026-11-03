@@ -7,7 +7,7 @@ use DomainException;
 
 final class SharedCapitalReplay
 {
-    public const VERSION = 'single-active-carry-model-2.3.0';
+    public const VERSION = 'single-active-carry-model-2.4.0';
 
     public function calculate(array $candidates, int $capital, string $asOf, ?int $settlementSeconds = null, int $maxAttempts = 4, int $multiplier = 1, string $capitalMode = 'compound', int $profitStop = 0, string $stakingModel = 'recovery'): array
     {
@@ -72,6 +72,7 @@ final class SharedCapitalReplay
             if ($active !== null) {
                 foreach ($group as $candidate) {
                     $rows[] = [...$candidate, 'entry_at' => $at, 'status' => 'skipped_overlap',
+                        'capital_at_entry_minor' => $balance, 'sizing_capital_at_entry_minor' => $capitalMode === 'fixed' ? $capital : $balance,
                         'blocked_by' => $active['id'], 'observed_window' => (new RunWindowOutcome)->observe($candidate, $asOf)];
                 }
 
@@ -123,6 +124,7 @@ final class SharedCapitalReplay
             foreach ($eligible as $candidate) {
                 if ($active !== null) {
                     $rows[] = [...$candidate, 'entry_at' => $at, 'status' => 'skipped_simultaneous_entry',
+                        'capital_at_entry_minor' => $balance, 'sizing_capital_at_entry_minor' => $capitalMode === 'fixed' ? $capital : $balance,
                         'blocked_by' => $active['id'], 'observed_window' => (new RunWindowOutcome)->observe($candidate, $asOf)];
 
                     continue;
@@ -144,6 +146,8 @@ final class SharedCapitalReplay
             $this->settle($active, $balance, $recoveryTarget, $equity);
             $active = null;
         }
+
+        $rows = (new SkippedRunCalculation)->append($rows, $asOf, $maxAttempts, $multiplier, $stakingModel, $capital, $capitalMode);
 
         return ['policy_version' => self::VERSION, 'mode' => 'shared_capital_simulation', 'as_of' => $asOf,
             'timing_basis' => $settlementSeconds === null ? 'recorded_result_confirmation_conservative' : 'modeled_scheduled_kickoff_offset', 'starting_capital_minor' => $capital,

@@ -1,5 +1,6 @@
 export type SharedRun = {
   id: string;
+  hypothetical?: SharedRun & { reason?: string };
   competition?: string;
   season_id?: string;
   strategy_id?: string;
