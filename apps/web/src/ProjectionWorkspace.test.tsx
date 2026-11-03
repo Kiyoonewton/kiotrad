@@ -163,10 +163,11 @@ it("replays entered capital and shares returned amounts across all pages without
   expect(
     within(row)
       .getAllByRole("cell")
-      .slice(-3)
+      .slice(-4, -1)
       .map((c) => c.textContent),
   ).toEqual(["₦300.00", "₦423.45", "₦123.45"]);
-  expect(row).toHaveTextContent("1.50");
+  fireEvent.click(within(row).getByRole("button", { name: "Inspect" }));
+  expect(screen.getByText("1.50")).toBeInTheDocument();
   ui.rerender(
     <ProjectionWorkspace data={data} league="all" page="Strategies" />,
   );
