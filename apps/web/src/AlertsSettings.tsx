@@ -1,75 +1,57 @@
-import { AlertAllowance } from "./AlertAllowance";
 import { useState, type FormEvent } from "react";
+import { AlertAllowance } from "./AlertAllowance";
+import { AlertDeliveryChannels } from "./AlertDeliveryChannels";
+import type { AlertSettings, AlertSettingsView } from "./alertSettingsTypes";
 import "./history.css";
-import "./simulator.css";
 
-type AlertSettings = {
-  enabled: boolean;
-  capital: number;
-  allowance?: number;
-  lead_seconds: number;
-  league: string;
-  next_win_enabled: boolean;
-  next_win_qualification: number;
-  next_win_attempts: number;
-  next_season_enabled: boolean;
-  next_season_qualification: number;
-  next_season_attempts: number;
-};
-type SettingsResponse = {
-  settings: AlertSettings;
-  delivery_enabled: boolean;
-  smtp_configured: boolean;
-  transport_configured?: boolean;
-  production_delivery_allowed?: boolean;
-};
-export function EmailAlertSettings({
-  channel = "email",
-}: {
-  channel?: "email" | "slack";
-}) {
-  const title = channel === "slack" ? "Slack" : "Email";
+export function AlertsSettings() {
   const [token, setToken] = useState("");
-  const [saved, setSaved] = useState<SettingsResponse | null>(null);
+  const [saved, setSaved] = useState<AlertSettingsView | null>(null);
   const [draft, setDraft] = useState<AlertSettings | null>(null);
+  const [source, setSource] = useState<"email" | "slack" | "">("");
   const [message, setMessage] = useState("");
   const [busy, setBusy] = useState(false);
   const call = async (save: boolean) => {
     setBusy(true);
     setMessage("");
     try {
-      const response = await fetch(
-        `/api/v1/notifications/${channel}-settings`,
-        {
-          method: save ? "PUT" : "GET",
-          cache: "no-store",
-          headers: {
-            Authorization: `Bearer ${token}`,
-            Accept: "application/json",
-            ...(save ? { "Content-Type": "application/json" } : {}),
-          },
-          ...(save ? { body: JSON.stringify(draft) } : {}),
+      const response = await fetch("/api/v1/notifications/alert-settings", {
+        method: save ? "PUT" : "GET",
+        cache: "no-store",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          Accept: "application/json",
+          ...(save ? { "Content-Type": "application/json" } : {}),
         },
-      );
+        ...(save
+          ? {
+              body: JSON.stringify({
+                ...draft,
+                ...(source ? { migration_source: source } : {}),
+              }),
+            }
+          : {}),
+      });
       if (!response.ok)
         throw new Error(
           response.status === 403
             ? "Settings key required or not accepted."
             : response.status === 422
-              ? "Check capital, timing and strategy ranges."
-              : "Unable to save or load alert settings. Retry.",
+              ? "Check the settings and choose an existing profile if requested."
+              : "Unable to load or save alerts. Retry.",
         );
-      const result = (await response.json()) as SettingsResponse;
+      const result = (await response.json()) as AlertSettingsView;
       setSaved(result);
       setDraft(result.settings);
+      setSource("");
       setMessage(
         save
-          ? "Saved. The next worker scan uses these settings."
+          ? "Saved. Both channels use these parameters on their next scan."
           : "Settings loaded.",
       );
     } catch (error) {
       setMessage(
-        error instanceof Error ? error.message : "Alert settings unavailable.",
+        error instanceof Error ? error.message : "Alerts unavailable.",
       );
     } finally {
       setBusy(false);
@@ -78,23 +60,36 @@ export function EmailAlertSettings({
   const change = <K extends keyof AlertSettings>(
     key: K,
     value: AlertSettings[K],
-  ) => setDraft((s) => (s ? { ...s, [key]: value } : s));
+  ) =>
+    setDraft((previous) =>
+      previous ? { ...previous, [key]: value } : previous,
+    );
   const submit = (event: FormEvent) => {
     event.preventDefault();
     void call(!!saved);
   };
+  const choose = (channel: "email" | "slack") => {
+    if (!saved || !draft) return;
+    const { enabled: _enabled, ...parameters } = saved.profiles[channel];
+    setDraft({
+      ...draft,
+      ...parameters,
+      enabled: draft.enabled,
+      email_enabled: draft.email_enabled,
+      slack_enabled: draft.slack_enabled,
+    });
+    setSource(channel);
+  };
   return (
-    <section className="history-page" aria-label={`${title} alert settings`}>
+    <section className="history-page" aria-label="Alert settings">
       <header className="section-heading">
         <div>
           <p className="eyebrow">Manual betting alerts</p>
-          <h1>{title} alerts</h1>
-          <p className="subtle">
-            Separate from simulator settings. No automatic bets.
-          </p>
+          <h1>Alerts</h1>
+          <p className="subtle">One set of parameters · Email and Slack</p>
         </div>
       </header>
-      {saved?.production_delivery_allowed === false && (
+      {saved && !saved.production_delivery_allowed && (
         <p role="status" className="message-panel">
           Delivery is production-only. Local and test environments cannot send
           alerts.
@@ -108,54 +103,51 @@ export function EmailAlertSettings({
               <input
                 type="password"
                 autoComplete="off"
-                value={token}
-                onChange={(e) => setToken(e.target.value)}
                 required
                 minLength={32}
+                value={token}
+                onChange={(e) => setToken(e.target.value)}
               />
             </label>
-            <button disabled={busy} type="submit">
+            <button type="submit" disabled={busy}>
               {busy ? "Loading…" : "Unlock settings"}
             </button>
           </div>
         ) : (
           draft && (
             <>
-              <div
-                className="history-summary"
-                aria-label={`${title} delivery status`}
-              >
-                <div>
-                  <small>Alerts</small>
-                  <strong>
-                    {saved.settings.enabled ? "Enabled" : "Paused"}
-                  </strong>
+              <AlertDeliveryChannels
+                draft={draft}
+                view={saved}
+                change={change}
+              />
+              {saved.needs_review && (
+                <div
+                  className="message-panel"
+                  role="group"
+                  aria-label="Existing alert profiles"
+                >
+                  <p>
+                    Email and Slack have different parameters. Choose a starting
+                    profile, review it, then save for both.
+                  </p>
+                  <div className="browse-toolbar">
+                    {(["email", "slack"] as const).map((channel) => (
+                      <button
+                        type="button"
+                        key={channel}
+                        aria-pressed={source === channel}
+                        onClick={() => choose(channel)}
+                      >
+                        Use {channel === "email" ? "Email" : "Slack"} · ₦
+                        {saved.profiles[channel].capital.toLocaleString(
+                          "en-NG",
+                        )}
+                      </button>
+                    ))}
+                  </div>
                 </div>
-                <div>
-                  <small>Delivery switch</small>
-                  <strong>
-                    {saved.delivery_enabled ? "On" : "Off in server env"}
-                  </strong>
-                </div>
-                <div>
-                  <small>{channel === "slack" ? "Webhook" : "SMTP"}</small>
-                  <strong>
-                    {(
-                      channel === "slack"
-                        ? saved.transport_configured
-                        : saved.smtp_configured
-                    )
-                      ? "Configured"
-                      : "Setup required"}
-                  </strong>
-                </div>
-                <div>
-                  <small>Saved budget</small>
-                  <strong>
-                    ₦{saved.settings.capital.toLocaleString("en-NG")}
-                  </strong>
-                </div>
-              </div>
+              )}
               <div className="history-filters" style={{ marginTop: 24 }}>
                 <label>
                   Alerts
@@ -171,10 +163,10 @@ export function EmailAlertSettings({
                   Total run capital · ₦
                   <input
                     type="number"
+                    required
                     min={100}
                     max={10000000}
                     step={1}
-                    required
                     value={draft.capital}
                     onChange={(e) => change("capital", Number(e.target.value))}
                   />
@@ -195,10 +187,10 @@ export function EmailAlertSettings({
                   Minimum lead · seconds
                   <input
                     type="number"
+                    required
                     min={5}
                     max={600}
                     step={1}
-                    required
                     value={draft.lead_seconds}
                     onChange={(e) =>
                       change("lead_seconds", Number(e.target.value))
@@ -207,7 +199,7 @@ export function EmailAlertSettings({
                 </label>
               </div>
               <AlertAllowance
-                value={draft.allowance ?? 1}
+                value={draft.allowance}
                 change={(value) => change("allowance", value)}
               />
               {(["next_win", "next_season"] as const).map((prefix) => (
@@ -216,7 +208,7 @@ export function EmailAlertSettings({
                     {prefix === "next_win" ? "Next Win" : "Next Season"}
                   </legend>
                   <label>
-                    Send alerts
+                    Include strategy
                     <select
                       value={draft[`${prefix}_enabled`] ? "on" : "off"}
                       onChange={(e) =>
@@ -232,9 +224,9 @@ export function EmailAlertSettings({
                     <input
                       aria-label={`${prefix} qualification`}
                       type="number"
+                      required
                       min={1}
                       max={30}
-                      required
                       value={draft[`${prefix}_qualification`]}
                       onChange={(e) =>
                         change(
@@ -249,9 +241,9 @@ export function EmailAlertSettings({
                     <input
                       aria-label={`${prefix} attempts`}
                       type="number"
+                      required
                       min={1}
                       max={10}
-                      required
                       value={draft[`${prefix}_attempts`]}
                       onChange={(e) =>
                         change(`${prefix}_attempts`, Number(e.target.value))
@@ -261,22 +253,25 @@ export function EmailAlertSettings({
                 </fieldset>
               ))}
               <p className="subtle">
-                Alerts include a frozen stake plan sized to saved capital and
-                allowance. Future rows use historical estimates. Missing prices
-                or schedules delay the alert; delivery and bookmaker cutoff may
-                differ.
+                Frozen conditional stake plans use saved capital and allowance.
+                Future rows use historical estimates; confirm current odds and
+                funds manually.
               </p>
               <div className="browse-toolbar" style={{ marginTop: 24 }}>
-                <button type="submit" disabled={busy}>
-                  {busy ? "Saving…" : `Save ${channel} settings`}
+                <button
+                  type="submit"
+                  disabled={busy || (saved.needs_review && !source)}
+                >
+                  {busy ? "Saving…" : "Save alert settings"}
                 </button>
                 <button
                   type="button"
                   disabled={busy}
                   onClick={() => {
+                    setToken("");
                     setSaved(null);
                     setDraft(null);
-                    setToken("");
+                    setSource("");
                     setMessage("");
                   }}
                 >

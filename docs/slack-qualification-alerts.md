@@ -39,3 +39,7 @@ docker compose --env-file engine/.env -f engine/compose.yaml logs -f --tail=20 q
 ## Stake-plan update
 
 See [Production-only stake plans](alert-stake-plans.md): new qualified Slack alerts include a frozen conditional stake schedule based on saved capital and allowance. Missing inputs delay/suppress the alert. The earlier budget-only limitation is superseded. Delivery is blocked outside production and on local mirrors/snapshot databases.
+
+## Unified settings page
+
+Use **Alerts** instead of a separate Slack alerts page. See [Unified alert settings](unified-alert-settings.md). Select the previous Slack profile if it holds the capital/rules you want to keep, then save once for both delivery channels. Credentials and delivery history remain separate.

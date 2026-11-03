@@ -2,7 +2,10 @@
 
 use App\Infrastructure\Notifications\AlertStakeEvidence;
 use App\Infrastructure\Notifications\AlertStakePlanner;
+use App\Infrastructure\Notifications\QualificationAlertSettings;
+use App\Infrastructure\Notifications\QualificationEmailSettings;
 use App\Infrastructure\Notifications\QualificationEmailStore;
+use App\Infrastructure\Notifications\QualificationSlackSettings;
 use App\Infrastructure\Notifications\QualificationSlackStore;
 use Illuminate\Contracts\Console\Kernel;
 use Illuminate\Support\Facades\DB;
@@ -23,6 +26,18 @@ $assert = function (bool $ok, string $reason): void {
 };
 try {
     $db->drop();
+    $emailSettings = new QualificationEmailSettings;
+    $slackSettings = new QualificationSlackSettings;
+    $db->qualification_email_settings->insertOne(['_id' => 'current', 'capital' => 50000]);
+    $db->qualification_slack_settings->insertOne(['_id' => 'current', 'capital' => 100000]);
+    $assert($emailSettings->read()['capital'] === 50000 && $slackSettings->read()['capital'] === 100000, 'Legacy settings changed before shared save.');
+    $shared = new QualificationAlertSettings;
+    $assert($shared->view()['needs_review'], 'Conflicting capital was silently migrated.');
+    $shared->save([...$emailSettings->defaults(), 'capital' => 150000, 'email_enabled' => false, 'slack_enabled' => true]);
+    $assert($emailSettings->read()['capital'] === 150000 && $slackSettings->read()['capital'] === 150000, 'Workers did not share saved capital.');
+    $assert(! $emailSettings->read()['enabled'] && $slackSettings->read()['enabled'], 'Channel switches were not independent.');
+    $emailSettings->save([...$emailSettings->defaults(), 'capital' => 125000]);
+    $assert($slackSettings->read()['capital'] === 125000, 'Legacy client update diverged from shared settings.');
     $fixture = ['provider_match_id' => 'vf:1', 'matchday' => 1, 'home_team_uid' => 'h', 'away_team_uid' => 'a',
         'home_team' => 'Synthetic Home', 'away_team' => 'Synthetic Away', 'scheduled_start_at' => '2026-11-03T10:03:00+00:00',
         'status' => 'scheduled_or_unconfirmed'];

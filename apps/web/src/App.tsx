@@ -1,4 +1,4 @@
-import { EmailAlertSettings } from "./EmailAlertSettings";
+import { AlertsSettings } from "./AlertsSettings";
 import { useEffect, useState } from "react";
 import { getOverview, type Overview as OverviewData } from "./api";
 import { Overview } from "./Overview";
@@ -8,13 +8,7 @@ import { ProjectionWorkspace } from "./ProjectionWorkspace";
 import { LocalSyncControl } from "./LocalSyncControl";
 import { Logo } from "./Logo";
 
-const pages = [
-  "Overview",
-  "Strategies",
-  "History",
-  "Email alerts",
-  "Slack alerts",
-] as const;
+const pages = ["Overview", "Strategies", "History", "Alerts"] as const;
 type Page = (typeof pages)[number];
 
 export default function App() {
@@ -179,11 +173,8 @@ export default function App() {
                 : ""}
             </div>
           )}
-          {page === "Email alerts" || page === "Slack alerts" ? (
-            <EmailAlertSettings
-              key={page}
-              channel={page === "Slack alerts" ? "slack" : "email"}
-            />
+          {page === "Alerts" ? (
+            <AlertsSettings />
           ) : error && !data ? (
             <section className="message-panel" role="alert">
               <h1>Connection interrupted</h1>

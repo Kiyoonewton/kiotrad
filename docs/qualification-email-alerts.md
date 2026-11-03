@@ -54,3 +54,7 @@ After adding/changing env values recreate both `api` and `qualification-email-wo
 ## Stake-plan update
 
 The initial budget-only limitation above is superseded by [Production-only stake plans](alert-stake-plans.md). New alerts wait for a complete conditional plan and verified first quote. The page now supports allowance ×1/×2. Live delivery requires APP_ENV=production, non-mirror mode and a non-local database; local/testing workers cannot send.
+
+## Unified settings page
+
+Email and Slack controls are now together on **Alerts**. See [Unified alert settings](unified-alert-settings.md) for safe migration of different existing capital values, the shared key and the one-record save. Channel credentials and workers remain separate; all qualification parameters are shared after the first reviewed save.
