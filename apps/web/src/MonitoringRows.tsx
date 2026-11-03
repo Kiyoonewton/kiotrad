@@ -50,11 +50,13 @@ const reasons: Record<string, string> = {
 
 export function MonitoringRows({
   rows,
+  qualificationOnly = false,
   sharedRuns,
   strategies,
   competitions,
 }: {
   sharedRuns?: SharedRun[];
+  qualificationOnly?: boolean;
   rows: NonNullable<Overview["strategy_monitoring"]>;
   strategies: Overview["strategies"];
   competitions: Overview["competitions"];
@@ -177,21 +179,23 @@ export function MonitoringRows({
                   "Monitoring state unavailable."}
               </p>
             </details>
-            <details className="run-details">
-              <summary>Stake &amp; results</summary>
-              {sharedRuns
-                ? (() => {
-                    const run = sharedRuns.find(
-                      (r) =>
-                        r.id ===
-                        `${row.competition}:${row.season_id}:${row.strategy_id}`,
-                    );
-                    return <SharedRunCalculation run={run} />;
-                  })()
-                : row.simulation && (
-                    <RunCalculation calculation={row.simulation} />
-                  )}
-            </details>
+            {!qualificationOnly && (
+              <details className="run-details">
+                <summary>Stake &amp; results</summary>
+                {sharedRuns
+                  ? (() => {
+                      const run = sharedRuns.find(
+                        (r) =>
+                          r.id ===
+                          `${row.competition}:${row.season_id}:${row.strategy_id}`,
+                      );
+                      return <SharedRunCalculation run={run} />;
+                    })()
+                  : row.simulation && (
+                      <RunCalculation calculation={row.simulation} />
+                    )}
+              </details>
+            )}
             {!row.simulation && !!row.data_quality_notes?.length && (
               <details className="run-details">
                 <summary>Data notes</summary>

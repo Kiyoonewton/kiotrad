@@ -4,6 +4,7 @@ import { MonitoringRows } from "./MonitoringRows";
 
 type Props = {
   sharedRuns?: SharedRun[];
+  qualificationOnly?: boolean;
   rows: NonNullable<Overview["strategy_monitoring"]>;
   strategies: Overview["strategies"];
   competitions: Overview["competitions"];
@@ -14,6 +15,7 @@ export function MonitoringGroups({
   strategies,
   competitions,
   sharedRuns,
+  qualificationOnly,
 }: Props) {
   const groups = [
     ...strategies.map((s) => ({ id: s.id, name: s.name })),
@@ -34,6 +36,7 @@ export function MonitoringGroups({
             <h3 className="monitoring-group-title">{group.name}</h3>
             <MonitoringRows
               rows={selected}
+              qualificationOnly={qualificationOnly}
               sharedRuns={sharedRuns}
               strategies={strategies}
               competitions={competitions}
