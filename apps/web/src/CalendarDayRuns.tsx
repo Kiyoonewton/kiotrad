@@ -1,3 +1,4 @@
+import { winningAttempt } from "./winningAttempt";
 import { naira } from "./api";
 import type { SharedRun } from "./sharedSimulation";
 
@@ -48,6 +49,7 @@ export function CalendarDayRuns({
             <th scope="col">Entry date & time</th>
             <th scope="col">Release date & time</th>
             <th scope="col">Result</th>
+            <th scope="col">Attempts to win</th>
             <th scope="col">Profit / loss</th>
             <th scope="col">Stake sum</th>
             <th scope="col">Payout</th>
@@ -67,6 +69,11 @@ export function CalendarDayRuns({
               <td>{timestamp(run.entry_at)}</td>
               <td>{timestamp(run.released_at!)}</td>
               <td>{run.status.replaceAll("_", " ")}</td>
+              <td>
+                {run.status === "win"
+                  ? (winningAttempt(run) ?? "Unknown")
+                  : "No win"}
+              </td>
               <td
                 className={
                   run.net_minor! < 0 ? "calendar-loss" : "calendar-profit"

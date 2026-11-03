@@ -170,3 +170,57 @@ it("expands a day into a chronological run table and collapses without changing 
   ).not.toBeInTheDocument();
   expect(screen.getByText("Total").closest("tr")!.textContent).toBe(total);
 });
+it("shows winning attempt counts in the date summary and expanded rows without changing totals", () => {
+  const attempt = (n: number, payout: number) => ({
+    attempt: n,
+    matchday: n,
+    stake_minor: 10000,
+    target_profit_minor: 10000,
+    payout_minor: payout,
+  });
+  render(
+    <CalendarDailyTable
+      coverage={coverage}
+      dates={coverage[0].dates}
+      league="all"
+      simulation={{
+        ...simulation,
+        runs: [
+          {
+            ...run,
+            team: "Fourth bet winner",
+            attempts: [
+              attempt(1, 0),
+              attempt(2, 0),
+              attempt(3, 0),
+              attempt(4, 30000),
+            ],
+          },
+          {
+            ...run,
+            id: "loss",
+            team: "Losing run",
+            status: "four_losses",
+            net_minor: -20000,
+            gross_payout_minor: 0,
+            attempts: [attempt(1, 0)],
+          },
+        ],
+      }}
+    />,
+  );
+  expect(screen.getByText("Wins: 4 bets × 1")).toBeInTheDocument();
+  const total = screen.getByText("Total").closest("tr")!.textContent;
+  fireEvent.click(
+    screen.getByRole("button", { name: "Inspect runs for 2026-10-19" }),
+  );
+  const table = screen.getByRole("table", {
+    name: "Run details for 2026-10-19",
+  });
+  expect(
+    within(table).getByRole("columnheader", { name: "Attempts to win" }),
+  ).toBeInTheDocument();
+  expect(within(table).getByText("4")).toBeInTheDocument();
+  expect(within(table).getByText("No win")).toBeInTheDocument();
+  expect(screen.getByText("Total").closest("tr")!.textContent).toBe(total);
+});

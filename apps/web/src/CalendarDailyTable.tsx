@@ -1,3 +1,4 @@
+import { dailyWinningAttempts } from "./winningAttempt";
 import { Fragment, useState } from "react";
 import { CalendarDayRuns } from "./CalendarDayRuns";
 import "./calendar-daily.css";
@@ -127,6 +128,9 @@ export function CalendarDailyTable({
                     <small>
                       {available ? ` · ${r.count} settled runs` : ""}
                     </small>
+                    {dailyWinningAttempts(r.settled) && (
+                      <small>Wins: {dailyWinningAttempts(r.settled)}</small>
+                    )}
                   </td>
                   <td>
                     {r.first && r.last
