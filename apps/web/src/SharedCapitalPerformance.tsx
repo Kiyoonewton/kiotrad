@@ -1,4 +1,3 @@
-import { RunBrowser } from "./RunBrowser";
 import { naira } from "./api";
 import { TimingSensitivityPanel } from "./TimingSensitivityPanel";
 import { ResearchChart } from "./ResearchChart";
@@ -221,7 +220,6 @@ export function SharedCapitalPerformance({
           </p>
         </aside>
       </div>
-      <RunBrowser runs={[...data.runs, ...(data.unqualified ?? [])]} />
     </>
   );
 }

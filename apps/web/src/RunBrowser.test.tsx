@@ -70,3 +70,55 @@ it("paginates all runs and resets to the first page when searching", () => {
   expect(screen.getByText("Synthetic 0")).toBeInTheDocument();
   expect(screen.getByRole("button", { name: "Previous" })).toBeDisabled();
 });
+it("shows qualified runs newest first and counts attempts to win", () => {
+  render(
+    <RunBrowser
+      qualifiedOnly
+      runs={[
+        {
+          id: "old",
+          team: "Older winner",
+          status: "win",
+          entry_at: "2026-10-20T10:00:00Z",
+          attempts: [
+            {
+              attempt: 1,
+              matchday: 5,
+              stake_minor: 10000,
+              target_profit_minor: 10000,
+              payout_minor: 0,
+            },
+            {
+              attempt: 2,
+              matchday: 6,
+              stake_minor: 20000,
+              target_profit_minor: 10000,
+              payout_minor: 40000,
+            },
+          ],
+        },
+        {
+          id: "no",
+          team: "Unqualified team",
+          status: "not_qualified",
+          entry_at: "2026-10-22T10:00:00Z",
+        },
+        {
+          id: "new",
+          team: "Latest pending",
+          status: "pending",
+          entry_at: "2026-10-21T10:00:00Z",
+        },
+      ]}
+    />,
+  );
+  expect(screen.queryByText("Unqualified team")).not.toBeInTheDocument();
+  expect(
+    screen.queryByRole("button", { name: /^All$/ }),
+  ).not.toBeInTheDocument();
+  const rows = screen.getAllByRole("row");
+  expect(rows[1]).toHaveTextContent("Latest pending");
+  expect(rows[2]).toHaveTextContent("Older winner");
+  expect(rows[2].children[2]).toHaveTextContent("2");
+  expect(rows[1].children[2]).toHaveTextContent("—");
+});

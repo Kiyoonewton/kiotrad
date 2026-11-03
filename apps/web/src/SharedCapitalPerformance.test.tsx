@@ -57,7 +57,10 @@ it("plots only accepted shared results and shows proportional targets and comple
   expect(
     screen.getByText(/1 completed · 1 unresolved · 1 overlap exclusions/),
   ).toBeInTheDocument();
-  expect(screen.getAllByText("₦961.00").length).toBeGreaterThan(0);
+  expect(screen.getByText(/Net ₦961.00/)).toBeInTheDocument();
+  expect(
+    screen.queryByRole("region", { name: "Run explorer" }),
+  ).not.toBeInTheDocument();
   expect(screen.queryByText(/not one shared bankroll/)).not.toBeInTheDocument();
   fireEvent.click(screen.getByRole("button", { name: "Bars" }));
   expect(
@@ -130,12 +133,6 @@ it("separates budget skips from missing history and shows the affected fixtures"
   expect(
     screen.getByText(/1 completed · 1 unresolved · 0 overlap exclusions/),
   ).toBeInTheDocument();
-  fireEvent.click(screen.getAllByRole("button", { name: "Inspect" })[2]);
-  expect(
-    screen.getByText(
-      /D5 · Synthetic vs Opponent · H: earlier-season odds missing/,
-    ),
-  ).toBeInTheDocument();
 });
 
 it("marks the balance provisional when archive timing affects allocation", () => {
@@ -171,8 +168,9 @@ it("keeps an unfunded missing-price entry unresolved without counting it as an a
       }}
     />,
   );
-  fireEvent.click(screen.getByRole("button", { name: "Inspect" }));
-  expect(screen.getAllByText(/missing actual odds/).length).toBeGreaterThan(0);
+  expect(
+    screen.queryByRole("button", { name: "Inspect" }),
+  ).not.toBeInTheDocument();
   expect(
     screen.getByText(/0 completed · 1 unresolved · 0 overlap exclusions/),
   ).toBeInTheDocument();

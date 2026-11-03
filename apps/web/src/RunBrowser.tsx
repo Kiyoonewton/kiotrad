@@ -3,12 +3,19 @@ import { naira } from "./api";
 import type { SharedRun } from "./sharedSimulation";
 import { SharedRunCalculation } from "./SharedRunCalculation";
 
-export function RunBrowser({ runs }: { runs: SharedRun[] }) {
+export function RunBrowser({
+  runs,
+  qualifiedOnly = false,
+}: {
+  runs: SharedRun[];
+  qualifiedOnly?: boolean;
+}) {
   const [expanded, setExpanded] = useState<string | null>(null);
   const [filter, setFilter] = useState("all");
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
   const selected = runs.filter((r) => {
+    if (qualifiedOnly && r.status === "not_qualified") return false;
     const skipped = r.status.startsWith("skipped_");
     return (
       (filter === "all" ||
@@ -22,6 +29,17 @@ export function RunBrowser({ runs }: { runs: SharedRun[] }) {
         .includes(search.toLowerCase())
     );
   });
+  if (qualifiedOnly)
+    selected.sort((a, b) => {
+      const time = (r: SharedRun) =>
+        Date.parse(r.entry_at || r.fixtures?.[0]?.scheduled_start_at || "") ||
+        0;
+      return (
+        time(b) - time(a) ||
+        Number(b.season_id ?? 0) - Number(a.season_id ?? 0) ||
+        a.id.localeCompare(b.id)
+      );
+    });
   const last = Math.max(1, Math.ceil(selected.length / 12));
   const current = Math.min(page, last);
   return (
@@ -38,8 +56,12 @@ export function RunBrowser({ runs }: { runs: SharedRun[] }) {
       <div className="browse-toolbar">
         <div className="browse-tabs" role="group" aria-label="Run status">
           {[
-            ["all", "All"],
-            ["qualified", "Qualified"],
+            ...(qualifiedOnly
+              ? [["all", "Qualified"]]
+              : [
+                  ["all", "All"],
+                  ["qualified", "Qualified"],
+                ]),
             ["settled", "Settled"],
             ["skipped", "Skipped"],
           ].map(([value, label]) => (
@@ -74,6 +96,7 @@ export function RunBrowser({ runs }: { runs: SharedRun[] }) {
             <tr>
               <th>Team / season</th>
               <th>Status</th>
+              <th>Attempts to win</th>
               <th>Staked</th>
               <th>Payout</th>
               <th>Net</th>
@@ -99,6 +122,12 @@ export function RunBrowser({ runs }: { runs: SharedRun[] }) {
                     >
                       {r.status.replaceAll("_", " ")}
                     </span>
+                  </td>
+                  <td>
+                    {r.status === "win" && r.attempts?.length
+                      ? (r.attempts.find((a) => (a.payout_minor ?? 0) > 0)
+                          ?.attempt ?? r.attempts.length)
+                      : "—"}
                   </td>
                   <td>
                     {r.total_staked_minor != null
@@ -134,7 +163,7 @@ export function RunBrowser({ runs }: { runs: SharedRun[] }) {
                 </tr>
                 {expanded === r.id && (
                   <tr className="browse-expanded">
-                    <td colSpan={6} id={`run-detail-${r.id}`}>
+                    <td colSpan={7} id={`run-detail-${r.id}`}>
                       <div className="browse-detail">
                         <p>{r.id}</p>
                         {r.trigger_day != null && (

@@ -114,6 +114,7 @@ export function StrategyList({
             )}
             {sharedRuns && (
               <RunBrowser
+                qualifiedOnly
                 runs={sharedRuns.filter(
                   (run) => run.strategy_id === strategy.id,
                 )}
