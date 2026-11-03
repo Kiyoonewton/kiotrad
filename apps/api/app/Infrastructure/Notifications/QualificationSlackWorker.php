@@ -9,9 +9,9 @@ use RuntimeException;
 final class QualificationSlackWorker extends QualificationEmailWorker
 {
     public function __construct(ChampionMonitoring $monitoring, PaperMarket $market, QualificationEmailPolicy $policy,
-        QualificationSlackStore $store, QualificationSlackSettings $settings, private SlackTransport $transport)
+        QualificationSlackStore $store, QualificationSlackSettings $settings, private SlackTransport $transport, AlertStakePlanner $planner)
     {
-        parent::__construct($monitoring, $market, $policy, $store, $settings);
+        parent::__construct($monitoring, $market, $policy, $store, $settings, $planner);
     }
 
     protected function configured(): bool

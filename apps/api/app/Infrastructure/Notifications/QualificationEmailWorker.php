@@ -11,10 +11,13 @@ use Throwable;
 class QualificationEmailWorker
 {
     public function __construct(private ChampionMonitoring $monitoring, private PaperMarket $market,
-        private QualificationEmailPolicy $policy, private QualificationEmailStore $store, private QualificationEmailSettings $settings) {}
+        private QualificationEmailPolicy $policy, private QualificationEmailStore $store, private QualificationEmailSettings $settings, private AlertStakePlanner $planner) {}
 
     public function tick(): string
     {
+        if (! ProductionAlertDelivery::allowed()) {
+            return 'production_only';
+        }
         if (! $this->configured()) {
             return 'disabled_or_unconfigured';
         }
@@ -22,7 +25,7 @@ class QualificationEmailWorker
         if (! $settings['enabled']) {
             return 'paused';
         }
-        $sent = $uncertain = 0;
+        $sent = $uncertain = $missingStake = 0;
         foreach ($this->monitoring->forEmail($settings) as $candidate) {
             $alert = $this->policy->prepare($candidate, now('UTC')->toIso8601String(), $settings);
             if ($alert === null) {
@@ -35,6 +38,20 @@ class QualificationEmailWorker
                 || CarbonImmutable::parse($fact['observed_at'])->lessThan(now('UTC')->subSeconds(60))
                 || CarbonImmutable::parse($fact['observed_at'])->greaterThan(now('UTC'))
                 || ($fact['fixture']['scheduled_start_at'] ?? '') !== $candidate['next_match']['scheduled_start_at']) {
+                continue;
+            }
+            $stakePlan = $this->planner->make($candidate, $fact, $settings, now('UTC')->toIso8601String());
+            if (($stakePlan['status'] ?? '') !== 'estimated') {
+                $missingStake++;
+
+                continue; // Do not consume this run; retry inputs while its entry window remains open.
+            }
+            unset($alert['details']['Stake'], $alert['details']['Reference capital']);
+            $alert['details'] += $this->planner->details($stakePlan);
+            $alert['stake_plan'] = $stakePlan;
+            if (CarbonImmutable::parse($stakePlan['first_quote']['price_observed_at'] ?? now('UTC')->toIso8601String())->lessThan(now('UTC')->subSeconds(60))) {
+                $missingStake++;
+
                 continue;
             }
             if ($this->policy->prepare($candidate, now('UTC')->toIso8601String(), $settings) === null || ! $this->store->claim($alert)) {
@@ -55,7 +72,7 @@ class QualificationEmailWorker
             }
         }
 
-        return $uncertain ? 'delivery_uncertain:'.$uncertain : ($sent ? 'submitted:'.$sent : 'waiting');
+        return $uncertain ? 'delivery_uncertain:'.$uncertain : ($sent ? 'submitted:'.$sent : ($missingStake ? 'waiting_for_stake_inputs:'.$missingStake : 'waiting'));
     }
 
     protected function configured(): bool

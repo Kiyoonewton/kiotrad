@@ -35,3 +35,7 @@ docker compose --env-file engine/.env -f engine/compose.yaml logs -f --tail=20 q
 ```
 
 `submitted:N` means N webhook acknowledgements; `paused` means page pause; `disabled_or_unconfigured` means env/webhook setup is missing. Saved settings apply next scan and never resend an already claimed run.
+
+## Stake-plan update
+
+See [Production-only stake plans](alert-stake-plans.md): new qualified Slack alerts include a frozen conditional stake schedule based on saved capital and allowance. Missing inputs delay/suppress the alert. The earlier budget-only limitation is superseded. Delivery is blocked outside production and on local mirrors/snapshot databases.

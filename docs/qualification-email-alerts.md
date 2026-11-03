@@ -50,3 +50,7 @@ Editable parameters: alert pause, capital in naira, league, minimum lead seconds
 SMTP credentials and recipient stay in env. Changing settings does not resend an already claimed run, enable the env delivery switch or certify SMTP/inbox delivery. Capital is a reference run budget; there are no allowance, compounding or profit-stop controls pretending to manage a bankroll because live stake execution is not implemented.
 
 After adding/changing env values recreate both `api` and `qualification-email-worker` to load configuration. Build `web` to expose the new page. Local snapshots have their own settings and do not copy SMTP secrets from production.
+
+## Stake-plan update
+
+The initial budget-only limitation above is superseded by [Production-only stake plans](alert-stake-plans.md). New alerts wait for a complete conditional plan and verified first quote. The page now supports allowance ×1/×2. Live delivery requires APP_ENV=production, non-mirror mode and a non-local database; local/testing workers cannot send.
