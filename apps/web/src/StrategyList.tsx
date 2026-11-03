@@ -1,4 +1,5 @@
 import { StrategyTotals } from "./StrategyTotals";
+import { settledStrategyNet } from "./strategyNet";
 import { StrategyParameters } from "./StrategyParameters";
 import type { ScenarioSettings } from "./useScenario";
 import { RunBrowser } from "./RunBrowser";
@@ -30,6 +31,23 @@ export function StrategyList({
         </div>
         <span className="subtle">{strategies.length} strategies</span>
       </div>
+      {settings && change && (
+        <section className="strategy-settings" aria-label="Strategy settings">
+          <h3>Strategy settings</h3>
+          <div className="strategy-settings-grid">
+            {strategies.map((strategy) => (
+              <fieldset key={strategy.id}>
+                <legend>{strategy.name}</legend>
+                <StrategyParameters
+                  id={strategy.id}
+                  settings={settings}
+                  change={change}
+                />
+              </fieldset>
+            ))}
+          </div>
+        </section>
+      )}
       {strategies.map((strategy, index) => (
         <details className="strategy-row" key={strategy.id}>
           <summary>
@@ -46,19 +64,25 @@ export function StrategyList({
                 attempts maximum
               </small>
             </span>
-            <span className="research-status">Research</span>
+            <span className="strategy-net">
+              <small>Settled net</small>
+              <strong>
+                {sharedRuns
+                  ? naira(
+                      settledStrategyNet(
+                        sharedRuns.filter(
+                          (run) => run.strategy_id === strategy.id,
+                        ),
+                      ),
+                    )
+                  : "Calculating…"}
+              </strong>
+            </span>
             <span className="expand-icon" aria-hidden="true">
               +
             </span>
           </summary>
           <div className="strategy-description">
-            {settings && change && (
-              <StrategyParameters
-                id={strategy.id}
-                settings={settings}
-                change={change}
-              />
-            )}
             <details className="strategy-rules">
               <summary>Rules &amp; assumptions</summary>
               <p>

@@ -1,6 +1,8 @@
 import { naira } from "./api";
 import type { SharedRun } from "./sharedSimulation";
 
+import { settledStrategyNet } from "./strategyNet";
+
 export function StrategyTotals({ runs }: { runs: SharedRun[] }) {
   const accepted = runs.filter(
     (run) =>
@@ -41,9 +43,7 @@ export function StrategyTotals({ runs }: { runs: SharedRun[] }) {
       </div>
       <div>
         <small>Settled net</small>
-        <strong>
-          {naira(settled.reduce((sum, run) => sum + (run.net_minor ?? 0), 0))}
-        </strong>
+        <strong>{naira(settledStrategyNet(runs))}</strong>
       </div>
     </div>
   );

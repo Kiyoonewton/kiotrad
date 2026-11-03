@@ -59,7 +59,9 @@ export function ProjectionWorkspace({
           competitions={data.competitions}
           settings={settings}
           change={change}
-          sharedRuns={view ? [...view.runs, ...(view.unqualified ?? [])] : []}
+          sharedRuns={
+            view ? [...view.runs, ...(view.unqualified ?? [])] : undefined
+          }
         />
       )}
       {view &&
