@@ -57,6 +57,11 @@ services:
     restart: unless-stopped
     stop_grace_period: 35s
 
+  qualification-email-worker:
+    <<: *collector
+    profiles: [email-alerts]
+    command: [php, artisan, 'notifications:email-watch']
+
   notification-worker:
     <<: *collector
     profiles: [notifications]
