@@ -13,9 +13,28 @@ class ChampionMonitoring
 {
     private ?array $batch = null;
 
+    private ?array $emailRules = null;
+
     private bool $preparing = false;
 
     public function __construct(private ChampionMonitor $monitor, private RunReplay $replay, private SimulationCache $cache) {}
+
+    public function forEmail(array $settings): array
+    {
+        $this->emailRules = $settings;
+        try {
+            return $this->all(false);
+        } finally {
+            $this->emailRules = null;
+        }
+    }
+
+    private function emailRule(string $strategy, string $name, int $fallback): int
+    {
+        $prefix = $strategy === 'champion-next-win' ? 'next_win' : 'next_season';
+
+        return $this->emailRules[$prefix.'_'.$name] ?? $fallback;
+    }
 
     public function all(bool $eventOrder = true): array
     {
@@ -137,7 +156,7 @@ class ChampionMonitoring
             $season = ['season_id' => $id, 'matches' => [], 'champion' => null];
             $seen = [];
             $trackedTeam = $seasons[$ids[1] ?? '']['champion']['team_uid'] ?? null;
-            $needsReplay = ! $this->preparing && $id === $currentId && $trackedTeam !== null;
+            $needsReplay = $this->emailRules === null && ! $this->preparing && $id === $currentId && $trackedTeam !== null;
             $projection = ['observed_at' => 1, 'matches' => 1, 'standings' => 1];
             if ($needsReplay) {
                 $projection['odds_snapshots'] = 1;
@@ -167,9 +186,9 @@ class ChampionMonitoring
         }
 
         $rows = array_map(fn ($strategy) => ['competition' => $competition, 'blocked_matchdays' => $blockedDays, ...$this->monitor->evaluate($strategy,
-            $seasons[$currentId], $seasons[$ids[1] ?? ''] ?? null, $seasons[$ids[2] ?? ''] ?? null, $links, $asOf, $eventOrder, $this->preparing ? 1 : ChampionMonitor::MIN_FIRST_WIN_DAY, $this->preparing ? 1 : 4)], ['champion-next-win', 'champion-next-season']);
+            $seasons[$currentId], $seasons[$ids[1] ?? ''] ?? null, $seasons[$ids[2] ?? ''] ?? null, $links, $asOf, $eventOrder, $this->preparing ? 1 : $this->emailRule($strategy, 'qualification', ChampionMonitor::MIN_FIRST_WIN_DAY), $this->preparing ? 1 : $this->emailRule($strategy, 'attempts', 4))], ['champion-next-win', 'champion-next-season']);
 
-        if ($this->preparing) {
+        if ($this->preparing || $this->emailRules !== null) {
             return $rows;
         }
 
