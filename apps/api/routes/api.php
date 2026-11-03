@@ -14,3 +14,5 @@ Route::get('/v1/simulations', SimulationHistoryController::class);
 Route::get('/v1/research/scenario', ResearchScenarioController::class);
 
 Route::match(['get', 'put'], '/v1/notifications/email-settings', QualificationEmailSettingsController::class);
+
+Route::match(['get', 'put'], '/v1/notifications/slack-settings', QualificationEmailSettingsController::class)->defaults('channel', 'slack');

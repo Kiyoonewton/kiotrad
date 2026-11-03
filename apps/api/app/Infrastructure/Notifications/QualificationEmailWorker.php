@@ -8,18 +8,14 @@ use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\Mail;
 use Throwable;
 
-final class QualificationEmailWorker
+class QualificationEmailWorker
 {
     public function __construct(private ChampionMonitoring $monitoring, private PaperMarket $market,
         private QualificationEmailPolicy $policy, private QualificationEmailStore $store, private QualificationEmailSettings $settings) {}
 
     public function tick(): string
     {
-        $recipient = config('notifications.email.to');
-        if (! config('notifications.email.enabled') || ! filter_var($recipient, FILTER_VALIDATE_EMAIL)
-            || ! filter_var(config('mail.from.address'), FILTER_VALIDATE_EMAIL)
-            || config('mail.default') !== 'smtp' || ! config('mail.mailers.smtp.host')
-            || ! config('mail.mailers.smtp.username') || ! config('mail.mailers.smtp.password')) {
+        if (! $this->configured()) {
             return 'disabled_or_unconfigured';
         }
         $settings = $this->settings->read();
@@ -50,8 +46,8 @@ final class QualificationEmailWorker
                 continue;
             }
             try {
-                Mail::to($recipient)->send(new QualificationEmail($alert['details']));
-                $this->store->finish($alert['id'], 'submitted_to_smtp');
+                $this->send($alert['details']);
+                $this->store->finish($alert['id'], $this->deliveryStatus());
                 $sent++;
             } catch (Throwable) {
                 $this->store->finish($alert['id'], 'delivery_uncertain');
@@ -60,5 +56,22 @@ final class QualificationEmailWorker
         }
 
         return $uncertain ? 'delivery_uncertain:'.$uncertain : ($sent ? 'submitted:'.$sent : 'waiting');
+    }
+
+    protected function configured(): bool
+    {
+        return config('notifications.email.enabled') && filter_var(config('notifications.email.to'), FILTER_VALIDATE_EMAIL)
+            && filter_var(config('mail.from.address'), FILTER_VALIDATE_EMAIL) && config('mail.default') === 'smtp'
+            && config('mail.mailers.smtp.host') && config('mail.mailers.smtp.username') && config('mail.mailers.smtp.password');
+    }
+
+    protected function send(array $details): void
+    {
+        Mail::to(config('notifications.email.to'))->send(new QualificationEmail($details));
+    }
+
+    protected function deliveryStatus(): string
+    {
+        return 'submitted_to_smtp';
     }
 }

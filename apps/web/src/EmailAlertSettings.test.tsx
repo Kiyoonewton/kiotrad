@@ -24,16 +24,14 @@ const settings = {
   next_season_attempts: 4,
 };
 it("loads and explicitly saves independent email settings with an in-memory settings key", async () => {
-  const fetcher = vi
-    .fn()
-    .mockResolvedValue({
-      ok: true,
-      json: async () => ({
-        settings,
-        delivery_enabled: false,
-        smtp_configured: false,
-      }),
-    });
+  const fetcher = vi.fn().mockResolvedValue({
+    ok: true,
+    json: async () => ({
+      settings,
+      delivery_enabled: false,
+      smtp_configured: false,
+    }),
+  });
   vi.stubGlobal("fetch", fetcher);
   render(<EmailAlertSettings />);
   fireEvent.change(screen.getByLabelText("Settings key"), {
@@ -80,4 +78,32 @@ it("shows an authorization error without displaying editable settings", async ()
   expect(
     screen.queryByLabelText("Total run capital · ₦"),
   ).not.toBeInTheDocument();
+});
+it("uses the Slack endpoint and webhook status without requiring email configuration", async () => {
+  const fetcher = vi
+    .fn()
+    .mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        settings,
+        delivery_enabled: true,
+        smtp_configured: false,
+        transport_configured: true,
+      }),
+    });
+  vi.stubGlobal("fetch", fetcher);
+  render(<EmailAlertSettings channel="slack" />);
+  expect(
+    screen.getByRole("heading", { name: "Slack alerts" }),
+  ).toBeInTheDocument();
+  fireEvent.change(screen.getByLabelText("Settings key"), {
+    target: { value: "s".repeat(32) },
+  });
+  fireEvent.click(screen.getByRole("button", { name: "Unlock settings" }));
+  expect(await screen.findByText("Webhook")).toBeInTheDocument();
+  expect(screen.getByText("Configured")).toBeInTheDocument();
+  expect(fetcher.mock.calls[0][0]).toBe("/api/v1/notifications/slack-settings");
+  expect(
+    screen.getByRole("button", { name: "Save slack settings" }),
+  ).toBeInTheDocument();
 });

@@ -18,8 +18,14 @@ type SettingsResponse = {
   settings: AlertSettings;
   delivery_enabled: boolean;
   smtp_configured: boolean;
+  transport_configured?: boolean;
 };
-export function EmailAlertSettings() {
+export function EmailAlertSettings({
+  channel = "email",
+}: {
+  channel?: "email" | "slack";
+}) {
+  const title = channel === "slack" ? "Slack" : "Email";
   const [token, setToken] = useState("");
   const [saved, setSaved] = useState<SettingsResponse | null>(null);
   const [draft, setDraft] = useState<AlertSettings | null>(null);
@@ -29,23 +35,26 @@ export function EmailAlertSettings() {
     setBusy(true);
     setMessage("");
     try {
-      const response = await fetch("/api/v1/notifications/email-settings", {
-        method: save ? "PUT" : "GET",
-        cache: "no-store",
-        headers: {
-          Authorization: `Bearer ${token}`,
-          Accept: "application/json",
-          ...(save ? { "Content-Type": "application/json" } : {}),
+      const response = await fetch(
+        `/api/v1/notifications/${channel}-settings`,
+        {
+          method: save ? "PUT" : "GET",
+          cache: "no-store",
+          headers: {
+            Authorization: `Bearer ${token}`,
+            Accept: "application/json",
+            ...(save ? { "Content-Type": "application/json" } : {}),
+          },
+          ...(save ? { body: JSON.stringify(draft) } : {}),
         },
-        ...(save ? { body: JSON.stringify(draft) } : {}),
-      });
+      );
       if (!response.ok)
         throw new Error(
           response.status === 403
             ? "Settings key required or not accepted."
             : response.status === 422
               ? "Check capital, timing and strategy ranges."
-              : "Unable to save or load email settings. Retry.",
+              : "Unable to save or load alert settings. Retry.",
         );
       const result = (await response.json()) as SettingsResponse;
       setSaved(result);
@@ -57,7 +66,7 @@ export function EmailAlertSettings() {
       );
     } catch (error) {
       setMessage(
-        error instanceof Error ? error.message : "Email settings unavailable.",
+        error instanceof Error ? error.message : "Alert settings unavailable.",
       );
     } finally {
       setBusy(false);
@@ -72,11 +81,11 @@ export function EmailAlertSettings() {
     void call(!!saved);
   };
   return (
-    <section className="history-page" aria-label="Email alert settings">
+    <section className="history-page" aria-label={`${title} alert settings`}>
       <header className="section-heading">
         <div>
           <p className="eyebrow">Manual betting alerts</p>
-          <h1>Email alerts</h1>
+          <h1>{title} alerts</h1>
           <p className="subtle">
             Separate from simulator settings. No automatic bets.
           </p>
@@ -105,7 +114,7 @@ export function EmailAlertSettings() {
             <>
               <div
                 className="history-summary"
-                aria-label="Email delivery status"
+                aria-label={`${title} delivery status`}
               >
                 <div>
                   <small>Alerts</small>
@@ -120,9 +129,15 @@ export function EmailAlertSettings() {
                   </strong>
                 </div>
                 <div>
-                  <small>SMTP</small>
+                  <small>{channel === "slack" ? "Webhook" : "SMTP"}</small>
                   <strong>
-                    {saved.smtp_configured ? "Configured" : "Setup required"}
+                    {(
+                      channel === "slack"
+                        ? saved.transport_configured
+                        : saved.smtp_configured
+                    )
+                      ? "Configured"
+                      : "Setup required"}
                   </strong>
                 </div>
                 <div>
@@ -233,13 +248,13 @@ export function EmailAlertSettings() {
                 </fieldset>
               ))}
               <p className="subtle">
-                Emails include your run budget and attempt limit. Live stake
+                Alerts include your run budget and attempt limit. Live stake
                 amounts are not calculated. Lead time is measured before
                 scheduled kickoff; delivery and bookmaker cutoff may differ.
               </p>
               <div className="browse-toolbar" style={{ marginTop: 24 }}>
                 <button type="submit" disabled={busy}>
-                  {busy ? "Saving…" : "Save email settings"}
+                  {busy ? "Saving…" : `Save ${channel} settings`}
                 </button>
                 <button
                   type="button"

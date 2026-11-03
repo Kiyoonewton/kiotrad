@@ -8,7 +8,13 @@ import { ProjectionWorkspace } from "./ProjectionWorkspace";
 import { LocalSyncControl } from "./LocalSyncControl";
 import { Logo } from "./Logo";
 
-const pages = ["Overview", "Strategies", "History", "Email alerts"] as const;
+const pages = [
+  "Overview",
+  "Strategies",
+  "History",
+  "Email alerts",
+  "Slack alerts",
+] as const;
 type Page = (typeof pages)[number];
 
 export default function App() {
@@ -79,7 +85,7 @@ export default function App() {
               aria-current={page === item ? "page" : undefined}
               onClick={() => setPage(item)}
             >
-              <span aria-hidden="true">{["◫", "◇", "◷", "◈"][index]}</span>
+              <span aria-hidden="true">{["◫", "◇", "◷", "◈", "◈"][index]}</span>
               {item}
             </button>
           ))}
@@ -173,8 +179,11 @@ export default function App() {
                 : ""}
             </div>
           )}
-          {page === "Email alerts" ? (
-            <EmailAlertSettings />
+          {page === "Email alerts" || page === "Slack alerts" ? (
+            <EmailAlertSettings
+              key={page}
+              channel={page === "Slack alerts" ? "slack" : "email"}
+            />
           ) : error && !data ? (
             <section className="message-panel" role="alert">
               <h1>Connection interrupted</h1>

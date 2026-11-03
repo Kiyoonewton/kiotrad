@@ -6,6 +6,11 @@ use Illuminate\Support\Facades\DB;
 
 class QualificationEmailSettings
 {
+    protected function collectionName(): string
+    {
+        return 'qualification_email_settings';
+    }
+
     public function defaults(): array
     {
         return ['enabled' => true, 'capital' => intdiv((int) config('notifications.email.capital_minor', 5000000), 100),
@@ -16,7 +21,7 @@ class QualificationEmailSettings
 
     public function read(): array
     {
-        $row = DB::connection('mongodb')->getDatabase()->qualification_email_settings->findOne(['_id' => 'current'],
+        $row = DB::connection('mongodb')->getDatabase()->selectCollection($this->collectionName())->findOne(['_id' => 'current'],
             ['typeMap' => ['root' => 'array', 'document' => 'array', 'array' => 'array']]);
 
         return array_replace($this->defaults(), array_intersect_key($row ?? [], $this->defaults()));
@@ -24,7 +29,7 @@ class QualificationEmailSettings
 
     public function save(array $settings): array
     {
-        DB::connection('mongodb')->getDatabase()->qualification_email_settings->updateOne(['_id' => 'current'],
+        DB::connection('mongodb')->getDatabase()->selectCollection($this->collectionName())->updateOne(['_id' => 'current'],
             ['$set' => [...$settings, 'updated_at' => now('UTC')->toIso8601String()]], ['upsert' => true]);
 
         return $settings;

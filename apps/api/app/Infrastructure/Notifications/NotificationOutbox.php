@@ -51,6 +51,7 @@ class NotificationOutbox
         $lease = bin2hex(random_bytes(16));
         $row = $this->collection()->findOneAndUpdate([
             'status' => ['$in' => ['pending', 'retry', 'sending']], 'next_attempt_at' => ['$lte' => $now],
+            ...(config('notifications.slack_qualification.enabled') ? ['type' => ['$nin' => ['qualified', 'quote']]] : []),
         ], ['$set' => ['status' => 'sending', 'lease' => $lease,
             'next_attempt_at' => now('UTC')->addSeconds(60)->toIso8601String()], '$inc' => ['attempts' => 1]],
             ['sort' => ['created_at' => 1, '_id' => 1], 'returnDocument' => FindOneAndUpdate::RETURN_DOCUMENT_AFTER,

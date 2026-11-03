@@ -39,7 +39,7 @@ final class QualificationEmailPolicy
                 'Reference capital' => OpportunityNotifications::money($capital).' — total run budget, not a single stake',
                 'Detected UTC' => $now, 'Action' => 'Check current bookmaker odds, balance and market cutoff before placing manually.',
                 'Stake' => 'Not calculated: retrospective payout-carry sizing uses future odds and is not a live staking instruction.',
-                'Timing' => 'Scheduled kickoff; bookmaker cutoff may be earlier. Email arrival time is not guaranteed.',
+                'Timing' => 'Scheduled kickoff; bookmaker cutoff may be earlier. Notification arrival time is not guaranteed.',
             ]];
     }
 }

@@ -1,6 +1,10 @@
 <?php
 
 return [
+    'slack_qualification' => [
+        'enabled' => (bool) env('QUALIFICATION_SLACK_ENABLED', false),
+        'settings_token' => env('QUALIFICATION_SLACK_SETTINGS_TOKEN', env('QUALIFICATION_EMAIL_SETTINGS_TOKEN', '')),
+    ],
     'email' => [
         'settings_token' => env('QUALIFICATION_EMAIL_SETTINGS_TOKEN', ''),
         'enabled' => (bool) env('QUALIFICATION_EMAIL_ENABLED', false),
