@@ -213,3 +213,49 @@ it("changes rules through a financial replay and hides amounts while the new sel
   });
   expect(screen.queryByText("Current capital")).not.toBeInTheDocument();
 });
+it("keeps current recorded qualification on Overview separately from scenario settings", async () => {
+  vi.stubGlobal(
+    "fetch",
+    vi
+      .fn()
+      .mockResolvedValue({
+        ok: true,
+        json: async () => ({
+          ...baseline,
+          status: "available",
+          settings: {},
+          source_as_of: "2026-10-20T12:00:00Z",
+          data_revision: "test",
+        }),
+      }),
+  );
+  render(
+    <ProjectionWorkspace
+      data={{
+        ...data,
+        strategy_monitoring: [
+          {
+            competition: "virtual-euro",
+            strategy_id: "champion-next-win",
+            season_id: "200",
+            team: "Current early winner",
+            trigger_day: 2,
+            status: "not_qualified",
+          },
+        ],
+      }}
+      league="all"
+      page="Overview"
+    />,
+  );
+  await act(() => vi.advanceTimersByTimeAsync(401));
+  const section = screen.getByRole("region", { name: "Current qualification" });
+  expect(within(section).getByText("Current early winner")).toBeInTheDocument();
+  expect(within(section).getByText("not qualified")).toBeInTheDocument();
+  expect(
+    within(section).getByText(/Recorded production rules/),
+  ).toBeInTheDocument();
+  expect(
+    within(section).queryByText("Stake & results"),
+  ).not.toBeInTheDocument();
+});

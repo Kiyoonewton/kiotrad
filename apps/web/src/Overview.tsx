@@ -137,8 +137,17 @@ export function Overview({
         {(!data.shared_simulation || monitoring.length > 0) && (
           <section className="quiet-panel" aria-labelledby="monitoring-title">
             <p className="eyebrow">Current activity</p>
-            <h2 id="monitoring-title">Current matches</h2>
-            {data.research_simulation ? (
+            <h2 id="monitoring-title">
+              {data.shared_simulation
+                ? "Current qualification"
+                : "Current matches"}
+            </h2>
+            {data.shared_simulation ? (
+              <p className="subtle">
+                Recorded production rules · separate from retrospective
+                settings.
+              </p>
+            ) : data.research_simulation ? (
               <p>Research simulation · includes recovered evidence.</p>
             ) : (
               <>
@@ -175,7 +184,7 @@ export function Overview({
             )}
             <MonitoringGroups
               rows={monitoring}
-              sharedRuns={data.shared_simulation?.runs}
+              qualificationOnly={!!data.shared_simulation}
               strategies={data.strategies}
               competitions={data.competitions}
             />

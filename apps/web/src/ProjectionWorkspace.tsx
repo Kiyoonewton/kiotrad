@@ -68,7 +68,7 @@ export function ProjectionWorkspace({
         scenarioData &&
         (page === "Overview" ? (
           <Overview
-            data={{ ...scenarioData, strategy_monitoring: [] }}
+            data={scenarioData}
             league={league}
             scopeLabel={`Retrospective research · ${league === "all" ? "all leagues" : (data.competitions.find((c) => c.id === league)?.name ?? league)} · ${settings.strategy === "all" ? "both strategies" : (data.strategies.find((s) => s.id === settings.strategy)?.name ?? settings.strategy)}`}
           />
