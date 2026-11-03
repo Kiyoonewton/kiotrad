@@ -104,102 +104,125 @@ export function RunBrowser({
             </tr>
           </thead>
           <tbody>
-            {selected.slice((current - 1) * 12, current * 12).map((r) => (
-              <Fragment key={r.id}>
-                <tr>
-                  <td>
-                    <strong>{r.team ?? r.id}</strong>
-                    <small>
-                      {r.competition?.replace("virtual-", "")} · {r.season_id} ·{" "}
-                      {r.strategy_id
-                        ?.replace("champion-", "")
-                        .replaceAll("-", " ")}
-                    </small>
-                  </td>
-                  <td>
-                    <span
-                      className={`browse-status ${r.status === "win" ? "positive" : ""}`}
-                    >
-                      {r.status.replaceAll("_", " ")}
-                    </span>
-                  </td>
-                  <td>
-                    {r.status === "win" && r.attempts?.length
-                      ? (r.attempts.find((a) => (a.payout_minor ?? 0) > 0)
-                          ?.attempt ?? r.attempts.length)
-                      : "—"}
-                  </td>
-                  <td>
-                    {r.total_staked_minor != null
-                      ? naira(r.total_staked_minor)
-                      : "—"}
-                  </td>
-                  <td>
-                    {r.gross_payout_minor != null
-                      ? naira(r.gross_payout_minor)
-                      : "—"}
-                  </td>
-                  <td
-                    className={
-                      r.net_minor != null && r.net_minor < 0
-                        ? "negative"
-                        : "positive"
-                    }
-                  >
-                    {r.net_minor != null ? naira(r.net_minor) : "—"}
-                  </td>
-                  <td>
-                    <button
-                      className="browse-inspect"
-                      aria-expanded={expanded === r.id}
-                      aria-controls={`run-detail-${r.id}`}
-                      onClick={() =>
-                        setExpanded(expanded === r.id ? null : r.id)
+            {selected.slice((current - 1) * 12, current * 12).map((source) => {
+              const hypothetical = source.hypothetical;
+              const r =
+                hypothetical && hypothetical.status !== "unavailable"
+                  ? { ...source, ...hypothetical }
+                  : source;
+              return (
+                <Fragment key={r.id}>
+                  <tr>
+                    <td>
+                      <strong>{r.team ?? r.id}</strong>
+                      <small>
+                        {r.competition?.replace("virtual-", "")} · {r.season_id}{" "}
+                        ·{" "}
+                        {r.strategy_id
+                          ?.replace("champion-", "")
+                          .replaceAll("-", " ")}
+                      </small>
+                    </td>
+                    <td>
+                      <span
+                        className={`browse-status ${r.status === "win" ? "positive" : ""}`}
+                      >
+                        {source.status.replaceAll("_", " ")}
+                        {hypothetical && (
+                          <small>
+                            Hypothetical ·{" "}
+                            {hypothetical.status.replaceAll("_", " ")}
+                          </small>
+                        )}
+                      </span>
+                    </td>
+                    <td>
+                      {r.status === "win" && r.attempts?.length
+                        ? (r.attempts.find((a) => (a.payout_minor ?? 0) > 0)
+                            ?.attempt ?? r.attempts.length)
+                        : "—"}
+                    </td>
+                    <td>
+                      {r.total_staked_minor != null
+                        ? naira(r.total_staked_minor)
+                        : "—"}
+                    </td>
+                    <td>
+                      {r.gross_payout_minor != null
+                        ? naira(r.gross_payout_minor)
+                        : "—"}
+                    </td>
+                    <td
+                      className={
+                        r.net_minor != null && r.net_minor < 0
+                          ? "negative"
+                          : "positive"
                       }
                     >
-                      {expanded === r.id ? "Close" : "Inspect"}
-                    </button>
-                  </td>
-                </tr>
-                {expanded === r.id && (
-                  <tr className="browse-expanded">
-                    <td colSpan={7} id={`run-detail-${r.id}`}>
-                      <div className="browse-detail">
-                        <p>{r.id}</p>
-                        {r.trigger_day != null && (
-                          <p>First win · D{r.trigger_day}</p>
-                        )}
-                        {r.entry_at && (
-                          <p>
-                            Entry ·{" "}
-                            {new Date(r.entry_at).toLocaleString("en-GB", {
-                              timeZone: "Africa/Lagos",
-                            })}{" "}
-                            WAT
-                          </p>
-                        )}
-                        {r.overlap_basis && (
-                          <p>
-                            Overlap · {r.overlap_basis.replaceAll("_", " ")}
-                          </p>
-                        )}
-                        {r.blocked_by && <p>Blocked by · {r.blocked_by}</p>}
-                        {r.entry_issue && (
-                          <p>{r.entry_issue.replaceAll("_", " ")}</p>
-                        )}
-                        {r.missing_historical_fixtures?.map((f) => (
-                          <p key={f.provider_match_id ?? f.matchday}>
-                            D{f.matchday} · {f.home_team} vs {f.away_team} ·{" "}
-                            {f.outcome}: earlier-season odds missing
-                          </p>
-                        ))}
-                        <SharedRunCalculation run={r} />
-                      </div>
+                      {r.net_minor != null ? naira(r.net_minor) : "—"}
+                    </td>
+                    <td>
+                      <button
+                        className="browse-inspect"
+                        aria-expanded={expanded === r.id}
+                        aria-controls={`run-detail-${r.id}`}
+                        onClick={() =>
+                          setExpanded(expanded === r.id ? null : r.id)
+                        }
+                      >
+                        {expanded === r.id ? "Close" : "Inspect"}
+                      </button>
                     </td>
                   </tr>
-                )}
-              </Fragment>
-            ))}
+                  {expanded === r.id && (
+                    <tr className="browse-expanded">
+                      <td colSpan={7} id={`run-detail-${r.id}`}>
+                        <div className="browse-detail">
+                          <p>{r.id}</p>
+                          {r.trigger_day != null && (
+                            <p>First win · D{r.trigger_day}</p>
+                          )}
+                          {r.entry_at && (
+                            <p>
+                              Entry ·{" "}
+                              {new Date(r.entry_at).toLocaleString("en-GB", {
+                                timeZone: "Africa/Lagos",
+                              })}{" "}
+                              WAT
+                            </p>
+                          )}
+                          {r.overlap_basis && (
+                            <p>
+                              Overlap · {r.overlap_basis.replaceAll("_", " ")}
+                            </p>
+                          )}
+                          {r.blocked_by && <p>Blocked by · {r.blocked_by}</p>}
+                          {r.entry_issue && (
+                            <p>{r.entry_issue.replaceAll("_", " ")}</p>
+                          )}
+                          {r.missing_historical_fixtures?.map((f) => (
+                            <p key={f.provider_match_id ?? f.matchday}>
+                              D{f.matchday} · {f.home_team} vs {f.away_team} ·{" "}
+                              {f.outcome}: earlier-season odds missing
+                            </p>
+                          ))}
+                          {hypothetical && (
+                            <p>
+                              Hypothetical calculation · excluded from bankroll
+                              and totals.
+                            </p>
+                          )}
+                          {hypothetical?.reason && (
+                            <p>{hypothetical.reason.replaceAll("_", " ")}</p>
+                          )}
+                          <SharedRunCalculation run={r} />
+                        </div>
+                      </td>
+                    </tr>
+                  )}
+                </Fragment>
+              );
+            })}
           </tbody>
         </table>
       </div>

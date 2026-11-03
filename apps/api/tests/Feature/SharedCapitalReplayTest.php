@@ -54,6 +54,11 @@ class SharedCapitalReplayTest extends TestCase
             $this->candidate('c', '2026-10-20T10:02:00Z', '2026-10-20T10:04:00Z'),
         ], 5000000, '2026-10-20T11:00:00Z');
         $this->assertSame(['win', 'skipped_overlap', 'skipped_overlap'], array_column($result['runs'], 'status'));
+        $preview = $result['runs'][1]['hypothetical'];
+        $this->assertSame('win', $preview['status']);
+        $this->assertGreaterThan(0, $preview['total_staked_minor']);
+        $this->assertSame($preview['gross_payout_minor'] - $preview['total_staked_minor'], $preview['net_minor']);
+        $this->assertArrayNotHasKey('net_minor', $result['runs'][1]);
         $this->assertSame(10000000, $result['balance_minor']);
         $this->assertCount(1, $result['equity']);
     }
