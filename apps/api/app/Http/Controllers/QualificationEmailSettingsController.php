@@ -3,6 +3,8 @@
 namespace App\Http\Controllers;
 
 use App\Infrastructure\Notifications\QualificationEmailSettings;
+use App\Infrastructure\Notifications\QualificationSlackSettings;
+use App\Infrastructure\Notifications\SlackTransport;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
@@ -11,8 +13,12 @@ final class QualificationEmailSettingsController extends Controller
 {
     public function __invoke(Request $request, QualificationEmailSettings $store): JsonResponse
     {
-        $token = (string) config('notifications.email.settings_token');
+        $slack = $request->route('channel') === 'slack';
+        $token = (string) config($slack ? 'notifications.slack_qualification.settings_token' : 'notifications.email.settings_token');
         abort_unless(strlen($token) >= 32 && hash_equals($token, (string) $request->bearerToken()), 403);
+        if ($slack) {
+            $store = app(QualificationSlackSettings::class);
+        }
         if ($request->isMethod('put')) {
             $settings = $request->validate([
                 'enabled' => ['required', 'boolean'], 'capital' => ['required', 'integer', 'min:100', 'max:10000000'],
@@ -35,7 +41,8 @@ final class QualificationEmailSettingsController extends Controller
             $settings = $store->read();
         }
 
-        return response()->json(['settings' => $settings, 'delivery_enabled' => (bool) config('notifications.email.enabled'),
+        return response()->json(['settings' => $settings, 'delivery_enabled' => (bool) config($slack ? 'notifications.slack_qualification.enabled' : 'notifications.email.enabled'),
+            'transport_configured' => $slack ? app(SlackTransport::class)->configured() : null,
             'smtp_configured' => config('mail.default') === 'smtp' && (bool) config('mail.mailers.smtp.username') && (bool) config('mail.mailers.smtp.password')
                 && filter_var(config('notifications.email.to'), FILTER_VALIDATE_EMAIL) !== false])->header('Cache-Control', 'no-store');
     }

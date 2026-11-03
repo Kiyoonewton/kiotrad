@@ -57,6 +57,11 @@ services:
     restart: unless-stopped
     stop_grace_period: 35s
 
+  qualification-slack-worker:
+    <<: *collector
+    profiles: [slack-alerts]
+    command: [php, artisan, 'notifications:slack-watch']
+
   qualification-email-worker:
     <<: *collector
     profiles: [email-alerts]

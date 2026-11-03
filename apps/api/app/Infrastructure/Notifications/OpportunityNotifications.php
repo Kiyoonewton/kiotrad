@@ -16,6 +16,9 @@ final class OpportunityNotifications
 
     public function scan(NotificationOutbox $outbox): void
     {
+        if (config('notifications.slack_qualification.enabled')) {
+            return; // Dedicated configurable Slack worker owns qualification and proposed-quote prompts.
+        }
         $state = $this->paper->read();
         foreach ($this->monitoring->all(false) as $candidate) {
             if (($candidate['status'] ?? '') !== 'watching_fixture' || ($candidate['attempt'] ?? 0) !== 1

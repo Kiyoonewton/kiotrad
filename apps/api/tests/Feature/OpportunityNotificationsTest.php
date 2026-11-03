@@ -78,4 +78,18 @@ class OpportunityNotificationsTest extends TestCase
         (new OpportunityNotifications($monitor, Mockery::mock(PaperMarket::class), $paper, new WinQuote))->scan(Mockery::mock(NotificationOutbox::class));
         $this->assertTrue(true);
     }
+
+    public function test_configurable_slack_worker_suppresses_legacy_qualification_prompts(): void
+    {
+        config(['notifications.slack_qualification.enabled' => true]);
+        $monitor = Mockery::mock(ChampionMonitoring::class);
+        $monitor->shouldNotReceive('all');
+        $paper = Mockery::mock(PaperStore::class);
+        $paper->shouldNotReceive('read');
+        $outbox = Mockery::mock(NotificationOutbox::class);
+        $outbox->shouldNotReceive('enqueue');
+        $scanner = new OpportunityNotifications($monitor, Mockery::mock(PaperMarket::class), $paper, new WinQuote);
+        $scanner->scan($outbox);
+        $this->assertTrue(true);
+    }
 }
